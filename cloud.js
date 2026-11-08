@@ -200,7 +200,8 @@ async function loadReels(force=false){
   const stack=list.querySelector('.pvReelStack');
   if(document.body.classList.contains('pvReelsMode')&&stack){
    const cards=[...stack.querySelectorAll('.pvReelCard')];
-   const index=Math.min(cards.length-1,Math.max(0,Math.round(stack.scrollTop/(stack.clientHeight||1))));
+   const restored=Number(stack.dataset.activeReel);
+   const index=Math.min(cards.length-1,Math.max(0,Number.isFinite(restored)?restored:Math.round(stack.scrollTop/(stack.clientHeight||1))));
    cards.forEach((card,i)=>{const v=card.querySelector('video');if(v){if(i===index)v.play().catch(()=>{});else v.pause()}});
   }
   return;
@@ -234,16 +235,26 @@ function goTo(index,behavior='smooth'){
  const next=Math.max(0,Math.min(cards.length-1,index));
  current=next;
  // Each card occupies exactly one stack viewport; no freely scrolling momentum.
- const top=cards[next].offsetTop-cards[0].offsetTop;
- reelStack.scrollTo({top,behavior});
+ const desktop=window.matchMedia('(min-width:701px)').matches;
+ reelStack.dataset.activeReel=String(next);
+ if(desktop){
+  // Desktop is a controlled vertical slideshow, not a native scroller.
+  // This avoids overflow/scroll-snap clashes in installed Chromium PWAs.
+  reelStack.style.transition=behavior==='smooth'?'transform 440ms cubic-bezier(.22,1,.36,1)':'none';
+  reelStack.style.transform='translate3d(0,'+(-next*reelStack.clientHeight)+'px,0)';
+ }else{
+  reelStack.style.transform='';
+  const top=cards[next].offsetTop-cards[0].offsetTop;
+  reelStack.scrollTo({top,behavior});
+ }
  pvActivateReel(next);
  clearTimeout(gestureTimer);
  gestureLocked=behavior==='smooth';
  gestureTimer=setTimeout(()=>{
   gestureLocked=false;
-  reelStack.scrollTop=cards[next].offsetTop-cards[0].offsetTop;
+  if(!window.matchMedia('(min-width:701px)').matches)reelStack.scrollTop=cards[next].offsetTop-cards[0].offsetTop;
   pvActivateReel(current);
- },behavior==='smooth'?520:0);
+ },behavior==='smooth'?480:0);
 }
 function stepReel(direction){
  if(gestureLocked||!direction)return;
@@ -301,6 +312,16 @@ reelStack.addEventListener('keydown',e=>{
 });
 reelStack.tabIndex=0;
 reelStack.setAttribute('aria-label','Reels feed — one swipe for one video');
+const pvReelsResize=()=>{
+ if(!reelStack.isConnected){window.removeEventListener('resize',pvReelsResize);return}
+ if(window.matchMedia('(min-width:701px)').matches){
+  reelStack.style.transition='none';
+  reelStack.style.transform='translate3d(0,'+(-current*reelStack.clientHeight)+'px,0)';
+ }else{reelStack.style.transition='';reelStack.style.transform=''}
+};
+window.addEventListener('resize',pvReelsResize,{passive:true});
+const originalReelsCleanup=window.pvReelsWheelCleanup;
+window.pvReelsWheelCleanup=()=>{originalReelsCleanup?.();window.removeEventListener('resize',pvReelsResize)};
 
 for(const reel of data){const person=people.get(reel.author_id)||{},card=node('article','pvReelCard'),screen=node('div','pvReelScreen'),video=node('video'),meta=node('div','pvReelMeta'),author=node('div','pvReelAuthor'),actions=node('div','pvReelActions');
 video.src=db.storage.from('reel-videos').getPublicUrl(reel.video_path).data.publicUrl;video.loop=true;video.playsInline=true;video.preload=cards.length<2?'metadata':'none';video.controls=false;video.setAttribute('aria-label','Reel by '+(person.username||'creator'));
