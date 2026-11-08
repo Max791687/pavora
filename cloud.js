@@ -446,7 +446,27 @@ db.from('direct_messages').select('id,sender_id,recipient_id,body,created_at,rea
 ]);if(selectedPeer!==id)return;if(error||personError){if(!silent)area.replaceChildren(node('p','muted',(error||personError).message));return}
 if(!person){area.replaceChildren(node('p','muted','User unavailable'));return}
 if(!document.hidden&&messages?.some(m=>m.recipient_id===user.id&&!m.read_at))pvMarkRead(id);
-if(silent&&area.querySelector('input:focus'))return;
+// Never replace the message composer during background polling: iOS/Android
+// will dismiss the software keyboard if its focused input is detached.
+if(silent&&area.querySelector('.pvMessageForm')){
+ const list=area.querySelector('.pvMessages');
+ if(list){
+  const known=new Set([...list.querySelectorAll('.pvMessageRow[data-message-id]')].map(row=>row.dataset.messageId));
+  const received=(messages||[]).filter(m=>!known.has(String(m.id)));
+  let lastDay=list.querySelector('.pvChatDayDivider:last-of-type')?.dataset.dayKey||'';
+  for(const m of received){
+   const stamp=new Date(m.created_at),dayKey=stamp.toDateString();
+   if(dayKey!==lastDay){lastDay=dayKey;const dateLabel=node('div','pvChatDayDivider',stamp.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}));dateLabel.dataset.dayKey=dayKey;list.append(dateLabel)}
+   list.querySelector('.pvChatEmptyMessage')?.remove();
+   const mine=m.sender_id===user.id,row=node('div','pvMessageRow'+(mine?' mine':'')),bubble=node('div','pvBubble'+(mine?' mine':''),m.body);
+   row.dataset.messageId=String(m.id);bubble.title=stamp.toLocaleString();row.append(bubble);
+   if(mine){const del=node('button','pvDeleteMessage','Delete');del.type='button';del.title='Delete this message for everyone';del.onclick=async()=>{if(!confirm('Delete this message for everyone?'))return;const {error}=await db.from('direct_messages').delete().eq('id',m.id).eq('sender_id',user.id);if(error)return alert(error.message);row.remove();await pvCheckUnread()};row.append(del)}
+   list.append(row);
+  }
+  if(received.length)list.scrollTop=list.scrollHeight;
+ }
+ return;
+}
 const [{data:incoming},{data:outgoing},{data:myFollow}]=await Promise.all([
 db.from('message_requests').select('sender_id').eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null).maybeSingle(),
 db.from('message_requests').select('accepted_at').eq('recipient_id',id).eq('sender_id',user.id).maybeSingle(),
@@ -468,13 +488,16 @@ const viewProfile=node('button','pvChatViewProfile','View profile');viewProfile.
 list.append(intro);
 let pvLastMessageDay='';
 for(const m of messages||[]){
-const stamp=new Date(m.created_at),dayKey=stamp.toDateString();if(dayKey!==pvLastMessageDay){pvLastMessageDay=dayKey;list.append(node('div','pvChatDayDivider',stamp.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})))}
+const stamp=new Date(m.created_at),dayKey=stamp.toDateString();if(dayKey!==pvLastMessageDay){pvLastMessageDay=dayKey;const marker=node('div','pvChatDayDivider',stamp.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}));marker.dataset.dayKey=dayKey;list.append(marker)}
 const mine=m.sender_id===user.id,row=node('div','pvMessageRow'+(mine?' mine':'')),bubble=node('div','pvBubble'+(mine?' mine':''),m.body);
-bubble.title=new Date(m.created_at).toLocaleString();row.append(bubble);if(mine){const del=node('button','pvDeleteMessage','Delete');del.type='button';del.title='Delete this message for everyone';del.setAttribute('aria-label','Delete message for everyone');del.onclick=async()=>{if(!confirm('Delete this message for everyone? This cannot be undone.'))return;del.disabled=true;const {error}=await db.from('direct_messages').delete().eq('id',m.id).eq('sender_id',user.id);if(error){alert('Could not delete message: '+error.message);del.disabled=false;return}await renderChat(id);await pvCheckUnread()};row.append(del)}list.append(row)}if(!messages?.length)list.append(node('p','pvChatEmptyMessage','Say hello! 👋'));const form=node('form','pvMessageForm'),input=node('input');input.placeholder='Message…';input.maxLength=2000;input.required=true;input.setAttribute('aria-label','Message');
+row.dataset.messageId=String(m.id);bubble.title=new Date(m.created_at).toLocaleString();row.append(bubble);if(mine){const del=node('button','pvDeleteMessage','Delete');del.type='button';del.title='Delete this message for everyone';del.setAttribute('aria-label','Delete message for everyone');del.onclick=async()=>{if(!confirm('Delete this message for everyone? This cannot be undone.'))return;del.disabled=true;const {error}=await db.from('direct_messages').delete().eq('id',m.id).eq('sender_id',user.id);if(error){alert('Could not delete message: '+error.message);del.disabled=false;return}await renderChat(id);await pvCheckUnread()};row.append(del)}list.append(row)}if(!messages?.length)list.append(node('p','pvChatEmptyMessage','Say hello! 👋'));const form=node('form','pvMessageForm'),input=node('input');input.placeholder='Message…';input.maxLength=2000;input.required=true;input.setAttribute('aria-label','Message');
 const emojiButton=node('button','pvChatEmojiButton');emojiButton.type='button';emojiButton.title='Add emoji';emojiButton.setAttribute('aria-label','Add emoji');emojiButton.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 14c2 3 6 3 8 0"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/></svg>';
 const emojiTray=node('div','pvChatEmojiTray');emojiTray.hidden=true;for(const emoji of ['❤️','😂','😍','🥰','🔥','👏','🙌','😊','👍','💜','✨','👋']){const item=node('button','',emoji);item.type='button';item.onclick=()=>{input.value+=emoji;emojiTray.hidden=true;input.focus();input.dispatchEvent(new Event('input'))};emojiTray.append(item)}
 emojiButton.onclick=()=>{emojiTray.hidden=!emojiTray.hidden};
 const send=node('button','primary pvChatSend','Send');send.type='submit';
+// On iOS Safari a normal tap first blurs the input, closing the keyboard.
+// Submit from the touch gesture itself and suppress focus transfer to button.
+send.addEventListener('touchstart',event=>{if(send.disabled)return;event.preventDefault();input.focus({preventScroll:true});form.requestSubmit(send)},{passive:false});
 const composerWrap=node('div','pvChatComposerWrap');form.append(emojiButton,input,send);composerWrap.append(emojiTray,form);
 if(pendingOutgoing&&alreadySent){input.disabled=true;send.disabled=true;input.placeholder='Request pending — waiting for acceptance';}form.onsubmit=async e=>{
  e.preventDefault();
@@ -484,7 +507,7 @@ if(pendingOutgoing&&alreadySent){input.disabled=true;send.disabled=true;input.pl
  input.value='';
  input.focus({preventScroll:true});
  send.disabled=true;
- const {error}=await db.from('direct_messages').insert({sender_id:user.id,recipient_id:id,body});
+ const {data:sentMessage,error}=await db.from('direct_messages').insert({sender_id:user.id,recipient_id:id,body}).select('id,created_at').single();
  if(error){
    input.value=body+(input.value?' '+input.value:'');
    input.focus({preventScroll:true});
@@ -493,14 +516,14 @@ if(pendingOutgoing&&alreadySent){input.disabled=true;send.disabled=true;input.pl
    return;
  }
  if(selectedPeer!==id||!list.isConnected)return;
- const today=new Date(),dayKey=today.toDateString();
+ const today=new Date(sentMessage.created_at),dayKey=today.toDateString();
  if(dayKey!==pvLastMessageDay){
    pvLastMessageDay=dayKey;
-   list.append(node('div','pvChatDayDivider',today.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})));
+   const marker=node('div','pvChatDayDivider',today.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}));marker.dataset.dayKey=dayKey;list.append(marker);
  }
  list.querySelector('.pvChatEmptyMessage')?.remove();
  const row=node('div','pvMessageRow mine'),bubble=node('div','pvBubble mine',body);
- bubble.title=today.toLocaleString();row.append(bubble);list.append(row);
+ row.dataset.messageId=String(sentMessage.id);bubble.title=today.toLocaleString();row.append(bubble);list.append(row);
  list.scrollTop=list.scrollHeight;
  if(pendingOutgoing){
    // Preserve the existing single-message request limit.
