@@ -10,7 +10,7 @@ function pvAuthTimeout(promise,ms=15000){return Promise.race([promise,new Promis
 
 let user=null,feed=[],profile=null;
 window.PVKit={db,getUser:()=>user,notify:message=>alert(message)};
-let pvSessionInitializing=null,pvSessionInitUser=null;
+let pvSessionInitializing=null,pvSessionInitUser=null,pvSessionReadyForUser=null;
 let pvAuthBootstrapped=false,pvExplicitSignout=false;
 const style=document.createElement('style');style.textContent=`
 #authOverlay.pvAuthHidden{display:none!important}#authOverlay{position:fixed;inset:0;background:#fafafa;color:#161616;z-index:20;display:flex;min-height:100dvh;overflow:auto;font-family:Inter,system-ui,Arial}
@@ -669,15 +669,64 @@ finally{pvUploading=false;pvShare.disabled=false;pvShare.textContent='Share'}};
 
 document.getElementById('reset').style.display='none';
 
-async function setSession(session){const nextUser=session?.user||null;if(nextUser&&pvSessionInitializing&&pvSessionInitUser===nextUser.id)return pvSessionInitializing;user=nextUser;overlay.classList.toggle('pvAuthHidden',!!user);signout.style.display=user?'':'none';if(user){pvSessionInitUser=user.id;pvSessionInitializing=(async()=>{try{
-await ensureProfile();
-const pvSafeSetup=async(label,fn)=>{try{await fn()}catch(err){console.warn('PAVORA '+label+' setup failed:',err);status.textContent=label+' temporarily unavailable: '+err.message}};
-await pvSafeSetup('Stories',refreshStoryAvatars);
-await pvSafeSetup('Social suite',async()=>window.PVKit?.init?.());
-await pvSafeSetup('Home feed',refresh);
-await pvSafeSetup('Profile',updateSocialProfile);
-pvHiddenChats=new Map();await pvSafeSetup('Hidden chats',pvLoadHiddenChats);
-pvConversationSettings=new Map();await pvSafeSetup('Conversation folders',pvLoadConversationSettings);pvUnreadAvailable=true;pvLastNotified=null;pvLastNoticeId=null;pvIncomingBaseline=null;pvUnreadInitialized=false;await pvSafeSetup('Unread messages',()=>pvCheckUnread(true));if(pvUnreadTimer)clearInterval(pvUnreadTimer);pvUnreadTimer=setInterval(()=>{if(!document.hidden)pvCheckUnread()},2500);if(pvActivityUserId!==user.id){pvActivityUserId=user.id;pvActivityReady=false;pvActivityLatest=null;pvActivityLatestTime=null}await pvSafeSetup('Activity notifications',()=>pvCheckActivity(!pvActivityReady));if(pvActivityTimer)clearInterval(pvActivityTimer);pvActivityTimer=setInterval(()=>{if(!document.hidden)pvCheckActivity()},3000);await pvSafeSetup('Saved page',pvRestoreView)}catch(e){console.error('PAVORA startup failed:',e.stack||e);status.textContent='App setup error: '+e.message+' — Please refresh. If this continues, send a screenshot.'}finally{pvSessionInitializing=null}})();await pvSessionInitializing}else{pvSessionInitUser=null;pvSessionInitializing=null;window.PVKit?.cleanup?.();pvCloseActivity();if(pvActivityTimer){clearInterval(pvActivityTimer);pvActivityTimer=null}pvActivityUserId=null;pvActivityReady=false;pvActivityLatest=null;pvActivityLatestTime=null;pvSetActivityCount(0);pvRestoredForUser=null;selectedPeer=null;pvHiddenChats=new Map();pvConversationSettings=new Map();if(pvUnreadTimer){clearInterval(pvUnreadTimer);pvUnreadTimer=null}pvSetUnreadBadge(0);pvLastNotified=null;pvLastNoticeId=null;pvIncomingBaseline=null;pvUnreadInitialized=false;if(chatPoll){clearInterval(chatPoll);chatPoll=null}profile=null;feed=[];document.getElementById('posts').replaceChildren();status.textContent='Sign in to access the cloud feed.'}document.body.classList.remove('pvBooting')}
+async function setSession(session){
+const nextUser=session?.user||null;
+if(nextUser&&pvSessionInitializing&&pvSessionInitUser===nextUser.id)return pvSessionInitializing;
+// Refreshing an already authenticated session must not rebuild the feed,
+// messages or profile and must not trigger the login transition again.
+if(nextUser&&user?.id===nextUser.id&&pvSessionReadyForUser===nextUser.id)return;
+user=nextUser;
+overlay.classList.toggle('pvAuthHidden',!!user);
+signout.style.display=user?'':'none';
+if(user){
+ pvSessionInitUser=user.id;
+ pvSessionInitializing=(async()=>{
+  try{
+   // Restore the previously open tab first, without waiting for feed,
+   // notifications and other unrelated Supabase requests.
+   await pvRestoreView();
+   document.body.classList.remove('pvBooting');
+   pvSessionReadyForUser=user.id;
+   const pvSafeSetup=async(label,fn)=>{try{await fn()}catch(err){console.warn('PAVORA '+label+' setup failed:',err);status.textContent=label+' temporarily unavailable: '+err.message}};
+   // Profile and chat preferences can load alongside each other. None should
+   // hold up showing the saved screen.
+   pvHiddenChats=new Map();pvConversationSettings=new Map();
+   await Promise.all([
+    pvSafeSetup('Profile',async()=>{await ensureProfile();await updateSocialProfile()}),
+    pvSafeSetup('Hidden chats',pvLoadHiddenChats),
+    pvSafeSetup('Conversation folders',pvLoadConversationSettings),
+    pvSafeSetup('Home feed',refresh),
+    pvSafeSetup('Stories',refreshStoryAvatars),
+    pvSafeSetup('Social suite',async()=>window.PVKit?.init?.())
+   ]);
+   if(!user||user.id!==pvSessionInitUser)return;
+   pvUnreadAvailable=true;pvLastNotified=null;pvLastNoticeId=null;pvIncomingBaseline=null;pvUnreadInitialized=false;
+   await pvSafeSetup('Unread messages',()=>pvCheckUnread(true));
+   if(pvUnreadTimer)clearInterval(pvUnreadTimer);
+   pvUnreadTimer=setInterval(()=>{if(!document.hidden)pvCheckUnread()},2500);
+   if(pvActivityUserId!==user.id){pvActivityUserId=user.id;pvActivityReady=false;pvActivityLatest=null;pvActivityLatestTime=null}
+   await pvSafeSetup('Activity notifications',()=>pvCheckActivity(!pvActivityReady));
+   if(pvActivityTimer)clearInterval(pvActivityTimer);
+   pvActivityTimer=setInterval(()=>{if(!document.hidden)pvCheckActivity()},3000);
+  }catch(e){
+   console.error('PAVORA startup failed:',e.stack||e);
+   status.textContent='App setup error: '+e.message+' — Please refresh. If this continues, send a screenshot.';
+  }finally{pvSessionInitializing=null;document.body.classList.remove('pvBooting')}
+ })();
+ await pvSessionInitializing;
+}else{
+ pvSessionReadyForUser=null;pvSessionInitUser=null;pvSessionInitializing=null;
+ window.PVKit?.cleanup?.();pvCloseActivity();
+ if(pvActivityTimer){clearInterval(pvActivityTimer);pvActivityTimer=null}
+ pvActivityUserId=null;pvActivityReady=false;pvActivityLatest=null;pvActivityLatestTime=null;pvSetActivityCount(0);
+ pvRestoredForUser=null;selectedPeer=null;pvHiddenChats=new Map();pvConversationSettings=new Map();
+ if(pvUnreadTimer){clearInterval(pvUnreadTimer);pvUnreadTimer=null}pvSetUnreadBadge(0);
+ pvLastNotified=null;pvLastNoticeId=null;pvIncomingBaseline=null;pvUnreadInitialized=false;
+ if(chatPoll){clearInterval(chatPoll);chatPoll=null}
+ profile=null;feed=[];document.getElementById('posts').replaceChildren();status.textContent='Sign in to access the cloud feed.';
+}
+document.body.classList.remove('pvBooting');
+}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&user){pvCheckUnread();pvCheckActivity()}});
 // Restore a saved session before considering the user logged out. Supabase can
 // emit INITIAL_SESSION while refresh and token recovery are still in progress.
