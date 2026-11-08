@@ -12,8 +12,8 @@ const role=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
 const webhookSecret=Deno.env.get('PUSH_WEBHOOK_SECRET')||'';
 const publicKey=Deno.env.get('VAPID_PUBLIC_KEY')||'';
 const privateKey=Deno.env.get('VAPID_PRIVATE_KEY')||'';
-const contact=Deno.env.get('PUSH_CONTACT_EMAIL')||'mailto:admin@example.com';
-if(publicKey&&privateKey)webpush.setVapidDetails(contact.startsWith('mailto:')?contact:'mailto:'+contact,publicKey,privateKey);
+const contact=Deno.env.get('PUSH_CONTACT_EMAIL')||'';
+if(publicKey&&privateKey&&contact)webpush.setVapidDetails(contact.startsWith('mailto:')?contact:'mailto:'+contact,publicKey,privateKey);
 const db=createClient(url,role,{auth:{persistSession:false,autoRefreshToken:false}});
 const typeInfo:Record<string,{title:string;body:string;url:string}>={
  message:{title:'New message',body:'You received a new message on PAVORA.',url:'/pavora/#messages'},
@@ -24,11 +24,13 @@ const typeInfo:Record<string,{title:string;body:string;url:string}>={
  reel_comment:{title:'Reel comment 💬',body:'Someone commented on your Reel.',url:'/pavora/#notifications'},
  story_view:{title:'Story activity 👀',body:'Someone viewed your story.',url:'/pavora/#notifications'}
 };
+const cors={'Access-Control-Allow-Origin':'https://max791687.github.io','Access-Control-Allow-Methods':'GET, OPTIONS','Access-Control-Allow-Headers':'content-type, apikey, authorization'};
 Deno.serve(async req=>{
- if(req.method==='GET')return Response.json({publicKey:publicKey||null},{headers:{'Cache-Control':'public, max-age=300'}});
+ if(req.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
+ if(req.method==='GET')return Response.json({publicKey:publicKey||null},{headers:{...cors,'Cache-Control':'public, max-age=300'}});
  if(req.method!=='POST')return new Response('Method not allowed',{status:405});
  if(!webhookSecret||req.headers.get('x-pavora-webhook-secret')!==webhookSecret)return new Response('Unauthorized',{status:401});
- if(!url||!role||!publicKey||!privateKey)return new Response('Push secrets are not configured',{status:503});
+ if(!url||!role||!publicKey||!privateKey||!contact)return new Response('Push secrets are not configured',{status:503});
  try{
   const payload=await req.json();
   if(payload?.type!=='INSERT'||payload?.table!=='push_jobs'||payload?.schema!=='public')return new Response('Ignored',{status:200});
@@ -52,7 +54,8 @@ Deno.serve(async req=>{
    try{
     await webpush.sendNotification({endpoint:sub.endpoint,keys:{p256dh:sub.p256dh,auth:sub.auth}},message,{TTL:3600,urgency:'normal'});
    }catch(e){
-    if(e?.statusCode===404||e?.statusCode===410){
+    const code=(e as {statusCode?:number})?.statusCode;
+    if(code===404||code===410){
      await db.from('push_subscriptions').delete().eq('id',sub.id);
      return;
     }
