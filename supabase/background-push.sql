@@ -32,7 +32,7 @@ create table if not exists public.push_jobs (
  source_id uuid not null,
  created_at timestamptz not null default now(),
  processed_at timestamptz,
- unique(event_kind,source_id)
+ unique(event_kind,source_id,actor_id)
 );
 create index if not exists push_jobs_pending_idx on public.push_jobs(created_at) where processed_at is null;
 alter table public.push_jobs enable row level security;
