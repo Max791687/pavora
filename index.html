@@ -132,7 +132,13 @@ body.pvMessagesMode #pvInboxView{padding:0!important;max-width:none!important;wi
 .pvMessageToast[hidden]{display:none!important}
 @media(max-width:600px){.pvIconRail .pvRailUnreadBadge{right:calc(50% - 23px);top:1px}.pvMessageToast{top:64px;right:10px;left:10px;max-width:none}}
 #pvInboxView .pvInboxTopActions{display:flex;align-items:center;gap:8px}#pvInboxView .pvTestSound{background:transparent;border:1px solid #51435e;color:#ead3ff;border-radius:9px;min-width:35px;height:35px;font-size:21px;cursor:pointer}#pvInboxView .pvTestSound:hover{background:#33273d}
-body.pvBooting main,body.pvBooting header,body.pvBooting .pvIconRail{visibility:hidden!important}body.pvBooting{background:#0b0c10}
+body.pvBooting main,body.pvBooting header,body.pvBooting .pvIconRail{visibility:hidden!important}
+body.pvBooting{background:#0c0d12;overflow:hidden}
+body.pvBooting #authOverlay{visibility:hidden!important}
+body.pvBooting::before{content:"";position:fixed;inset:0;z-index:200;background:radial-gradient(ellipse at 50% 45%,#25152e 0%,#11101a 42%,#0b0c10 78%);pointer-events:none}
+body.pvBooting::after{content:"PAVORA ✦";position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:201;color:#ce89f9;letter-spacing:-.8px;font-size:clamp(25px,5vw,38px);font-weight:900;text-shadow:0 0 30px #b65bdf55;animation:pvBootPulse 1.35s ease-in-out infinite alternate;pointer-events:none}
+@keyframes pvBootPulse{from{opacity:.6;filter:brightness(.85)}to{opacity:1;filter:brightness(1.22)}}
+@media(prefers-reduced-motion:reduce){body.pvBooting::after{animation:none}}
 /* Social activity bell + notification inbox */
 .pvActivityBell{position:relative;display:grid;place-items:center;cursor:pointer}
 .pvActivityBell svg{width:26px;height:26px;pointer-events:none}
