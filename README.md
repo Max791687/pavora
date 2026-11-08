@@ -26,6 +26,18 @@ The app launches with its own icon and uses the same live PAVORA Supabase accoun
 
 Some modules need their corresponding SQL scripts to be run in Supabase SQL Editor; see `supabase/`.
 
+## Advanced Chat + Realtime Messaging (phase 1)
+
+Existing mobile Send-button keyboard behavior and Reels controllers are preserved.
+
+Implemented: live message updates for authenticated senders and recipients via Supabase Realtime Postgres Changes, conversation updates without replacing the composer, last outgoing message Sent / Seen status based on read_at, and a Live / Syncing connection indicator. Polling is retained as a fallback.
+
+**Required setup:** In the Supabase project, open SQL Editor and run [supabase/realtime-messaging.sql](supabase/realtime-messaging.sql). GitHub code changes alone cannot change the Supabase publication. Existing Row Level Security must remain enabled.
+
+**Two-account test:** Open PAVORA on two authenticated devices/browsers, send a message from account A to B, verify it appears without refreshing, and open B's conversation to mark it read. The last outgoing message in A should display Seen. Without the SQL setup, the fallback checks continue instead of instant updates.
+
+Typing indicators, reply threads, media attachments and reactions are not yet implemented; they are planned later.
+
 ## Native Android project / APK
 
 The full Android Studio project is in `android-app/`. It is a native WebView wrapper of the PAVORA website, with microphone/camera permissions, file uploads, persistent browser storage and full-screen app experience. It is not a separate offline-native rewrite.
