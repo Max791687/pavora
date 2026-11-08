@@ -118,3 +118,29 @@ with check(bucket_id='story-media' and (storage.foldername(name))[1]=auth.uid():
 drop policy if exists "Stories own media delete" on storage.objects;
 create policy "Stories own media delete" on storage.objects for delete to authenticated
 using(bucket_id='story-media' and (storage.foldername(name))[1]=auth.uid()::text);
+
+-- Protect call participant identities and negotiated SDP from tampering.
+create or replace function public.pv_protect_call_identity() returns trigger
+language plpgsql security definer set search_path=public,pg_temp as $$
+begin
+ if new.id <> old.id or new.caller_id <> old.caller_id or new.callee_id <> old.callee_id
+    or new.kind <> old.kind or new.created_at <> old.created_at then
+   raise exception 'Call identity is immutable';
+ end if;
+ if auth.uid()=old.caller_id then
+   if new.answer_sdp is distinct from old.answer_sdp then
+     raise exception 'Only receiver can answer a call';
+   end if;
+ elsif auth.uid()=old.callee_id then
+   if new.offer_sdp is distinct from old.offer_sdp then
+     raise exception 'Only caller can change offer';
+   end if;
+ else
+   raise exception 'Only call participants may update';
+ end if;
+ return new;
+end $$;
+drop trigger if exists pv_call_identity_guard on public.call_signals;
+create trigger pv_call_identity_guard before update on public.call_signals
+for each row execute function public.pv_protect_call_identity();
+revoke all on function public.pv_protect_call_identity() from public;
