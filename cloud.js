@@ -238,11 +238,17 @@ function goTo(index,behavior='smooth'){
  const desktop=window.matchMedia('(min-width:701px)').matches;
  reelStack.dataset.activeReel=String(next);
  if(desktop){
-  // Desktop is a controlled vertical slideshow, not a native scroller.
-  // This avoids overflow/scroll-snap clashes in installed Chromium PWAs.
-  reelStack.style.transition=behavior==='smooth'?'transform 440ms cubic-bezier(.22,1,.36,1)':'none';
-  reelStack.style.transform='translate3d(0,'+(-next*reelStack.clientHeight)+'px,0)';
+  // Each desktop Reel is its own full-size slide. Move only the two
+  // neighboring cards: never depend on scrollTop, native snap, or wheel momentum.
+  reelStack.style.transform='';
+  reelStack.style.transition='none';
+  cards.forEach((card,i)=>{
+   card.style.transitionDuration=behavior==='smooth'?'420ms':'0ms';
+   card.dataset.reelPosition=i<next?'before':i>next?'after':'active';
+   card.setAttribute('aria-hidden',String(i!==next));
+  });
  }else{
+  cards.forEach(card=>{card.style.transitionDuration='';card.removeAttribute('data-reel-position');card.removeAttribute('aria-hidden')});
   reelStack.style.transform='';
   const top=cards[next].offsetTop-cards[0].offsetTop;
   reelStack.scrollTo({top,behavior});
@@ -273,11 +279,12 @@ const pvWheelHandler=e=>{
  const now=performance.now(),direction=e.deltaY>0?1:-1;
  // Treat a trackpad's momentum events as part of the same gesture instead of
  // advancing one reel for every wheel event.
- const withinBurst=now-desktopWheelLastAt<240;
- const withinCooldown=now-desktopWheelGestureAt<850;
+ const elapsed=now-desktopWheelLastAt;
+ const withinBurst=elapsed<280;
  desktopWheelLastAt=now;
- if((withinBurst&&withinCooldown)||gestureLocked)return;
- if(withinCooldown&&direction===desktopWheelDirection)return;
+ // A trackpad emits many momentum wheel events per gesture. Treat the entire
+ // burst as one action; only a fresh burst after a quiet gap can move again.
+ if(gestureLocked||withinBurst||now-desktopWheelGestureAt<610)return;
  desktopWheelGestureAt=now;desktopWheelDirection=direction;
  stepReel(direction);
 };
@@ -315,9 +322,13 @@ reelStack.setAttribute('aria-label','Reels feed — one swipe for one video');
 const pvReelsResize=()=>{
  if(!reelStack.isConnected){window.removeEventListener('resize',pvReelsResize);return}
  if(window.matchMedia('(min-width:701px)').matches){
-  reelStack.style.transition='none';
-  reelStack.style.transform='translate3d(0,'+(-current*reelStack.clientHeight)+'px,0)';
- }else{reelStack.style.transition='';reelStack.style.transform=''}
+  reelStack.style.transition='none';reelStack.style.transform='';
+  cards.forEach((card,i)=>{card.style.transitionDuration='0ms';card.dataset.reelPosition=i<current?'before':i>current?'after':'active';card.setAttribute('aria-hidden',String(i!==current))});
+ }else{
+  reelStack.style.transition='';reelStack.style.transform='';
+  cards.forEach(card=>{card.style.transitionDuration='';card.removeAttribute('data-reel-position');card.removeAttribute('aria-hidden')});
+  reelStack.scrollTop=cards[current].offsetTop-cards[0].offsetTop;
+ }
 };
 window.addEventListener('resize',pvReelsResize,{passive:true});
 const originalReelsCleanup=window.pvReelsWheelCleanup;
