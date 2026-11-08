@@ -216,7 +216,7 @@ const cards=[];
 function reelSvg(path){return '<svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+'</svg>'}
 function reelAction(label,svg,handler){const b=node('button','pvReelAction');b.type='button';b.title=label;b.setAttribute('aria-label',label);b.innerHTML=reelSvg(svg);b.onclick=handler;return b}
 let current=0,gestureLocked=false,gestureTimer=null,touchStartY=null,touchStartX=null,touchConsumed=false;
-let pvMobileReelFrame=0;
+
 let desktopWheelLastAt=0,desktopWheelGestureAt=0,desktopWheelDirection=0;
 const videoFor=index=>cards[index]?.querySelector('video');
 function pvActivateReel(index){
@@ -238,53 +238,18 @@ function goTo(index,behavior='smooth'){
  if(!cards.length)return;
  const next=Math.max(0,Math.min(cards.length-1,index));
  current=next;
- // Each card occupies exactly one stack viewport; no freely scrolling momentum.
- const desktop=window.matchMedia('(min-width:701px)').matches;
  reelStack.dataset.activeReel=String(next);
- if(desktop){
-  // Each desktop Reel is its own full-size slide. Move only the two
-  // neighboring cards: never depend on scrollTop, native snap, or wheel momentum.
-  reelStack.style.transform='';
-  reelStack.style.transition='none';
-  cards.forEach((card,i)=>{
-   card.style.transitionDuration=behavior==='smooth'?'420ms':'0ms';
-   card.dataset.reelPosition=i<next?'before':i>next?'after':'active';
-   card.setAttribute('aria-hidden',String(i!==next));
-  });
- }else{
-  cards.forEach(card=>{card.style.transitionDuration='';card.removeAttribute('data-reel-position');card.removeAttribute('aria-hidden')});
-  reelStack.style.transform='';
-  cancelAnimationFrame(pvMobileReelFrame);
-  const top=cards[next].offsetTop-cards[0].offsetTop;
-  if(behavior==='smooth'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-   // Native smooth scroll can take 500ms+ on mobile and interacts badly
-   // with mandatory snap. Drive a short, frame-timed transition ourselves.
-   const from=reelStack.scrollTop,distance=top-from,start=performance.now(),duration=235;
-   reelStack.style.setProperty('scroll-snap-type','none','important');
-   const tick=now=>{
-    if(!reelStack.isConnected)return;
-    const t=Math.min(1,(now-start)/duration),ease=1-Math.pow(1-t,3);
-    reelStack.scrollTop=from+distance*ease;
-    if(t<1)pvMobileReelFrame=requestAnimationFrame(tick);
-    else{reelStack.scrollTop=top;reelStack.style.removeProperty('scroll-snap-type');}
-   };
-   pvMobileReelFrame=requestAnimationFrame(tick);
-  }else{
-   reelStack.style.setProperty('scroll-snap-type','none','important');
-   reelStack.scrollTop=top;
-   reelStack.style.removeProperty('scroll-snap-type');
-  }
- }
+ // One composited vertical slide per gesture on both phone and desktop.
+ // Mobile's old rAF+scrollTop route competed with CSS snap and felt jerky.
+ cards.forEach((card,i)=>{
+  card.style.transitionDuration=behavior==='smooth'?(window.innerWidth<=700?'260ms':'420ms'):'0ms';
+  card.dataset.reelPosition=i<next?'before':i>next?'after':'active';
+  card.setAttribute('aria-hidden',String(i!==next));
+ });
  pvActivateReel(next);
  clearTimeout(gestureTimer);
  gestureLocked=behavior==='smooth';
- gestureTimer=setTimeout(()=>{
-  gestureLocked=false;
-  if(!window.matchMedia('(min-width:701px)').matches){
-   reelStack.scrollTop=cards[current].offsetTop-cards[0].offsetTop;
-   reelStack.style.removeProperty('scroll-snap-type');
-  }
- },behavior==='smooth'?(desktop?480:260):0);
+ gestureTimer=setTimeout(()=>{gestureLocked=false;pvActivateReel(current)},behavior==='smooth'?(window.innerWidth<=700?285:445):0);
 }
 function stepReel(direction){
  if(gestureLocked||!direction)return;
@@ -294,6 +259,7 @@ function stepReel(direction){
 }
 up.onclick=()=>stepReel(-1);down.onclick=()=>stepReel(1);
 const pvWheelHandler=e=>{
+ if(window.innerWidth<=700)return;
  if(!document.body.classList.contains('pvReelsMode')||document.querySelector('.pvSuiteModal:not([hidden]),.pvCallOverlay:not([hidden])'))return;
  if(e.target instanceof Element&&e.target.closest('input,textarea,select,.pvReelComments,.pvSuiteBox'))return;
  // Take over the desktop wheel even for tiny trackpad deltas, avoiding page
@@ -336,7 +302,7 @@ reelStack.addEventListener('touchend',e=>{
  touchStartY=null;touchStartX=null;touchConsumed=false;
 },{passive:true});
 reelStack.addEventListener('touchcancel',()=>{touchStartY=null;touchConsumed=false},{passive:true});
-window.pvReelsWheelCleanup=()=>{document.removeEventListener('wheel',pvWheelHandler,true);clearTimeout(gestureTimer);cancelAnimationFrame(pvMobileReelFrame);reelStack.style.removeProperty('scroll-snap-type');desktopWheelLastAt=0};
+window.pvReelsWheelCleanup=()=>{document.removeEventListener('wheel',pvWheelHandler,true);clearTimeout(gestureTimer);reelStack.style.removeProperty('scroll-snap-type');desktopWheelLastAt=0};
 reelStack.addEventListener('keydown',e=>{
  if(['ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();stepReel(1)}
  else if(['ArrowUp','PageUp'].includes(e.key)){e.preventDefault();stepReel(-1)}
@@ -345,14 +311,8 @@ reelStack.tabIndex=0;
 reelStack.setAttribute('aria-label','Reels feed — one swipe for one video');
 const pvReelsResize=()=>{
  if(!reelStack.isConnected){window.removeEventListener('resize',pvReelsResize);return}
- if(window.matchMedia('(min-width:701px)').matches){
-  reelStack.style.transition='none';reelStack.style.transform='';
-  cards.forEach((card,i)=>{card.style.transitionDuration='0ms';card.dataset.reelPosition=i<current?'before':i>current?'after':'active';card.setAttribute('aria-hidden',String(i!==current))});
- }else{
-  reelStack.style.transition='';reelStack.style.transform='';
-  cards.forEach(card=>{card.style.transitionDuration='';card.removeAttribute('data-reel-position');card.removeAttribute('aria-hidden')});
-  reelStack.scrollTop=cards[current].offsetTop-cards[0].offsetTop;
- }
+ reelStack.style.transition='none';reelStack.style.transform='';
+ cards.forEach((card,i)=>{card.style.transitionDuration='0ms';card.dataset.reelPosition=i<current?'before':i>current?'after':'active';card.setAttribute('aria-hidden',String(i!==current))});
 };
 window.addEventListener('resize',pvReelsResize,{passive:true});
 const originalReelsCleanup=window.pvReelsWheelCleanup;
