@@ -251,7 +251,7 @@ function pvNavigate(view){pvRememberView(view);document.querySelectorAll('[data-
 socialNav.addEventListener('click',()=>pvNavigate('messages'));
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{if(b!==socialNav){publicView.classList.add('hide');inboxView.classList.add('hide');if(chatPoll){clearInterval(chatPoll);chatPoll=null}}}));
 function pvProfileButton(person){const b=node('button','pvPersonButton','@'+(person.username||'creator'));b.type='button';b.onclick=()=>openCreator(person.id);return b}
-async function openCreator(id){if(!user||!id)return;pvRememberView('creator',id);if(id===user.id){pvNavigate('profile');await updateSocialProfile();return}pvNavigate('creator');publicView.replaceChildren(node('p','muted','Loading profile…'));
+async function openCreator(id){if(!user||!id)return;pvRememberView('creator',id);if(id===user.id){pvNavigate('profile');await updateSocialProfile();return}pvNavigate('creator');pvRememberView('creator',id);publicView.replaceChildren(node('p','muted','Loading profile…'));
 const [{data:person,error},{data:posts,error:postError},{data:followers},{data:following},{data:myFollow}]=await Promise.all([
 db.from('profiles').select('id,username,display_name,bio,avatar_url').eq('id',id).maybeSingle(),
 db.from('posts').select('id,caption,image_path,created_at').eq('author_id',id).order('created_at',{ascending:false}).limit(90),
