@@ -378,13 +378,20 @@ document.body.append(pvRail);
 const pvActivityPanel=node('section','pvActivityPanel');pvActivityPanel.hidden=true;pvActivityPanel.setAttribute('aria-label','Activity notifications');
 const pvActivityHead=node('div','pvActivityHead'),pvActivityTitle=node('strong','','Notifications'),pvActivityClose=node('button','pvActivityClose','×');
 pvActivityClose.type='button';pvActivityClose.setAttribute('aria-label','Close notifications');pvActivityHead.append(pvActivityTitle,pvActivityClose);
-const pvActivityList=node('div','pvActivityList');pvActivityPanel.append(pvActivityHead,pvActivityList);document.body.append(pvActivityPanel);
+const pvActivityAudioRow=node('div','pvActivityAudioRow');
+const pvEnableSoundButton=node('button','pvEnableSoundButton','Enable notification sound');
+pvEnableSoundButton.type='button';
+const pvAudioStatus=node('small','pvAudioStatus','Browser sound needs a click to enable.');
+pvActivityAudioRow.append(pvEnableSoundButton,pvAudioStatus);
+pvEnableSoundButton.onclick=async()=>{pvEnableSoundButton.disabled=true;const ok=await pvPlayMessageSound();pvEnableSoundButton.disabled=false;pvAudioStatus.textContent=ok?'Sound enabled — you should have heard two tones.':'Sound blocked. Check tab mute, site permissions and system volume.';pvEnableSoundButton.textContent=ok?'Test sound again':'Try enabling sound again'};
+const pvActivityList=node('div','pvActivityList');pvActivityPanel.append(pvActivityHead,pvActivityAudioRow,pvActivityList);document.body.append(pvActivityPanel);
 const pvActivityBellSvg='<svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 10h18c0-2-3-3-3-10"/><path d="M10 22h4"/></svg>';
+function pvActivityAlert(){pvShowActivityToast();pvPlayMessageSound().then(ok=>{if(!ok&&pvActivityOpen)pvAudioStatus.textContent='New activity detected, but browser blocked sound. Click Enable notification sound.'})}
 function pvShowActivityToast(){if(pvNoticeTimeout)clearTimeout(pvNoticeTimeout);pvNotice.replaceChildren(node('span','','🔔 New activity on PAVORA'));pvNotice.hidden=false;pvNotice.onclick=()=>pvOpenActivity();pvNoticeTimeout=setTimeout(()=>{pvNotice.hidden=true},4200)}
 pvSetActivityCount=function(count){pvActivityCount=count;for(const button of document.querySelectorAll('.pvActivityBell')){const badge=button.querySelector('.pvActivityBadge');if(badge){badge.hidden=!count;badge.classList.remove('pvActivityErrorBadge');badge.textContent=count>99?'99+':String(count)}button.title=count?count+' unread activity notifications':'Notifications';button.setAttribute('aria-label',count?'Notifications, '+count+' unread':'Notifications')}}
 function pvSetActivityError(message){for(const button of document.querySelectorAll('.pvActivityBell')){const badge=button.querySelector('.pvActivityBadge');if(badge){badge.hidden=false;badge.textContent='!';badge.classList.add('pvActivityErrorBadge')}button.title='Notifications setup needed: '+message}}
 pvCloseActivity=function(){pvActivityOpen=false;pvActivityPanel.hidden=true;document.querySelectorAll('.pvActivityBell').forEach(b=>b.classList.remove('active'))}
-async function pvOpenActivity(){if(!user)return;pvActivityOpen=!pvActivityOpen;pvActivityPanel.hidden=!pvActivityOpen;document.querySelectorAll('.pvActivityBell').forEach(b=>b.classList.toggle('active',pvActivityOpen));if(pvActivityOpen)await pvLoadActivity(true)}
+async function pvOpenActivity(){if(!user)return;pvActivityOpen=!pvActivityOpen;pvActivityPanel.hidden=!pvActivityOpen;document.querySelectorAll('.pvActivityBell').forEach(b=>b.classList.toggle('active',pvActivityOpen));if(pvActivityOpen){pvAudioStatus.textContent=pvSoundContext?.state==='running'?'Sound is ready.':'Click Enable notification sound if you want alerts to play.';await pvLoadActivity(true)}}
 pvActivityClose.onclick=pvCloseActivity;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')pvCloseActivity()});
 document.addEventListener('pointerdown',e=>{if(pvActivityOpen&&!e.target.closest('.pvActivityPanel')&&!e.target.closest('.pvActivityBell'))pvCloseActivity()});
@@ -407,7 +414,7 @@ if(!pvActivityReady||initial){pvActivityLatest=newest?.id||null;pvActivityLatest
 else if(newest&&newest.id!==pvActivityLatest){
 const isNew=!pvActivityLatestTime||new Date(newest.created_at)>new Date(pvActivityLatestTime);
 pvActivityLatest=newest.id;pvActivityLatestTime=newest.created_at;
-if(isNew){pvPlayMessageSound();pvShowActivityToast()}
+if(isNew)pvActivityAlert()
 }
 if(pvActivityOpen)await pvLoadActivity(false)
 }catch(e){console.warn('Activity notification check failed',e)}finally{pvActivityBusy=false}}
