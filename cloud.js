@@ -415,7 +415,31 @@ const pvActivityHead=node('div','pvActivityHead'),pvActivityTitle=node('strong',
 pvActivityClose.type='button';pvActivityClose.setAttribute('aria-label','Close notifications');
 const pvActivityClear=node('button','pvActivityClear','Clear all');pvActivityClear.type='button';pvActivityClear.title='Clear all notifications';pvActivityClear.setAttribute('aria-label','Clear all notifications');
 const pvActivityActions=node('div','pvActivityActions');pvActivityActions.append(pvActivityClear,pvActivityClose);pvActivityHead.append(pvActivityTitle,pvActivityActions);
-const pvActivityList=node('div','pvActivityList');pvActivityPanel.append(pvActivityHead,pvActivityList);document.body.append(pvActivityPanel);
+const pvActivityFilters=node('div','pvActivityFilters');pvActivityFilters.setAttribute('role','group');pvActivityFilters.setAttribute('aria-label','Filter notifications');
+const pvActivityList=node('div','pvActivityList');pvActivityPanel.append(pvActivityHead,pvActivityFilters,pvActivityList);document.body.append(pvActivityPanel);
+let pvActivityFilter='All',pvActivityCached=[],pvActivityPeople=new Map(),pvActivityFollowed=new Set(),pvActivityPostImages=new Map();
+for(const filterName of ['All','People you follow','Comments','Follows','Likes']){const tab=node('button','pvActivityFilter'+(filterName==='All'?' active':''),filterName);tab.type='button';tab.setAttribute('aria-pressed',String(filterName==='All'));tab.onclick=()=>{pvActivityFilter=filterName;pvRenderActivityList()};pvActivityFilters.append(tab)}
+function pvActivityRelativeDate(date){const t=new Date(date);return Number.isNaN(t.getTime())?'':t.toLocaleDateString(undefined,{month:'short',day:'numeric'})}
+function pvRenderActivityList(){
+pvActivityFilters.querySelectorAll('.pvActivityFilter').forEach(button=>{const on=button.textContent===pvActivityFilter;button.classList.toggle('active',on);button.setAttribute('aria-pressed',String(on))});
+pvActivityList.replaceChildren();
+const currentMonth=new Date(),matches=pvActivityCached.filter(item=>pvActivityFilter==='All'||pvActivityFilter==='People you follow'&&pvActivityFollowed.has(item.actor_id)||pvActivityFilter==='Comments'&&item.kind==='comment'||pvActivityFilter==='Follows'&&item.kind==='follow'||pvActivityFilter==='Likes'&&item.kind==='like');
+if(!matches.length){pvActivityList.append(node('p','pvActivityEmpty',pvActivityCached.length?'No '+pvActivityFilter.toLowerCase()+' notifications yet.':'No notifications yet. Likes, comments and follows will appear here.'));return}
+const groupings=[['This month',matches.filter(item=>{const d=new Date(item.created_at);return d.getMonth()===currentMonth.getMonth()&&d.getFullYear()===currentMonth.getFullYear()})],['Earlier',matches.filter(item=>{const d=new Date(item.created_at);return d.getMonth()!==currentMonth.getMonth()||d.getFullYear()!==currentMonth.getFullYear()})]];
+for(const [groupTitle,items] of groupings){if(!items.length)continue;const heading=node('h3','pvActivityGroupTitle',groupTitle);pvActivityList.append(heading);
+for(const item of items){const person=pvActivityPeople.get(item.actor_id)||{},row=node('div','pvActivityItem'+(!item.read_at?' unread':'')),avatar=node('button','pvActivityAvatar'),words=node('div','pvActivityWords'),content=node('div','pvActivityContent');
+avatar.type='button';avatar.setAttribute('aria-label','Open '+(person.username||'creator')+' profile');if(person.avatar_url){const img=node('img');img.src=person.avatar_url;img.alt='';avatar.append(img)}else avatar.textContent=(person.display_name||person.username||'P')[0].toUpperCase();avatar.onclick=()=>{pvCloseActivity();openCreator(item.actor_id)};
+const line=node('div','pvActivityLine'),name=node('button','pvActivityActor','@'+(person.username||'creator'));name.type='button';name.onclick=()=>{pvCloseActivity();openCreator(item.actor_id)};
+const description=item.kind==='follow'?' started following you.':item.kind==='like'?' liked your post.':' commented on your post.';
+line.append(name,document.createTextNode(description+' '));const date=node('span','pvActivityDate',pvActivityRelativeDate(item.created_at));line.append(date);words.append(line);
+if(item.kind==='comment'&&item.body_preview)words.append(node('div','pvActivityComment','“'+item.body_preview+'”'));
+content.append(avatar,words);
+row.append(content);
+if(item.kind==='follow'){const followed=pvActivityFollowed.has(item.actor_id);const action=node('button','pvActivityFollowAction'+(followed?' following':''),followed?'Following':'Follow Back');action.type='button';action.onclick=async()=>{action.disabled=true;const wasFollowing=pvActivityFollowed.has(item.actor_id);const result=wasFollowing?await db.from('follows').delete().eq('follower_id',user.id).eq('following_id',item.actor_id):await db.from('follows').insert({follower_id:user.id,following_id:item.actor_id});if(result.error){alert('Could not update follow: '+result.error.message);action.disabled=false;return}if(wasFollowing)pvActivityFollowed.delete(item.actor_id);else pvActivityFollowed.add(item.actor_id);pvRenderActivityList();if(pvActivityOpen)await updateSocialProfile()};row.append(action)}
+else if(item.post_id){const imageUrl=pvActivityPostImages.get(item.post_id);if(imageUrl){const thumb=node('button','pvActivityThumb');thumb.type='button';thumb.setAttribute('aria-label','View post');const image=node('img');image.src=imageUrl;image.alt='Post thumbnail';thumb.append(image);thumb.onclick=()=>{pvCloseActivity();pvNavigate('home');const post=feed.find(p=>p.id===item.post_id);if(post)openProfilePost({...post,author_name:profile?.username||'creator'})};row.append(thumb)}}
+pvActivityList.append(row)}
+}
+}
 const pvActivityBellSvg='<svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 10h18c0-2-3-3-3-10"/><path d="M10 22h4"/></svg>';
 function pvActivityAlert(){pvShowActivityToast();pvPlayMessageSound()}
 function pvShowActivityToast(){if(pvNoticeTimeout)clearTimeout(pvNoticeTimeout);pvNotice.replaceChildren(node('span','','🔔 New activity on PAVORA'));pvNotice.hidden=false;pvNotice.onclick=()=>pvOpenActivity();pvNoticeTimeout=setTimeout(()=>{pvNotice.hidden=true},4200)}
@@ -426,7 +450,7 @@ async function pvOpenActivity(){if(!user)return;pvActivityOpen=!pvActivityOpen;p
 pvActivityClear.onclick=async()=>{if(!user||pvActivityClear.disabled)return;if(!confirm('Clear all your notifications? This cannot be undone.'))return;pvActivityClear.disabled=true;pvActivityClear.textContent='Clearing…';try{
 const {data:deleted,error}=await db.from('activity_notifications').delete().eq('recipient_id',user.id).select('id');
 if(error||(!deleted?.length&&pvActivityList.querySelector('.pvActivityItem'))){alert('Could not clear notifications. Run supabase/clear-activity-notifications.sql in Supabase SQL Editor first. '+(error?.message||'Database delete permission is not enabled.'));return}
-pvActivityList.replaceChildren(node('p','pvActivityEmpty','No notifications yet. New likes, comments and follows will show here.'));
+pvActivityCached=[];pvRenderActivityList();
 pvSetActivityCount(0);pvActivityLatest=null;pvActivityLatestTime=null;pvActivityReady=true;
 await pvCheckActivity(false);
 }catch(e){alert('Could not clear notifications: '+e.message)}finally{pvActivityClear.disabled=false;pvActivityClear.textContent='Clear all'}};
@@ -435,14 +459,26 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')pvCloseActivity()});
 document.addEventListener('pointerdown',e=>{if(pvActivityOpen&&!e.target.closest('.pvActivityPanel')&&!e.target.closest('.pvActivityBell'))pvCloseActivity()});
 function pvMakeBell(extraClass){const b=node('button','pvActivityBell '+extraClass);b.type='button';b.innerHTML=pvActivityBellSvg+'<span class="pvActivityBadge" hidden></span>';b.title='Notifications';b.setAttribute('aria-label','Notifications');b.onclick=pvOpenActivity;return b}
 async function pvLoadActivity(markRead=false){if(!user||!pvActivityOpen)return;if(!pvActivityList.querySelector('.pvActivityItem,.pvActivityEmpty'))pvActivityList.replaceChildren(node('p','pvActivityEmpty','Loading notifications…'));
-const {data,error}=await db.from('activity_notifications').select('id,actor_id,kind,post_id,body_preview,created_at,read_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(75);
-if(error){pvSetActivityError(error.message);pvActivityList.replaceChildren(node('p','pvActivityEmpty','Notifications setup required. Open supabase/activity-notifications.sql on GitHub, copy it into Supabase SQL Editor and press Run. Details: '+error.message));return}
-const entries=data||[];const actorIds=[...new Set(entries.map(e=>e.actor_id))];let profiles=[];if(actorIds.length){const response=await db.from('profiles').select('id,username,display_name,avatar_url').in('id',actorIds);profiles=response.data||[]}
-const lookup=new Map(profiles.map(p=>[p.id,p]));pvActivityList.replaceChildren();
+const {data,error}=await db.from('activity_notifications').select('id,actor_id,kind,post_id,body_preview,created_at,read_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(100);
+if(error){pvSetActivityError(error.message);pvActivityList.replaceChildren(node('p','pvActivityEmpty','Notifications setup required. Run supabase/activity-notifications.sql in Supabase SQL Editor. '+error.message));return}
+const entries=data||[],actors=[...new Set(entries.map(e=>e.actor_id))],postIds=[...new Set(entries.filter(e=>e.post_id).map(e=>e.post_id))];
+const requests=[db.from('follows').select('following_id').eq('follower_id',user.id)];
+if(actors.length)requests.push(db.from('profiles').select('id,username,display_name,avatar_url').in('id',actors));
+if(postIds.length)requests.push(db.from('posts').select('id,image_path').in('id',postIds));
+const responses=await Promise.all(requests);
+if(responses[0].error)console.warn('Following list could not load:',responses[0].error.message);
+pvActivityFollowed=new Set((responses[0].data||[]).map(x=>x.following_id));
+pvActivityPeople=new Map(actors.length?(responses[1].data||[]).map(p=>[p.id,p]):[]);
+const postsResponse=postIds.length?responses[responses.length-1]:null;
+pvActivityPostImages=new Map((postsResponse?.data||[]).filter(p=>p.image_path).map(p=>[p.id,db.storage.from('post-images').getPublicUrl(p.image_path).data.publicUrl]));
+pvActivityCached=entries;
 pvActivityClear.disabled=!entries.length;
-if(!entries.length)pvActivityList.append(node('p','pvActivityEmpty','No notifications yet. Likes, comments and follows will appear here.'));
-for(const item of entries){const person=lookup.get(item.actor_id)||{},row=node('button','pvActivityItem'+(!item.read_at?' unread':'')),avatar=node('div','pvActivityAvatar'),words=node('div','pvActivityWords');row.type='button';if(person.avatar_url){const img=node('img');img.src=person.avatar_url;img.alt='';avatar.append(img)}else avatar.textContent=(person.display_name||person.username||'P')[0].toUpperCase();const message=item.kind==='follow'?'started following you':item.kind==='like'?'liked your post':'commented on your post';const title=node('div');title.append(node('strong','',person.username?'@'+person.username:'Creator'),document.createTextNode(' '+message));words.append(title);if(item.kind==='comment'&&item.body_preview)words.append(node('small','',item.body_preview));words.append(node('time','',new Date(item.created_at).toLocaleString()));row.append(avatar,words);row.onclick=()=>{pvCloseActivity();openCreator(item.actor_id)};pvActivityList.append(row)}
-if(markRead&&entries.some(x=>!x.read_at)){const ids=entries.filter(x=>!x.read_at).map(x=>x.id);const {error:readError}=await db.from('activity_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',user.id).in('id',ids);if(!readError){pvSetActivityCount(0);pvActivityList.querySelectorAll('.pvActivityItem.unread').forEach(e=>e.classList.remove('unread'))}}
+pvRenderActivityList();
+if(markRead&&entries.some(x=>!x.read_at)){
+const ids=entries.filter(x=>!x.read_at).map(x=>x.id);
+const {error:readError}=await db.from('activity_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',user.id).in('id',ids);
+if(!readError){pvSetActivityCount(0);for(const item of entries)item.read_at=item.read_at||new Date().toISOString();pvActivityList.querySelectorAll('.pvActivityItem.unread').forEach(row=>row.classList.remove('unread'))}
+}
 }
 pvCheckActivity=async function(initial=false){if(!user||pvActivityBusy)return;pvActivityBusy=true;try{
 const {data,error}=await db.from('activity_notifications').select('id,read_at,created_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(250);
