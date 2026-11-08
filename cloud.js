@@ -409,6 +409,53 @@ const inboxView=node('div','hide');inboxView.id='pvInboxView';document.querySele
 /* Replace demo story initials with real profile photos from signed-up creators. */
 async function refreshStoryAvatars(){if(!user)return;const storyBar=document.getElementById('stories');if(!storyBar)return;const {data:creators,error}=await db.from('profiles').select('id,username,display_name,avatar_url').order('created_at',{ascending:false}).limit(16);if(error)return;storyBar.replaceChildren();const ordered=[profile,...(creators||[]).filter(p=>p.id!==user.id)];for(const person of ordered){if(!person)continue;const item=node('div','storyitem'),circle=node('div','profilepic'),label=node('span','',person.id===user.id?'You':person.display_name||person.username);label.style.cssText='display:block;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';const initial=(person.display_name||person.username||'P')[0].toUpperCase();if(person.avatar_url){const img=node('img');img.src=person.avatar_url;img.alt=(person.display_name||person.username)+' profile photo';img.onerror=()=>{circle.replaceChildren();circle.textContent=initial};circle.append(img)}else circle.textContent=initial;item.append(circle,label);item.style.cursor='pointer';item.title='View '+(person.display_name||person.username)+' profile';item.onclick=()=>person.id===user.id?pvNavigate('profile'):openCreator(person.id);storyBar.append(item)}try{window.PVKit?.renderStories?.(storyBar)}catch(e){console.warn('Story extras:',e)}}
 let selectedPeer=null,chatPoll=null,pvChatPollBusy=false;let pvHiddenChats=new Map();
+let pvDmRealtimeChannel=null,pvDmRealtimeUser=null,pvDmRealtimeStatus='offline',pvDmRealtimeRefreshTimer=null;
+function pvStopDmRealtime(){
+ if(pvDmRealtimeRefreshTimer){clearTimeout(pvDmRealtimeRefreshTimer);pvDmRealtimeRefreshTimer=null}
+ if(pvDmRealtimeChannel){const old=pvDmRealtimeChannel;pvDmRealtimeChannel=null;try{db.removeChannel(old).catch(()=>{})}catch(e){console.warn('Realtime cleanup:',e)}}
+ pvDmRealtimeUser=null;pvDmRealtimeStatus='offline';
+}
+function pvDmUpdateReceipt(list,messages){
+ if(!list)return;
+ const rows=[...list.querySelectorAll('.pvMessageRow.mine[data-message-id]')];
+ for(const row of rows)row.querySelector('.pvDmDelivery')?.remove();
+ const last=rows[rows.length-1];if(!last)return;
+ const message=(messages||[]).find(m=>String(m.id)===last.dataset.messageId);
+ const status=node('span','pvDmDelivery',message?.read_at?'Seen':'Sent');
+ status.setAttribute('aria-label',message?.read_at?'Message seen':'Message sent');
+ last.append(status);
+}
+function pvScheduleLiveDmRefresh(){
+ if(pvDmRealtimeRefreshTimer||!user)return;
+ pvDmRealtimeRefreshTimer=setTimeout(()=>{
+  pvDmRealtimeRefreshTimer=null;
+  if(!user||document.hidden)return;
+  if(selectedPeer&&!inboxView.classList.contains('hide'))
+   renderChat(selectedPeer,true).catch(e=>console.warn('Live chat refresh:',e));
+  pvCheckUnread().catch(e=>console.warn('Live unread refresh:',e));
+ },100);
+}
+function pvStartDmRealtime(){
+ if(!user||!db.channel||pvDmRealtimeUser===user.id)return;
+ pvStopDmRealtime();
+ const uid=user.id;
+ pvDmRealtimeUser=uid;
+ const channel=db.channel('pavora-dm-'+uid);
+ const onChange=payload=>{
+  if(!user||user.id!==uid)return;
+  pvScheduleLiveDmRefresh();
+ };
+ channel.on('postgres_changes',{event:'INSERT',schema:'public',table:'direct_messages',filter:'recipient_id=eq.'+uid},onChange);
+ channel.on('postgres_changes',{event:'UPDATE',schema:'public',table:'direct_messages',filter:'sender_id=eq.'+uid},onChange);
+ channel.on('postgres_changes',{event:'DELETE',schema:'public',table:'direct_messages',filter:'recipient_id=eq.'+uid},onChange);
+ channel.subscribe(status=>{
+  if(pvDmRealtimeUser!==uid)return;
+  pvDmRealtimeStatus=status==='SUBSCRIBED'?'live':'offline';
+  if(status==='SUBSCRIBED')pvScheduleLiveDmRefresh();
+ });
+ pvDmRealtimeChannel=channel;
+}
+
 const pvNotifyStyle=document.createElement('style');pvNotifyStyle.textContent=`.pvThreadEntry{display:flex;align-items:center;gap:5px;margin:5px 0}.pvThreadEntry>button:first-child{flex:1;min-width:0}.pvThreadEntry .pvRemoveChat{width:35px;flex:none;justify-content:center!important;padding:9px!important;color:#ff9cae;background:#342637!important}.pvThreadEntry .pvRemoveChat:hover{background:#603047!important}.pvMessageRow{display:flex;align-items:center;gap:7px;max-width:100%;align-self:flex-start}.pvMessageRow.mine{align-self:flex-end;flex-direction:row-reverse}.pvMessageRow .pvBubble{max-width:min(80vw,450px)}.pvDeleteMessage{border:0;background:transparent;color:#c8b7db;font-size:12px;padding:7px;cursor:pointer;border-radius:8px}.pvDeleteMessage:hover{color:#ff9cae;background:#3c2b41}.pvUnreadBadge{display:inline-flex;align-items:center;justify-content:center;background:#f04478;color:white;border-radius:999px;font-size:11px;font-weight:800;padding:2px 7px;margin-left:8px;min-width:20px}.pvUnreadBadge[hidden]{display:none!important}.pvThreadList button{display:flex!important;align-items:center;justify-content:space-between;gap:8px}`;document.head.append(pvNotifyStyle);
 const pvNavBadge=node('span','pvUnreadBadge');pvNavBadge.hidden=true;socialNav.append(pvNavBadge);
 let pvUnreadTimer=null,pvLastNotified=null,pvUnreadInitialized=false,pvSoundContext=null,pvUnreadBusy=false,pvUnreadAvailable=true,pvRailBadge=null,pvUnreadCount=0,pvLastNoticeId=null,pvIncomingBaseline=null;
@@ -570,6 +617,7 @@ if(silent&&area.querySelector('.pvMessageForm')){
    if(mine){const del=node('button','pvDeleteMessage','Delete');del.type='button';del.title='Delete this message for everyone';del.onclick=async()=>{if(!confirm('Delete this message for everyone?'))return;const {error}=await db.from('direct_messages').delete().eq('id',m.id).eq('sender_id',user.id);if(error)return alert(error.message);row.remove();await pvCheckUnread()};row.append(del)}
    list.append(row);
   }
+  pvDmUpdateReceipt(list,messages);
   if(received.length)list.scrollTop=list.scrollHeight;
  }
  return;
@@ -648,7 +696,9 @@ async function pvSendMessage(){
  }
  list.querySelector('.pvChatEmptyMessage')?.remove();
  const row=node('div','pvMessageRow mine'),bubble=node('div','pvBubble mine',body);
- row.dataset.messageId=String(sentMessage.id);bubble.title=today.toLocaleString();row.append(bubble);list.append(row);
+ row.dataset.messageId=String(sentMessage.id);bubble.title=today.toLocaleString();row.append(bubble);
+ if(!list.querySelector('.pvMessageRow[data-message-id="'+String(sentMessage.id)+'"]'))list.append(row);
+ pvDmUpdateReceipt(list,[{id:sentMessage.id,read_at:null}]);
  list.scrollTop=list.scrollHeight;
  if(pendingOutgoing){
    // Preserve the existing single-message request limit.
@@ -666,7 +716,7 @@ async function pvSendMessage(){
 }area.append(chatTop);
 if(pendingIncoming){const banner=node('div','pvRequestBanner'),description=node('p','','Message request from someone who does not follow you.'),accept=node('button','pvAcceptRequest','Accept'),remove=node('button','pvDeclineRequest','Remove');accept.type=remove.type='button';accept.onclick=async()=>{accept.disabled=true;const {error}=await db.from('message_requests').update({accepted_at:new Date().toISOString()}).eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null);if(error){alert('Could not accept request: '+error.message);accept.disabled=false;return}pvInboxTab='Primary';await loadInbox();await pvCheckUnread()};remove.onclick=()=>pvRemoveChat(id);banner.append(description,accept,remove);area.append(banner)}
 if(pendingOutgoing){area.append(node('p','pvPendingRequestNote',alreadySent?'Request sent. Wait for acceptance, or follow this account to continue.':'You can send one message request. Follow this account to message freely.'))}
-area.append(list,composerWrap);emojiButton.disabled=input.disabled;list.scrollTop=list.scrollHeight}
+area.append(list,composerWrap);emojiButton.disabled=input.disabled;pvDmUpdateReceipt(list,messages);list.scrollTop=list.scrollHeight}
 
 
 // Slide-out navigation and separate Create Post dialog; retain existing publish handlers.
@@ -875,6 +925,7 @@ if(user){
    await pvRestoreView();
    document.body.classList.remove('pvBooting');
    pvSessionReadyForUser=user.id;
+   pvStartDmRealtime();
    const pvSafeSetup=async(label,fn)=>{try{await fn()}catch(err){console.warn('PAVORA '+label+' setup failed:',err);status.textContent=label+' temporarily unavailable: '+err.message}};
    // Profile and chat preferences can load alongside each other. None should
    // hold up showing the saved screen.
@@ -903,6 +954,7 @@ if(user){
  })();
  await pvSessionInitializing;
 }else{
+ pvStopDmRealtime();
  pvSessionReadyForUser=null;pvSessionInitUser=null;pvSessionInitializing=null;
  window.PVKit?.cleanup?.();pvCloseActivity();
  if(pvActivityTimer){clearInterval(pvActivityTimer);pvActivityTimer=null}
