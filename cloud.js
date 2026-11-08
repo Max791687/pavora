@@ -260,7 +260,7 @@ async function loadInbox(){if(!user)return;
 const layout=node('div','pvInboxLayout'),side=node('div','pvInboxSide'),right=node('div','pvChatArea');right.id='pvChatArea';right.append(pvEmptyChat());layout.append(side,right);inboxView.replaceChildren(layout);
 inboxView.classList.toggle('pvChatSelected',!!selectedPeer);
 const top=node('div','pvInboxTop'),name=node('strong','',profile?.username||'Messages'),compose=node('button','pvInboxCompose','✎');compose.title='New message';compose.setAttribute('aria-label','New message');compose.onclick=()=>pvNavigate('explore');top.append(name,compose);side.append(top);
-const tabs=node('div','pvInboxTabs');for(const t of ['Primary','General','Requests']){const tab=node('button',pvInboxTab===t?'active':'',t);tab.type='button';tab.onclick=()=>{pvInboxTab=t;loadInbox()};tabs.append(tab)}side.append(tabs);
+const tabs=node('div','pvInboxTabs');for(const t of ['Primary','General','Requests']){const tab=node('button',pvInboxTab===t?'active':'',t);tab.type='button';tab.onclick=()=>{pvInboxTab=t;selectedPeer=null;loadInbox()};tabs.append(tab)}side.append(tabs);
 const searchBox=node('div','pvInboxSearch'),searchIcon=node('span','','⌕'),search=node('input');search.type='search';search.placeholder='Search';search.setAttribute('aria-label','Search conversations');search.value=pvInboxSearch;searchBox.append(searchIcon,search);side.append(searchBox);
 const threads=node('div','pvThreadList');side.append(threads);
 const {data,error}=await db.from('direct_messages').select('sender_id,recipient_id,body,created_at').or('sender_id.eq.'+user.id+',recipient_id.eq.'+user.id).order('created_at',{ascending:false}).limit(400);
@@ -294,7 +294,7 @@ const filter=()=>{const q=pvInboxSearch.toLowerCase();for(const {entry,p} of row
 search.oninput=()=>{pvInboxSearch=search.value;filter()};filter();
 if(selectedPeer)await renderChat(selectedPeer);await pvCheckUnread();
 }
-async function openChat(id,navigate=true){if(!user||id===user.id)return;if(pvHiddenChats.has(id)){const {error}=await db.from('hidden_conversations').delete().eq('owner_id',user.id).eq('peer_id',id);if(!error)pvHiddenChats.delete(id)}selectedPeer=id;if(navigate){pvNavigate('messages')}else{inboxView.classList.add('pvChatSelected');inboxView.querySelectorAll('.pvThreadPerson').forEach(b=>b.classList.toggle('active',b.dataset.peerId===id));await renderChat(id)}if(!chatPoll)chatPoll=setInterval(()=>{if(!inboxView.classList.contains('hide')&&selectedPeer)renderChat(selectedPeer,true)},2500)}
+async function openChat(id,navigate=true){if(!user||id===user.id)return;if(pvHiddenChats.has(id)){const {error}=await db.from('hidden_conversations').delete().eq('owner_id',user.id).eq('peer_id',id);if(!error)pvHiddenChats.delete(id)}selectedPeer=id;if(navigate){pvInboxTab=pvConversationSetting(id).folder==='general'?'General':'Primary';pvNavigate('messages')}else{inboxView.classList.add('pvChatSelected');inboxView.querySelectorAll('.pvThreadPerson').forEach(b=>b.classList.toggle('active',b.dataset.peerId===id));await renderChat(id)}if(!chatPoll)chatPoll=setInterval(()=>{if(!inboxView.classList.contains('hide')&&selectedPeer)renderChat(selectedPeer,true)},2500)}
 async function renderChat(id,silent=false){const area=document.getElementById('pvChatArea');if(!area||!user||selectedPeer!==id)return;
 const [{data:person,error:personError},{data:messages,error}]=await Promise.all([
 db.from('profiles').select('id,username,display_name').eq('id',id).maybeSingle(),
