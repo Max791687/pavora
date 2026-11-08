@@ -254,14 +254,23 @@ if(pvComposer){
  
 // Persistent desktop icon rail, with the full menu available from More.
 const pvRail=node('nav','pvIconRail');pvRail.setAttribute('aria-label','Main navigation');
-const pvIcons={home:'⌂',reels:'▣',explore:'⌕',messages:'✉',profile:'◉'};
+const pvIcons={
+home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
+reels:'<rect x="3" y="3" width="18" height="18" rx="4"/><path d="M3 9h18M8 3l4 6M15 3l4 6"/><path d="m10 12 5 3-5 3z"/>',
+explore:'<circle cx="10.8" cy="10.8" r="7.4"/><path d="m16.2 16.2 5 5"/>',
+messages:'<path d="m21 3-8.5 18-3.5-7.5L2 10z"/><path d="M21 3 9 13.5"/>',
+profile:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',
+create:'<rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 7v10M7 12h10"/>',
+more:'<path d="M4 6h16M4 12h16M4 18h16"/>'
+};
+function pvIconSvg(key){return '<svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+pvIcons[key]+'</svg>'}
 for(const key of ['home','reels','messages','explore','profile']){
- const b=node('button','pvRailButton',pvIcons[key]);b.type='button';b.dataset.railView=key;b.title=key[0].toUpperCase()+key.slice(1);b.setAttribute('aria-label',b.title);
+ const b=node('button','pvRailButton');b.innerHTML=pvIconSvg(key);b.type='button';b.dataset.railView=key;b.title=key[0].toUpperCase()+key.slice(1);b.setAttribute('aria-label',b.title);
  b.onclick=()=>{document.querySelector('aside.left [data-view="'+key+'"]')?.click();document.body.classList.remove('pvDrawerOpen');pvSyncRail()};
  pvRail.append(b);
 }
-const pvRailCreate=node('button','pvRailButton','＋');pvRailCreate.type='button';pvRailCreate.title='Create post';pvRailCreate.setAttribute('aria-label','Create post');pvRailCreate.onclick=()=>pvCreateBtn.click();pvRail.insertBefore(pvRailCreate,pvRail.querySelector('[data-rail-view="profile"]'));
-const pvRailMore=node('button','pvRailButton pvRailMore','☰');pvRailMore.type='button';pvRailMore.title='More options';pvRailMore.setAttribute('aria-label','More options');pvRailMore.onclick=()=>pvMenuBtn.click();pvRail.append(pvRailMore);
+const pvRailCreate=node('button','pvRailButton');pvRailCreate.innerHTML=pvIconSvg('create');pvRailCreate.type='button';pvRailCreate.title='Create post';pvRailCreate.setAttribute('aria-label','Create post');pvRailCreate.onclick=()=>pvCreateBtn.click();pvRail.insertBefore(pvRailCreate,pvRail.querySelector('[data-rail-view="profile"]'));
+const pvRailMore=node('button','pvRailButton pvRailMore');pvRailMore.innerHTML=pvIconSvg('more');pvRailMore.type='button';pvRailMore.title='More options';pvRailMore.setAttribute('aria-label','More options');pvRailMore.onclick=()=>pvMenuBtn.click();pvRail.append(pvRailMore);
 document.body.append(pvRail);
 function pvSyncRail(){pvRail.querySelectorAll('[data-rail-view]').forEach(b=>b.classList.toggle('active',!!document.querySelector('aside.left [data-view="'+b.dataset.railView+'"].active')))}
 document.querySelectorAll('aside.left [data-view]').forEach(b=>b.addEventListener('click',()=>setTimeout(pvSyncRail,0)));
