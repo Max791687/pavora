@@ -9,17 +9,35 @@ const imageUrl=(bucket,path)=>db.storage.from(bucket).getPublicUrl(path).data.pu
 const modal=el('div','pvSuiteModal');modal.hidden=true;modal.innerHTML='<div class="pvSuiteBox"><button class="pvSuiteClose" type="button" aria-label="Close">×</button><h3 class="pvSuiteTitle"></h3><div class="pvSuiteBody"></div></div>';
 document.body.append(modal);modal.querySelector('.pvSuiteClose').onclick=()=>{modal.hidden=true;modal.querySelectorAll('video').forEach(v=>v.pause())};modal.addEventListener('click',e=>{if(e.target===modal)modal.hidden=true});
 function open(title){modal.querySelector('.pvSuiteTitle').textContent=title;const body=modal.querySelector('.pvSuiteBody');body.replaceChildren();modal.hidden=false;return body}
-async function save(kind,id,button){const user=owner();if(!user)return;button.disabled=true;const key=kind==='reel'?'reel_id':'post_id';try{const {data,error}=await db.from('saved_media').select(key).eq('user_id',user.id).eq(key,id).maybeSingle();if(error)throw error;const r=data?await db.from('saved_media').delete().eq('user_id',user.id).eq(key,id):await db.from('saved_media').insert({user_id:user.id,[key]:id});if(r.error)throw r.error;button.textContent=data?'☆ Save':'★ Saved'}catch(e){alert('Saved feature needs supabase/social-suite.sql: '+e.message)}finally{button.disabled=false}}
+async function save(kind,id,button){const user=owner();if(!user)return;button.disabled=true;const key=kind==='reel'?'reel_id':'post_id';try{const {data,error}=await db.from('saved_media').select(key).eq('user_id',user.id).eq(key,id).maybeSingle();if(error)throw error;const r=data?await db.from('saved_media').delete().eq('user_id',user.id).eq(key,id):await db.from('saved_media').insert({user_id:user.id,[key]:id});if(r.error)throw r.error;if(button.classList.contains('pvSuiteIconAction')){button.innerHTML=icon('bookmark',!data)+'<span class="pvSuiteCount"></span>';button.classList.toggle('pvSuiteIsSaved',!data)}else button.textContent=data?'☆ Save':'★ Saved'}catch(e){alert('Saved feature needs supabase/social-suite.sql: '+e.message)}finally{button.disabled=false}}
 function saveButton(kind,id){const b=el('button','pvSuiteSave','☆ Save');b.type='button';b.onclick=()=>save(kind,id,b);if(owner())db.from('saved_media').select('user_id').eq('user_id',owner().id).eq(kind==='reel'?'reel_id':'post_id',id).maybeSingle().then(({data})=>{if(data)b.textContent='★ Saved'});return b}
 kit.addPostSave=(post,foot)=>foot.append(saveButton('post',post.id));
 kit.addReel=(reel,actions,video)=>{
 const user=owner();if(!user)return;
-const area=el('div','pvSuiteReelActions'),like=el('button','pvSuiteReelButton','♡ 0'),comments=el('button','pvSuiteReelButton','💬 0'),views=el('span','pvSuiteViewCount','0 views');
-like.type=comments.type='button';
-area.append(like,comments,saveButton('reel',reel.id),views);actions.prepend(area);
-const refresh=async()=>{const [likes,comm,v]=await Promise.all([db.from('reel_likes').select('user_id').eq('reel_id',reel.id),db.from('reel_comments').select('id,body,user_id,created_at').eq('reel_id',reel.id).order('created_at',{ascending:false}).limit(80),db.from('reel_views').select('*',{count:'exact',head:true}).eq('reel_id',reel.id)]);if(likes.error){like.title='Run supabase/social-suite.sql';return}const mine=(likes.data||[]).some(x=>x.user_id===user.id);like.textContent=(mine?'♥ ':'♡ ')+(likes.data||[]).length;comments.textContent='💬 '+(comm.data||[]).length;views.textContent=(v.count||0)+' views';return {mine,comments:comm.data||[]}};
+const area=el('div','pvSuiteReelActions'),
+like=el('button','pvSuiteIconAction'),comments=el('button','pvSuiteIconAction'),views=el('span','pvSuiteCount pvSuiteViews','0 views'),
+bookmark=el('button','pvSuiteIconAction');
+const icon=(name,filled=false)=>{const paths={
+heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',
+comment:'<path d="M20.8 11.5a8.8 8.8 0 0 1-9.1 8.9 9.5 9.5 0 0 1-4-.8L3 21l1.4-4.4A8.7 8.7 0 0 1 3 11.5 8.8 8.8 0 0 1 12 2.7a8.8 8.8 0 0 1 8.8 8.8Z"/>',
+bookmark:'<path d="M6 3.5h12a1 1 0 0 1 1 1V22l-7-5.1L5 22V4.5a1 1 0 0 1 1-1Z"/>'
+};return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="'+(filled?'currentColor':'none')+'" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+paths[name]+'</svg>'};
+function decorate(button,name,count=''){button.type='button';button.innerHTML=icon(name)+'<span class="pvSuiteCount"></span>';button.querySelector('.pvSuiteCount').textContent=count;button.title=name==='heart'?'Like Reel':name==='comment'?'Comment on Reel':'Save Reel';button.setAttribute('aria-label',button.title)}
+decorate(like,'heart','0');decorate(comments,'comment','0');decorate(bookmark,'bookmark','');
+area.append(like,comments);
+const nativeShare=Array.from(actions.querySelectorAll('.pvReelAction')).find(b=>b.title==='Share reel');
+if(nativeShare){nativeShare.classList.add('pvSuiteIconAction','pvSuiteShare');area.append(nativeShare)}
+area.append(bookmark);
+const nativeMore=Array.from(actions.querySelectorAll('.pvReelAction')).find(b=>b.title==='More options');
+if(nativeMore){nativeMore.classList.add('pvSuiteIconAction','pvSuiteMore');area.append(nativeMore)}
+area.append(views);actions.prepend(area);
+bookmark.onclick=()=>save('reel',reel.id,bookmark);
+function setSaved(on){bookmark.innerHTML=icon('bookmark',on)+'<span class="pvSuiteCount"></span>';bookmark.classList.toggle('pvSuiteIsSaved',on);bookmark.setAttribute('aria-label',on?'Remove saved Reel':'Save Reel');bookmark.title=bookmark.getAttribute('aria-label')}
+
+const refresh=async()=>{const [likes,comm,v]=await Promise.all([db.from('reel_likes').select('user_id').eq('reel_id',reel.id),db.from('reel_comments').select('id,body,user_id,created_at').eq('reel_id',reel.id).order('created_at',{ascending:false}).limit(80),db.from('reel_views').select('*',{count:'exact',head:true}).eq('reel_id',reel.id)]);if(likes.error){like.title='Run supabase/social-suite.sql';return}const mine=(likes.data||[]).some(x=>x.user_id===user.id);like.innerHTML=icon('heart',mine)+'<span class="pvSuiteCount">'+(likes.data||[]).length+'</span>';like.classList.toggle('pvSuiteIsLiked',mine);comments.querySelector('.pvSuiteCount').textContent=(comm.data||[]).length;views.textContent=(v.count||0)+' views';return {mine,comments:comm.data||[]}};
 like.onclick=async()=>{like.disabled=true;try{const existing=await db.from('reel_likes').select('user_id').eq('reel_id',reel.id).eq('user_id',user.id).maybeSingle();if(existing.error)throw existing.error;const result=existing.data?await db.from('reel_likes').delete().eq('user_id',user.id).eq('reel_id',reel.id):await db.from('reel_likes').insert({user_id:user.id,reel_id:reel.id});if(result.error)throw result.error;await refresh()}catch(e){info(e)}finally{like.disabled=false}};
 comments.onclick=async()=>{const body=open('Reel comments'),list=el('div','pvSuiteCommentList'),form=el('form','pvSuiteCommentForm'),input=el('input'),send=el('button','','Post');input.required=true;input.maxLength=500;input.placeholder='Write a comment';form.append(input,send);body.append(list,form);const draw=async()=>{const result=await refresh();if(!result){list.textContent='Run supabase/social-suite.sql to enable comments.';return}list.replaceChildren();for(const comment of result.comments)list.append(el('div','pvSuiteComment',comment.body));if(!result.comments.length)list.append(el('p','','No comments yet.'))};form.onsubmit=async e=>{e.preventDefault();send.disabled=true;const result=await db.from('reel_comments').insert({reel_id:reel.id,user_id:user.id,body:input.value.trim()});send.disabled=false;if(result.error)return info(result.error);input.value='';draw()};draw()};
+db.from('saved_media').select('reel_id').eq('user_id',user.id).eq('reel_id',reel.id).maybeSingle().then(({data})=>setSaved(!!data)).catch(()=>{});
 let seen=false;video.addEventListener('play',()=>{if(seen)return;seen=true;db.from('reel_views').upsert({user_id:user.id,reel_id:reel.id,last_viewed_at:new Date().toISOString()},{onConflict:'user_id,reel_id'}).then(()=>refresh())});
 refresh().catch(console.warn);
 };
