@@ -300,18 +300,38 @@ function pvSyncRail(){pvRail.querySelectorAll('[data-rail-view]').forEach(b=>b.c
 document.querySelectorAll('aside.left [data-view]').forEach(b=>b.addEventListener('click',()=>setTimeout(pvSyncRail,0)));
 pvSyncRail();
 const pvScrim=node('div','pvDrawerScrim');pvScrim.setAttribute('aria-hidden','true');document.body.append(pvScrim);
- const pvDialog=node('div','pvComposeOverlay');pvDialog.setAttribute('role','dialog');pvDialog.setAttribute('aria-modal','true');pvDialog.setAttribute('aria-label','Create a post');
- const pvCard=node('div','pvComposeCard'),pvClose=node('button','pvComposeClose','×');pvClose.type='button';pvClose.setAttribute('aria-label','Close create post');pvCard.append(pvClose,pvComposer);pvDialog.append(pvCard);document.body.append(pvDialog);
+
+ const pvDialog=node('div','pvComposeOverlay');pvDialog.setAttribute('role','dialog');pvDialog.setAttribute('aria-modal','true');pvDialog.setAttribute('aria-label','Create new post');
+ const pvCard=node('div','pvComposeCard pvUnifiedCreate');
+ pvCard.innerHTML='<div class="pvCreateHeader"><strong>Create new post</strong><button class="pvComposeClose" type="button" aria-label="Close">×</button></div><div class="pvCreateDrop" tabindex="0" role="button" aria-label="Select photo or video"><div class="pvUploadArt"><svg viewBox="0 0 100 90" fill="none" stroke="currentColor" stroke-width="3"><rect x="10" y="15" width="55" height="50" rx="7"/><path d="m13 54 16-16 12 12 9-9 13 13"/><circle cx="25" cy="29" r="5"/><rect x="48" y="30" width="42" height="45" rx="7" fill="#23242a"/><path d="m64 42 16 10-16 10z"/></svg></div><h2>Drag photos and videos here</h2><button class="pvChooseMedia" type="button">Select from computer</button><p class="pvMediaHint">JPG, PNG, WebP · MP4, WebM</p></div><div class="pvCreateSelected hide"><div class="pvCreatePreview"></div><div class="pvCreateDetails"><p class="pvCreateFilename"></p><textarea class="pvCreateCaption" maxlength="1000" placeholder="Write a caption…"></textarea><p class="pvCreateFeedback" role="status"></p><div class="pvCreateButtons"><button type="button" class="pvChangeMedia">Change media</button><button type="button" class="pvUnifiedPublish">Share</button></div></div></div><input type="file" class="pvUnifiedFile" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" hidden>';
+ pvDialog.append(pvCard);document.body.append(pvDialog);
+ const pvClose=pvCard.querySelector('.pvComposeClose'),pvDrop=pvCard.querySelector('.pvCreateDrop'),pvInput=pvCard.querySelector('.pvUnifiedFile'),pvSelected=pvCard.querySelector('.pvCreateSelected'),pvPreview=pvCard.querySelector('.pvCreatePreview'),pvCaption=pvCard.querySelector('.pvCreateCaption'),pvFeedback=pvCard.querySelector('.pvCreateFeedback'),pvShare=pvCard.querySelector('.pvUnifiedPublish');
+ let pvObjectUrl=null,pvUploading=false;
  function pvCloseDrawer(){document.body.classList.remove('pvDrawerOpen')}
- function pvCloseCompose(){document.body.classList.remove('pvComposeOpen')}
+ function pvResetMedia(){if(pvObjectUrl){URL.revokeObjectURL(pvObjectUrl);pvObjectUrl=null}pvInput.value='';pvPreview.replaceChildren();pvSelected.classList.add('hide');pvDrop.classList.remove('hide');pvCaption.value='';pvFeedback.textContent=''}
+ function pvCloseCompose(){if(pvUploading)return;document.body.classList.remove('pvComposeOpen');pvResetMedia()}
+ function pvSelectMedia(file){if(!file)return;const types=['image/jpeg','image/png','image/webp','video/mp4','video/webm'];if(!types.includes(file.type)){pvFeedback.textContent='Choose JPG, PNG, WebP, MP4 or WebM.';return}if(pvObjectUrl)URL.revokeObjectURL(pvObjectUrl);pvObjectUrl=URL.createObjectURL(file);pvPreview.replaceChildren();const media=document.createElement(file.type.startsWith('video/')?'video':'img');media.src=pvObjectUrl;if(media.tagName==='VIDEO'){media.controls=true;media.playsInline=true;media.muted=true}media.alt='Selected media preview';pvPreview.append(media);pvCard.querySelector('.pvCreateFilename').textContent=file.name;pvDrop.classList.add('hide');pvSelected.classList.remove('hide');pvFeedback.textContent=''}
  pvMenuBtn.onclick=()=>document.body.classList.toggle('pvDrawerOpen');
  pvScrim.onclick=pvCloseDrawer;
- pvCreateBtn.onclick=()=>{pvCloseDrawer();document.body.classList.add('pvComposeOpen');document.getElementById('caption')?.focus()};
+ pvCreateBtn.onclick=()=>{pvCloseDrawer();document.body.classList.add('pvComposeOpen')};
  pvClose.onclick=pvCloseCompose;
  pvDialog.addEventListener('click',e=>{if(e.target===pvDialog)pvCloseCompose()});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'){pvCloseDrawer();pvCloseCompose()}});
  document.querySelectorAll('aside.left [data-view]').forEach(b=>b.addEventListener('click',pvCloseDrawer));
- const pvPublish=document.getElementById('publish');pvPublish.addEventListener('click',()=>{if(document.getElementById('caption')?.value.trim()||document.getElementById('photo')?.files?.length)setTimeout(()=>{if(!pvPublish.disabled)pvCloseCompose()},900)});
+ pvDrop.addEventListener('click',e=>{if(e.target.closest('button')||e.target===pvDrop||e.target.closest('.pvUploadArt')||e.target.closest('h2')||e.target.closest('p'))pvInput.click()});
+ pvDrop.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pvInput.click()}});
+ pvCard.querySelector('.pvChangeMedia').onclick=()=>pvInput.click();
+ pvInput.onchange=()=>pvSelectMedia(pvInput.files[0]);
+ pvDrop.addEventListener('dragover',e=>{e.preventDefault();pvDrop.classList.add('pvDragOver')});
+ pvDrop.addEventListener('dragleave',()=>pvDrop.classList.remove('pvDragOver'));
+ pvDrop.addEventListener('drop',e=>{e.preventDefault();pvDrop.classList.remove('pvDragOver');const f=e.dataTransfer.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);pvInput.files=dt.files;pvSelectMedia(f)}});
+ pvShare.onclick=async()=>{const file=pvInput.files[0];if(!file||pvUploading)return;pvUploading=true;pvShare.disabled=true;pvShare.textContent='Sharing…';pvFeedback.textContent='Uploading your '+(file.type.startsWith('video/')?'video':'photo')+'…';try{
+ if(file.type.startsWith('video/')){const target=document.getElementById('reelVideo'),dt=new DataTransfer();dt.items.add(file);target.files=dt.files;document.getElementById('reelCaption').value=pvCaption.value;const form=document.querySelector('.reelComposer');form.requestSubmit();let finished=false;for(let i=0;i<100;i++){await sleep(350);const result=document.getElementById('reelFeedback').textContent;if(result==='Reel published!'){finished=true;break}if(result&&result!=='Uploading video…'&&!result.startsWith('Uploading'))throw Error(result)}if(!finished)throw Error('Upload is taking longer than expected. Check Reels before trying again.')}
+ else{if(file.size>5*1024*1024)throw Error('Photos must be under 5MB.');const target=document.getElementById('photo'),dt=new DataTransfer();dt.items.add(file);target.files=dt.files;document.getElementById('caption').value=pvCaption.value;const button=document.getElementById('publish');button.click();let started=false;for(let i=0;i<100;i++){await sleep(200);if(button.disabled)started=true;if(started&&!button.disabled)break}if(!started)throw Error('Could not start publishing.');if(document.getElementById('caption').value)throw Error('Photo was not published. Please check and retry.')}
+ pvCloseComposeAfterUpload();
+ }catch(e){pvFeedback.textContent=e.message}finally{pvUploading=false;pvShare.disabled=false;pvShare.textContent='Share'}};
+ function pvCloseComposeAfterUpload(){document.body.classList.remove('pvComposeOpen');pvResetMedia()}
+
 }
 
 document.getElementById('reset').style.display='none';
