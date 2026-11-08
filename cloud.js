@@ -68,7 +68,40 @@ document.head.append(extraStyle);
 const editor=document.createElement('section');editor.id='profileEditor';editor.className='panel';editor.style.marginTop='14px';
 editor.innerHTML='<h3>Edit profile</h3><form id="editProfileForm"><label>Username<input id="editUsername" maxlength="24" minlength="3" pattern="[A-Za-z0-9_]{3,24}" required></label><label>Display name<input id="editName" maxlength="60"></label><label>Bio<textarea id="editBio" maxlength="160"></textarea></label><label>Profile photo (JPG, PNG, WebP under 5MB)<input id="editAvatar" type="file" accept="image/jpeg,image/png,image/webp"></label><button class="primary" type="submit">Save profile</button><p id="editFeedback" class="hint" role="status"></p></form>';
 document.getElementById('profile').append(editor);
-const explore=document.getElementById('explore');const discover=document.createElement('div');discover.id='creatorDirectory';discover.className='panel';explore.append(discover);
+const explore=document.getElementById('explore');explore.replaceChildren();
+const pvExploreSearchWrap=node('div','pvExploreSearchWrap'),pvExploreSearch=node('input','pvExploreSearch'),pvExploreGrid=node('div','pvExploreGrid'),pvExploreResults=node('div','pvExploreResults hide');
+pvExploreSearch.type='search';pvExploreSearch.placeholder='Search creators, posts and reels';pvExploreSearch.setAttribute('aria-label','Search PAVORA');pvExploreSearch.autocomplete='off';pvExploreSearchWrap.append(node('span','pvExploreMagnify','⌕'),pvExploreSearch);explore.append(pvExploreSearchWrap,pvExploreResults,pvExploreGrid);
+const discover=document.createElement('div');discover.id='creatorDirectory';discover.className='panel';discover.style.display='none';explore.append(discover);
+let pvExploreBusy=false,pvExploreTiles=[],pvExplorePeople=[];
+async function pvLoadExplore(){if(!user||pvExploreBusy)return;pvExploreBusy=true;try{
+const [postResult,reelResult,peopleResult]=await Promise.all([
+db.from('posts').select('id,author_id,caption,image_path,created_at').not('image_path','is',null).order('created_at',{ascending:false}).limit(75),
+db.from('reels').select('id,author_id,caption,video_path,created_at').order('created_at',{ascending:false}).limit(55),
+db.from('profiles').select('id,username,display_name,avatar_url').order('created_at',{ascending:false}).limit(80)
+]);
+pvExplorePeople=peopleResult.data||[];
+const pics=(postResult.data||[]).filter(p=>p.image_path).map(p=>({...p,kind:'post'}));
+const clips=(reelResult.data||[]).filter(p=>p.video_path).map(p=>({...p,kind:'reel'}));
+pvExploreTiles=[...pics,...clips].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+pvRenderExplore();
+}catch(e){pvExploreGrid.replaceChildren(node('p','pvExploreEmpty','Explore unavailable: '+e.message))}finally{pvExploreBusy=false}}
+function pvRenderExplore(){
+const query=pvExploreSearch.value.trim().toLowerCase();
+pvExploreGrid.replaceChildren();pvExploreResults.replaceChildren();
+const creators=query?pvExplorePeople.filter(p=>(p.username||'').toLowerCase().includes(query)||(p.display_name||'').toLowerCase().includes(query)): [];
+pvExploreResults.classList.toggle('hide',!query);
+if(query){if(creators.length){pvExploreResults.append(node('h3','','People'));for(const person of creators.slice(0,12)){const row=node('button','pvExplorePerson'),avatar=node('div','pvExplorePersonAvatar'),details=node('span');if(person.avatar_url){const image=node('img');image.src=person.avatar_url;image.alt='';avatar.append(image)}else avatar.textContent=(person.display_name||person.username||'P')[0].toUpperCase();details.append(node('strong','','@'+person.username),node('small','',person.display_name||''));row.append(avatar,details);row.onclick=()=>openCreator(person.id);pvExploreResults.append(row)}}}
+const authorMatches=new Set(creators.map(p=>p.id));
+const matches=pvExploreTiles.filter(p=>!query||(p.caption||'').toLowerCase().includes(query)||authorMatches.has(p.author_id));
+if(!matches.length){pvExploreGrid.append(node('div','pvExploreEmpty',query?'No matching posts or reels found.':'No photos or reels uploaded yet.'));return}
+for(const item of matches){
+const tile=node('button','pvExploreTile '+(item.kind==='reel'?'pvExploreReel':'pvExplorePhoto'));tile.type='button';tile.title=item.caption||'Open '+item.kind;
+if(item.kind==='post'){const img=node('img');img.src=db.storage.from('post-images').getPublicUrl(item.image_path).data.publicUrl;img.alt=item.caption||'Photo';img.loading='lazy';tile.append(img);tile.onclick=()=>{const person=pvExplorePeople.find(x=>x.id===item.author_id);openProfilePost({...item,author_name:person?.username||'creator'})}}
+else{const vid=node('video');vid.src=db.storage.from('reel-videos').getPublicUrl(item.video_path).data.publicUrl;vid.preload='metadata';vid.muted=true;vid.playsInline=true;vid.setAttribute('aria-hidden','true');tile.append(vid);const marker=node('span','pvExploreReelMark','▶');tile.append(marker);tile.onclick=()=>{pvNavigate('reels');loadReels().then(()=>{const el=document.getElementById('reel-'+item.id);if(el)el.scrollIntoView({behavior:'smooth',block:'center'})})}}
+const shade=node('span','pvExploreTileShade',item.caption||'');tile.append(shade);pvExploreGrid.append(tile)}
+}
+pvExploreSearch.addEventListener('input',pvRenderExplore);
+
 async function updateSocialProfile(){if(!user||!profile)return;
 document.getElementById('editUsername').value=profile.username||'';
 document.getElementById('editName').value=profile.display_name||'';
@@ -247,7 +280,7 @@ async function pvRestoreView(){const key=pvRouteKey();if(!key||pvRestoredForUser
 if(saved.view==='creator'&&saved.creatorId){await openCreator(saved.creatorId);return}
 if(saved.view==='messages'){pvInboxTab=['Primary','General','Requests'].includes(saved.tab)?saved.tab:'Primary';selectedPeer=typeof saved.peer==='string'&&/^[0-9a-f-]{36}$/i.test(saved.peer)?saved.peer:null;pvNavigate('messages');if(selectedPeer&&!chatPoll)chatPoll=setInterval(()=>{if(!inboxView.classList.contains('hide')&&selectedPeer)renderChat(selectedPeer,true)},2500);return}
 const b=document.querySelector('aside.left [data-view="'+saved.view+'"]');if(b)b.click();else pvNavigate(saved.view)}
-function pvNavigate(view){pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');if(view==='messages')loadInbox();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
+function pvNavigate(view){pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');if(view==='messages')loadInbox();if(view==='explore')pvLoadExplore();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
 socialNav.addEventListener('click',()=>pvNavigate('messages'));
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{if(b!==socialNav){publicView.classList.add('hide');inboxView.classList.add('hide');if(chatPoll){clearInterval(chatPoll);chatPoll=null}}}));
 function pvProfileButton(person){const b=node('button','pvPersonButton','@'+(person.username||'creator'));b.type='button';b.onclick=()=>openCreator(person.id);return b}
