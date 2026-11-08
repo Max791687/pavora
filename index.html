@@ -100,6 +100,21 @@ body.pvMessagesMode #pvInboxView{padding:0!important;max-width:none!important;wi
   body aside.left{visibility:hidden!important;pointer-events:none!important;transform:translateX(-105%)!important}
   body .pvDrawerScrim{display:none!important}
 }
+
+/* Conversation organization menu */
+#pvInboxView .pvThreadEntry{position:relative;overflow:visible}
+#pvInboxView .pvChatMenuWrap{position:relative;flex:none;align-self:center;margin-right:8px}
+#pvInboxView .pvChatMore{width:34px;height:34px;border:0;border-radius:9px;background:transparent;color:#bdb9c4;font-size:24px;line-height:1;display:grid;place-items:center;cursor:pointer}
+#pvInboxView .pvChatMore:hover,#pvInboxView .pvChatMore[aria-expanded="true"]{background:#39313d;color:white}
+#pvInboxView .pvChatContextMenu{position:absolute;z-index:20;top:37px;right:0;width:206px;padding:6px;background:#24242a;border:1px solid #414049;border-radius:13px;box-shadow:0 12px 35px #000b;display:flex;flex-direction:column}
+#pvInboxView .pvChatContextMenu.hide{display:none!important}
+#pvInboxView .pvChatMenuItem{display:block;width:100%;border:0;background:transparent;color:#efedf5;text-align:left;font-size:13px;padding:12px 10px;border-radius:8px;cursor:pointer}
+#pvInboxView .pvChatMenuItem:hover{background:#3b3542}
+#pvInboxView .pvChatMenuItem:last-child{color:#ff8a9f}
+#pvInboxView .pvPinnedMarker,#pvInboxView .pvMutedMarker{font-size:11px;vertical-align:middle}
+#pvInboxView .pvThreadList{overflow-x:hidden!important}
+#pvInboxView .pvThreadEntry:has(.pvChatContextMenu:not(.hide)){z-index:25;background:#24252d}
+@media(max-width:700px){#pvInboxView .pvChatContextMenu{width:190px;right:0}#pvInboxView .pvChatMore{width:32px;height:32px}}
 </style></head><body><header><div class="top"><div class="brand">PAVORA ✦</div><small>India Edition</small><button class="secondary" id="reset">Reset demo</button></div></header>
 <main><aside class="left panel"><div class="intro"><div class="row"><div class="profilepic">P</div><div><b>@pavora_user</b><div class="muted">Creator account</div></div></div><hr style="border:0;border-top:1px solid #34344a;margin:16px 0"></div><button class="nav active" data-view="home">⌂ Home</button><button class="nav" data-view="reels">▣ Reels</button><button class="nav" data-view="explore">⌕ Explore</button><button class="nav" data-view="profile">◉ Profile</button></aside>
 <section class="feed"><div id="home"><div class="story" id="stories"></div><div class="composer"><h2>Share a moment ✨</h2><textarea id="caption" maxlength="1200" placeholder="What's happening?"></textarea><div class="actions"><div><label for="photo" class="secondary" style="cursor:pointer">＋ Add photo</label><input class="upload" id="photo" type="file" accept="image/*"><span id="filename" class="hint"></span></div><button class="primary" id="publish">Publish</button></div><p class="hint">Share photos and moments with your PAVORA community.</p></div><div id="posts"></div></div><div id="reels" class="hide"><h2>Reels ▣</h2><div class="empty">Reels player is coming in the next version.</div></div><div id="explore" class="hide"><h2>Explore ✨</h2><div class="empty">Discover creators and trending posts — coming soon.</div></div><div id="profile" class="hide"><div class="panel"><div class="row"><div class="profilepic" style="width:70px;height:70px">P</div><div><h2 style="margin:0">@pavora_user</h2><p class="muted">Welcome to your PAVORA profile</p></div></div><p id="stats"></p><p class="muted">Your posts appear in Home Feed.</p></div></div></section><aside class="right panel"><h3>Welcome to PAVORA 💜</h3><p class="muted">A new space for creators to connect, share and grow.</p><hr style="border:0;border-top:1px solid #34344a"><p class="hint">This is an offline-first browser demo, not a live social network. Sign-in, cloud sync and calling are planned for later phases.</p></aside></main>
