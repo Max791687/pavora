@@ -390,7 +390,7 @@ pvActivityClose.onclick=pvCloseActivity;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')pvCloseActivity()});
 document.addEventListener('pointerdown',e=>{if(pvActivityOpen&&!e.target.closest('.pvActivityPanel')&&!e.target.closest('.pvActivityBell'))pvCloseActivity()});
 function pvMakeBell(extraClass){const b=node('button','pvActivityBell '+extraClass);b.type='button';b.innerHTML=pvActivityBellSvg+'<span class="pvActivityBadge" hidden></span>';b.title='Notifications';b.setAttribute('aria-label','Notifications');b.onclick=pvOpenActivity;return b}
-async function pvLoadActivity(markRead=false){if(!user||!pvActivityOpen)return;pvActivityList.replaceChildren(node('p','pvActivityEmpty','Loading notifications…'));
+async function pvLoadActivity(markRead=false){if(!user||!pvActivityOpen)return;if(!pvActivityList.querySelector('.pvActivityItem,.pvActivityEmpty'))pvActivityList.replaceChildren(node('p','pvActivityEmpty','Loading notifications…'));
 const {data,error}=await db.from('activity_notifications').select('id,actor_id,kind,post_id,body_preview,created_at,read_at').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(75);
 if(error){pvSetActivityError(error.message);pvActivityList.replaceChildren(node('p','pvActivityEmpty','Notifications setup required. Open supabase/activity-notifications.sql on GitHub, copy it into Supabase SQL Editor and press Run. Details: '+error.message));return}
 const entries=data||[];const actorIds=[...new Set(entries.map(e=>e.actor_id))];let profiles=[];if(actorIds.length){const response=await db.from('profiles').select('id,username,display_name,avatar_url').in('id',actorIds);profiles=response.data||[]}
@@ -404,13 +404,15 @@ const {data,error}=await db.from('activity_notifications').select('id,read_at,cr
 if(error){console.warn('Activity notifications unavailable:',error.message);pvSetActivityError(error.message);return}
 const items=data||[];pvSetActivityCount(items.filter(x=>!x.read_at).length);
 const newest=items[0]||null;
+let shouldRefreshList=false;
 if(!pvActivityReady||initial){pvActivityLatest=newest?.id||null;pvActivityLatestTime=newest?.created_at||null;pvActivityReady=true}
-else if(newest&&newest.id!==pvActivityLatest){
-const isNew=!pvActivityLatestTime||new Date(newest.created_at)>new Date(pvActivityLatestTime);
-pvActivityLatest=newest.id;pvActivityLatestTime=newest.created_at;
+else if((newest?.id||null)!==pvActivityLatest){
+const isNew=!!newest&&(!pvActivityLatestTime||new Date(newest.created_at)>new Date(pvActivityLatestTime));
+pvActivityLatest=newest?.id||null;pvActivityLatestTime=newest?.created_at||null;
+shouldRefreshList=true;
 if(isNew)pvActivityAlert()
 }
-if(pvActivityOpen)await pvLoadActivity(false)
+if(pvActivityOpen&&shouldRefreshList)await pvLoadActivity(false)
 }catch(e){console.warn('Activity notification check failed',e)}finally{pvActivityBusy=false}}
 const pvDesktopBell=pvMakeBell('pvRailButton pvDesktopActivity');pvRail.insertBefore(pvDesktopBell,pvRailMore);
 const pvMobileBell=pvMakeBell('pvMobileActivity');const pvTopForBell=document.querySelector('header .top');pvTopForBell.append(pvMobileBell);
