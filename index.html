@@ -276,6 +276,28 @@ body.pvExploreMode #cloudStatus{display:none}
 @media(max-width:600px){.pvSuiteModal,.pvCallOverlay{padding:8px}.pvSuiteBox,.pvCallBox{max-height:94dvh}.pvCallLocal{width:70px;bottom:100px}}
 .pvStoryViewers{display:flex;flex-direction:column;gap:6px;padding:11px 14px;border-radius:11px;background:#27212f;max-height:160px;overflow-y:auto}.pvStoryViewer{font-size:12px;color:#e4d0f5;border-bottom:1px solid #45394d;padding:5px 0}
 .pvCallPlayAudio{display:block;margin:10px auto;padding:10px 17px;border:0;border-radius:9px;background:#7953d6;color:#fff;font-weight:800;cursor:pointer}.pvCallPlayAudio[hidden]{display:none!important}
+
+/* Unified Instagram-inspired Reel action rail — icon above count, accessible hit areas. */
+.pvReelCard .pvReelActions{width:64px;min-width:64px;align-self:flex-end;padding-bottom:20px;gap:0;justify-content:flex-end}
+.pvSuiteReelActions{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:15px;width:100%;margin:0}
+.pvSuiteIconAction{display:flex!important;flex-direction:column;justify-content:center;align-items:center;gap:3px;width:58px!important;min-height:58px!important;height:auto!important;padding:5px 2px!important;background:transparent!important;border:0!important;border-radius:13px;color:#fff!important;cursor:pointer;filter:drop-shadow(0 1px 2px #0008)}
+.pvSuiteIconAction svg{display:block;width:30px!important;height:30px!important;stroke:currentColor;flex:none}
+.pvSuiteIconAction .pvSuiteCount{font-size:12px;font-weight:700;line-height:16px;white-space:nowrap;color:#f5f4f8}
+.pvSuiteIconAction .pvSuiteCount:empty{display:none}
+.pvSuiteIconAction:hover{background:#ffffff18!important}
+.pvSuiteIconAction.pvSuiteIsLiked{color:#ff4b74!important}
+.pvSuiteIconAction.pvSuiteIsSaved{color:#e6c5ff!important}
+.pvSuiteIconAction.pvSuiteMore{min-height:44px!important}
+.pvSuiteIconAction.pvSuiteMore svg{width:27px!important;height:27px!important}
+.pvSuiteViewCount{font-size:11px;color:#cac4d4;white-space:nowrap;text-align:center;margin-top:0}
+@media(max-width:600px){
+.pvReelCard .pvReelActions{position:absolute;right:8px;bottom:110px;width:52px;min-width:52px;padding:0;z-index:4}
+.pvSuiteReelActions{gap:9px}
+.pvSuiteIconAction{width:48px!important;min-height:49px!important;gap:1px}
+.pvSuiteIconAction svg{width:28px!important;height:28px!important}
+.pvSuiteIconAction .pvSuiteCount{font-size:11px;line-height:14px}
+.pvSuiteViewCount{font-size:10px}
+}
 </style></head><body class="pvBooting"><header><div class="top"><div class="brand">PAVORA ✦</div><small>India Edition</small><button class="secondary" id="reset">Reset demo</button></div></header>
 <main><aside class="left panel"><div class="intro"><div class="row"><div class="profilepic">P</div><div><b>@pavora_user</b><div class="muted">Creator account</div></div></div><hr style="border:0;border-top:1px solid #34344a;margin:16px 0"></div><button class="nav active" data-view="home">⌂ Home</button><button class="nav" data-view="reels">▣ Reels</button><button class="nav" data-view="explore">⌕ Explore</button><button class="nav" data-view="profile">◉ Profile</button></aside>
 <section class="feed"><div id="home"><div class="story" id="stories"></div><div class="composer"><h2>Share a moment ✨</h2><textarea id="caption" maxlength="1200" placeholder="What's happening?"></textarea><div class="actions"><div><label for="photo" class="secondary" style="cursor:pointer">＋ Add photo</label><input class="upload" id="photo" type="file" accept="image/*"><span id="filename" class="hint"></span></div><button class="primary" id="publish">Publish</button></div><p class="hint">Share photos and moments with your PAVORA community.</p></div><div id="posts"></div></div><div id="reels" class="hide"><h2>Reels ▣</h2><div class="empty">Reels player is coming in the next version.</div></div><div id="explore" class="hide"><h2>Explore ✨</h2><div class="empty">Discover creators and trending posts — coming soon.</div></div><div id="profile" class="hide"><div class="panel"><div class="row"><div class="profilepic" style="width:70px;height:70px">P</div><div><h2 style="margin:0">@pavora_user</h2><p class="muted">Welcome to your PAVORA profile</p></div></div><p id="stats"></p><p class="muted">Your posts appear in Home Feed.</p></div></div></section><aside class="right panel"><h3>Welcome to PAVORA 💜</h3><p class="muted">A new space for creators to connect, share and grow.</p><hr style="border:0;border-top:1px solid #34344a"><p class="hint">This is an offline-first browser demo, not a live social network. Sign-in, cloud sync and calling are planned for later phases.</p></aside></main>
