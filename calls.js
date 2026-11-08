@@ -17,7 +17,7 @@ async function pollCall(){if(!owner()||document.hidden||requestInFlight)return;r
 if(current?.id){const {data,error}=await db.from('call_signals').select('id,status,answer_sdp,caller_id,callee_id,kind,offer_sdp').eq('id',current.id).maybeSingle();if(error)throw error;if(!data||['ended','declined'].includes(data.status)){await finish(false);return}
 if(data.caller_id===owner().id&&data.status==='accepted'&&data.answer_sdp&&peer&&!peer.currentRemoteDescription){await peer.setRemoteDescription(JSON.parse(data.answer_sdp));updateStatus('Connected · '+(data.kind==='video'?'Video':'Audio')+' call')}
 return}
-const {data,error}=await db.from('call_signals').select('id,caller_id,callee_id,kind,status,offer_sdp').eq('callee_id',owner().id).eq('status','ringing').order('created_at',{ascending:false}).limit(1);
+const {data,error}=await db.from('call_signals').select('id,caller_id,callee_id,kind,status,offer_sdp').eq('callee_id',owner().id).eq('status','ringing').gt('created_at',new Date(Date.now()-120000).toISOString()).order('created_at',{ascending:false}).limit(1);
 if(error){console.warn('Calling setup:',error.message);return}
 const incoming=data?.[0];if(incoming&&!seen.has(incoming.id)){seen.add(incoming.id);current=incoming;overlay.hidden=false;head.textContent='Incoming '+incoming.kind+' call';updateStatus('Someone is calling you');accept.hidden=decline.hidden=false;end.hidden=true;remote.hidden=incoming.kind!=='video';local.hidden=true}
 }catch(e){console.warn('Call update:',e)}finally{requestInFlight=false}}
@@ -25,5 +25,6 @@ accept.onclick=async()=>{if(!current||!owner())return;accept.disabled=true;const
 decline.onclick=async()=>{if(!current)return;const id=current.id;const {error}=await db.from('call_signals').update({status:'declined',updated_at:new Date().toISOString()}).eq('id',id).eq('callee_id',owner().id);if(error)console.warn('Decline failed',error.message);await finish(false)};
 end.onclick=()=>finish(true);
 const originalInit=kit.init;kit.init=async()=>{if(originalInit)await originalInit();if(poll)clearInterval(poll);poll=setInterval(pollCall,3500);pollCall()};
+window.addEventListener('load',()=>{if(owner()&&!poll)kit.init().catch(e=>console.warn('Call bootstrap:',e))},{once:true});
 const originalCleanup=kit.cleanup;kit.cleanup=()=>{if(originalCleanup)originalCleanup();if(poll){clearInterval(poll);poll=null}finish(false)};
 })();
