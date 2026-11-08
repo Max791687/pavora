@@ -44,6 +44,8 @@ if(head){
 document.getElementById('pvUsername').textContent=profile.username||'creator';
 document.getElementById('pvDisplayName').textContent=profile.display_name||'';
 document.getElementById('pvBio').textContent=profile.bio||'';
+const sidebarAvatar=document.querySelector('aside.left .intro .profilepic');
+if(sidebarAvatar){sidebarAvatar.replaceChildren();if(profile.avatar_url){const sideImg=node('img');sideImg.src=profile.avatar_url;sideImg.alt='Your profile photo';sideImg.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:50%;display:block';sidebarAvatar.append(sideImg)}else sidebarAvatar.textContent=(profile.display_name||profile.username||'P')[0].toUpperCase()}
 const photo=document.getElementById('pvAvatar');photo.replaceChildren();
 if(profile.avatar_url){const img=node('img');img.src=profile.avatar_url;img.alt='Profile picture';photo.append(img)}else photo.textContent=(profile.display_name||profile.username||'P')[0].toUpperCase();
 }
