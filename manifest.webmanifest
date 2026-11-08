@@ -1,0 +1,35 @@
+{
+  "id": "/pavora/",
+  "name": "PAVORA — Connect & Create",
+  "short_name": "PAVORA",
+  "description": "Share moments, discover creators, watch Reels and stay connected on PAVORA.",
+  "start_url": "/pavora/",
+  "scope": "/pavora/",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "background_color": "#0c0d10",
+  "theme_color": "#17131f",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "./app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./app-icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": [
+    "social",
+    "entertainment"
+  ],
+  "lang": "en"
+}
