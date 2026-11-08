@@ -474,6 +474,9 @@ db.from('message_requests').select('accepted_at').eq('recipient_id',id).eq('send
 db.from('follows').select('follower_id').eq('follower_id',user.id).eq('following_id',id).maybeSingle()]);
 const {data:senderFollowsMe}=incoming?await db.from('follows').select('follower_id').eq('follower_id',id).eq('following_id',user.id).maybeSingle():{data:null};
 const pendingIncoming=!!incoming&&!senderFollowsMe,pendingOutgoing=!!outgoing&&!outgoing.accepted_at&&!myFollow,alreadySent=(messages||[]).some(m=>m.sender_id===user.id);
+// A slow poll may have started before the composer existed; never let it
+// replace a newly mounted focused composer after its later DB queries finish.
+if(silent&&area.querySelector('.pvMessageForm'))return;
 area.replaceChildren();
 const chatTop=node('div','pvChatTop'),back=node('button','pvChatBack','‹'),heading=node('h3','',person.display_name||person.username),handle=node('p','muted','@'+person.username),chatWho=node('div','pvChatWho'),list=node('div','pvMessages'),headerAvatar=node('button','pvChatHeaderAvatar');
 back.type='button';back.setAttribute('aria-label','Back to conversations');back.onclick=pvInboxMobileBack;
@@ -495,13 +498,28 @@ row.dataset.messageId=String(m.id);bubble.title=new Date(m.created_at).toLocaleS
 const emojiButton=node('button','pvChatEmojiButton');emojiButton.type='button';emojiButton.title='Add emoji';emojiButton.setAttribute('aria-label','Add emoji');emojiButton.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 14c2 3 6 3 8 0"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/></svg>';
 const emojiTray=node('div','pvChatEmojiTray');emojiTray.hidden=true;for(const emoji of ['❤️','😂','😍','🥰','🔥','👏','🙌','😊','👍','💜','✨','👋']){const item=node('button','',emoji);item.type='button';item.onclick=()=>{input.value+=emoji;emojiTray.hidden=true;input.focus();input.dispatchEvent(new Event('input'))};emojiTray.append(item)}
 emojiButton.onclick=()=>{emojiTray.hidden=!emojiTray.hidden};
-const send=node('button','primary pvChatSend','Send');send.type='submit';
-// On iOS Safari a normal tap first blurs the input, closing the keyboard.
-// Submit from the touch gesture itself and suppress focus transfer to button.
-send.addEventListener('touchstart',event=>{if(send.disabled)return;event.preventDefault();input.focus({preventScroll:true});form.requestSubmit(send)},{passive:false});
+const send=node('button','primary pvChatSend','Send');
+send.type='button';
+// The Send control is not a submitter: iOS Safari can dismiss the software
+// keyboard when a submit button is tapped, even if input.focus() is called.
+// Keep the focused input unchanged and invoke the send action directly.
+let pvLastTouchSend=0;
+send.addEventListener('pointerdown',event=>{if(event.pointerType!=='mouse')event.preventDefault()});
+send.addEventListener('touchstart',event=>{
+ if(send.disabled)return;
+ event.preventDefault();
+ pvLastTouchSend=Date.now();
+ pvSendMessage();
+},{passive:false});
+send.addEventListener('click',event=>{
+ event.preventDefault();
+ if(Date.now()-pvLastTouchSend<900)return;
+ pvSendMessage();
+});
 const composerWrap=node('div','pvChatComposerWrap');form.append(emojiButton,input,send);composerWrap.append(emojiTray,form);
-if(pendingOutgoing&&alreadySent){input.disabled=true;send.disabled=true;input.placeholder='Request pending — waiting for acceptance';}form.onsubmit=async e=>{
- e.preventDefault();
+if(pendingOutgoing&&alreadySent){input.disabled=true;send.disabled=true;input.placeholder='Request pending — waiting for acceptance';}
+form.addEventListener('submit',event=>{event.preventDefault();pvSendMessage()});
+async function pvSendMessage(){
  const body=input.value.trim();if(!body||send.disabled)return;
  // Keep the original input element mounted. Rebuilding renderChat() here
  // makes iOS/Android close the soft keyboard after every message.
@@ -539,7 +557,7 @@ if(pendingOutgoing&&alreadySent){input.disabled=true;send.disabled=true;input.pl
    if(document.activeElement!==input)input.focus({preventScroll:true});
  }
  pvCheckUnread().catch(err=>console.warn('Unread update:',err));
-};area.append(chatTop);
+}area.append(chatTop);
 if(pendingIncoming){const banner=node('div','pvRequestBanner'),description=node('p','','Message request from someone who does not follow you.'),accept=node('button','pvAcceptRequest','Accept'),remove=node('button','pvDeclineRequest','Remove');accept.type=remove.type='button';accept.onclick=async()=>{accept.disabled=true;const {error}=await db.from('message_requests').update({accepted_at:new Date().toISOString()}).eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null);if(error){alert('Could not accept request: '+error.message);accept.disabled=false;return}pvInboxTab='Primary';await loadInbox();await pvCheckUnread()};remove.onclick=()=>pvRemoveChat(id);banner.append(description,accept,remove);area.append(banner)}
 if(pendingOutgoing){area.append(node('p','pvPendingRequestNote',alreadySent?'Request sent. Wait for acceptance, or follow this account to continue.':'You can send one message request. Follow this account to message freely.'))}
 area.append(list,composerWrap);emojiButton.disabled=input.disabled;list.scrollTop=list.scrollHeight}
