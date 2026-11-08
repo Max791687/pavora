@@ -251,7 +251,22 @@ if(pvComposer){
  const pvMenuBtn=node('button','pvTopAction','☰');pvMenuBtn.type='button';pvMenuBtn.title='Open menu';pvMenuBtn.setAttribute('aria-label','Open menu');
  const pvCreateBtn=node('button','pvTopAction pvCreateTop','＋ Create');pvCreateBtn.type='button';
  const pvTop=document.querySelector('header .top');pvTop.insertBefore(pvMenuBtn,pvTop.firstChild);pvTop.append(pvCreateBtn);
- const pvScrim=node('div','pvDrawerScrim');pvScrim.setAttribute('aria-hidden','true');document.body.append(pvScrim);
+ 
+// Persistent desktop icon rail, with the full menu available from More.
+const pvRail=node('nav','pvIconRail');pvRail.setAttribute('aria-label','Main navigation');
+const pvIcons={home:'⌂',reels:'▣',explore:'⌕',messages:'✉',profile:'◉'};
+for(const key of ['home','reels','messages','explore','profile']){
+ const b=node('button','pvRailButton',pvIcons[key]);b.type='button';b.dataset.railView=key;b.title=key[0].toUpperCase()+key.slice(1);b.setAttribute('aria-label',b.title);
+ b.onclick=()=>{document.querySelector('aside.left [data-view="'+key+'"]')?.click();document.body.classList.remove('pvDrawerOpen');pvSyncRail()};
+ pvRail.append(b);
+}
+const pvRailCreate=node('button','pvRailButton','＋');pvRailCreate.type='button';pvRailCreate.title='Create post';pvRailCreate.setAttribute('aria-label','Create post');pvRailCreate.onclick=()=>pvCreateBtn.click();pvRail.insertBefore(pvRailCreate,pvRail.querySelector('[data-rail-view="profile"]'));
+const pvRailMore=node('button','pvRailButton pvRailMore','☰');pvRailMore.type='button';pvRailMore.title='More options';pvRailMore.setAttribute('aria-label','More options');pvRailMore.onclick=()=>pvMenuBtn.click();pvRail.append(pvRailMore);
+document.body.append(pvRail);
+function pvSyncRail(){pvRail.querySelectorAll('[data-rail-view]').forEach(b=>b.classList.toggle('active',!!document.querySelector('aside.left [data-view="'+b.dataset.railView+'"].active')))}
+document.querySelectorAll('aside.left [data-view]').forEach(b=>b.addEventListener('click',()=>setTimeout(pvSyncRail,0)));
+pvSyncRail();
+const pvScrim=node('div','pvDrawerScrim');pvScrim.setAttribute('aria-hidden','true');document.body.append(pvScrim);
  const pvDialog=node('div','pvComposeOverlay');pvDialog.setAttribute('role','dialog');pvDialog.setAttribute('aria-modal','true');pvDialog.setAttribute('aria-label','Create a post');
  const pvCard=node('div','pvComposeCard'),pvClose=node('button','pvComposeClose','×');pvClose.type='button';pvClose.setAttribute('aria-label','Close create post');pvCard.append(pvClose,pvComposer);pvDialog.append(pvCard);document.body.append(pvDialog);
  function pvCloseDrawer(){document.body.classList.remove('pvDrawerOpen')}
