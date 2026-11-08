@@ -408,22 +408,25 @@ body.pvReelsMode .pvReelCard{padding:0!important}
 #pvInboxView .pvChatInfoButton svg{width:22px;height:22px}
 }
 
-/* Stable chat viewport. Reserve enough space for the PAVORA top bar and
-   desktop install/browser controls so the composer is never clipped. */
+/* Stable desktop messaging: size from actual element position, not a guessed fixed offset. */
 @media(min-width:701px){
+ body.pvMessagesMode{overflow:hidden!important}
  body.pvMessagesMode main{
-   height:calc(100dvh - 150px)!important;
-   max-height:calc(100dvh - 150px)!important;
+   height:calc(100dvh - var(--pvMsgMainTop, 0px))!important;
+   max-height:none!important;
    min-height:0!important;
    overflow:hidden!important;
  }
- body.pvMessagesMode main>.feed,
- body.pvMessagesMode #pvInboxView,
- body.pvMessagesMode #pvInboxView .pvInboxLayout{
-   height:100%!important;max-height:100%!important;min-height:0!important;
+ body.pvMessagesMode main>.feed{
+   height:100%!important;max-height:none!important;min-height:0!important;
    overflow:hidden!important;
  }
+ body.pvMessagesMode #pvInboxView{
+   height:calc(100dvh - var(--pvMsgViewTop, 33px) - 20px)!important;
+   max-height:none!important;min-height:0!important;overflow:hidden!important;
+ }
  body.pvMessagesMode #pvInboxView .pvInboxLayout{
+   height:100%!important;max-height:100%!important;min-height:0!important;overflow:hidden!important;
    grid-template-columns:minmax(290px,385px) minmax(0,1fr)!important;
  }
 }
