@@ -7,7 +7,7 @@ if(!window.supabase?.createClient){alert('Unable to load Supabase SDK. Check int
 const db=window.supabase.createClient(URL,KEY);
 let user=null,feed=[],profile=null;
 const style=document.createElement('style');style.textContent=`
-#authOverlay{position:fixed;inset:0;background:#fafafa;color:#161616;z-index:20;display:flex;min-height:100dvh;overflow:auto;font-family:Inter,system-ui,Arial}
+#authOverlay.pvAuthHidden{display:none!important}#authOverlay{position:fixed;inset:0;background:#fafafa;color:#161616;z-index:20;display:flex;min-height:100dvh;overflow:auto;font-family:Inter,system-ui,Arial}
 #authOverlay .authShowcase{width:55%;min-height:100dvh;padding:45px clamp(25px,6vw,95px);display:flex;flex-direction:column;justify-content:center;background:radial-gradient(circle at 75% 70%,#f5dcff 0,transparent 45%),linear-gradient(135deg,#fff7fc,#f4f1ff);border-right:1px solid #e8e2ec}
 #authOverlay .authLogo{font-size:30px;font-weight:900;letter-spacing:-1.5px;background:linear-gradient(90deg,#7b4dfa,#f241a6);background-clip:text;color:transparent}
 #authOverlay .authShowcase h1{font-size:clamp(34px,4.3vw,65px);line-height:1.12;letter-spacing:-2px;max-width:640px;margin:40px 0 15px}
@@ -152,7 +152,7 @@ document.querySelector('[data-view="profile"]').addEventListener('click',()=>{do
 document.querySelectorAll('[data-view]:not([data-view="profile"])').forEach(b=>b.addEventListener('click',()=>document.body.classList.remove('pvProfileMode')));
 
 document.getElementById('reset').style.display='none';
-async function setSession(session){user=session?.user||null;overlay.style.display=user?'none':'grid';signout.style.display=user?'':'none';if(user){try{await ensureProfile();await refresh();await updateSocialProfile()}catch(e){status.textContent='Setup error: '+e.message+' — Check Supabase SQL schema.'}}else{profile=null;feed=[];document.getElementById('posts').replaceChildren();status.textContent='Sign in to access the cloud feed.'}}
+async function setSession(session){user=session?.user||null;overlay.classList.toggle('pvAuthHidden',!!user);signout.style.display=user?'':'none';if(user){try{await ensureProfile();await refresh();await updateSocialProfile()}catch(e){status.textContent='Setup error: '+e.message+' — Check Supabase SQL schema.'}}else{profile=null;feed=[];document.getElementById('posts').replaceChildren();status.textContent='Sign in to access the cloud feed.'}}
 db.auth.onAuthStateChange((event,session)=>{setTimeout(()=>setSession(session),0)});
 const {data:{session}}=await db.auth.getSession();await setSession(session);
 })();
