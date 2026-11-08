@@ -237,6 +237,43 @@ body.pvExploreMode #cloudStatus{display:none}
 .pvProfileReelTile video{width:100%;height:100%;display:block;object-fit:cover;pointer-events:none}
 .pvProfileReelBadge{position:absolute;right:9px;top:8px;background:#100f18a8;border-radius:6px;padding:4px 7px;color:#fff;font-size:15px}
 @media(max-width:600px){.pvTabs button{padding:12px 21px;font-size:11px}}
+
+/* PAVORA Social Suite */
+.pvSuiteModal[hidden],.pvCallOverlay[hidden]{display:none!important}
+.pvSuiteModal,.pvCallOverlay{position:fixed;inset:0;background:#000c;z-index:105;display:grid;place-items:center;padding:18px}
+.pvSuiteBox,.pvCallBox{position:relative;width:min(520px,100%);max-height:90dvh;overflow-y:auto;background:#19171f;border:1px solid #60477b;border-radius:19px;padding:22px;color:#fff;box-shadow:0 16px 60px #000b}
+.pvSuiteClose{position:absolute;right:14px;top:11px;background:transparent;color:#eee;border:0;font-size:30px;cursor:pointer}
+.pvSuiteTitle{font-size:19px;margin:0 33px 20px 0}
+.pvSuiteBody{display:flex;flex-direction:column;gap:13px}
+.pvSuiteBody input{padding:11px;border-radius:9px;background:#24222f;color:#fff;border:1px solid #58536c;max-width:100%;width:100%}
+.pvSuiteBody button,.pvSuiteSave{border:1px solid #5c486d;border-radius:9px;background:#342840;color:white;padding:9px 12px;cursor:pointer}
+.pvSuiteMedia{width:100%;max-height:65dvh;object-fit:contain}
+.pvSuiteCommentList{max-height:260px;overflow-y:auto}
+.pvSuiteComment{padding:10px 5px;border-bottom:1px solid #33303b;font-size:13px}
+.pvSuiteCommentForm{display:flex;gap:7px}
+.pvSuiteCommentForm input{flex:1;min-width:0}
+.pvSuiteReelActions{display:flex;flex-direction:column;gap:7px;align-items:center;margin-bottom:12px}
+.pvSuiteReelButton,.pvSuiteSave{font-size:12px;font-weight:700}
+.pvSuiteViewCount{font-size:10px;color:#dfd2ed;white-space:nowrap}
+.pvStoryAdd{display:flex;flex-direction:column;align-items:center;gap:5px;flex:none;background:transparent;border:0;color:#fff;cursor:pointer;min-width:67px;max-width:77px}
+.pvStoryAdd small{font-size:11px;max-width:77px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.pvStoryAvatar,.pvStoryPlus{width:58px;height:58px;border-radius:50%;border:3px solid #cb51cc;display:grid;place-items:center;background:#352340;overflow:hidden;color:#fff;font-size:30px}
+.pvStoryAvatar img{width:100%;height:100%;object-fit:cover}
+.pvStoryPlus{border-style:dashed;color:#c9a3ff}
+.pvSuiteVideoBadge{position:absolute;right:7px;top:7px;padding:4px 7px;border-radius:7px;background:#0009;color:#fff}
+.pvCallOverlay{z-index:120}
+.pvCallBox{text-align:center}
+.pvCallStatus{color:#d7c6df;margin:8px 0 16px}
+.pvCallVideo{width:100%;max-height:52dvh;object-fit:contain;border-radius:12px;background:#050506}
+.pvCallLocal{position:absolute;right:30px;bottom:105px;width:100px;max-height:125px;border:1px solid #eee;border-radius:9px;object-fit:cover;background:#000}
+.pvCallVideo[hidden],.pvCallLocal[hidden]{display:none!important}
+.pvCallButtons{display:flex;gap:10px;justify-content:center;margin-top:16px}
+.pvCallButtons button,.pvCallAction{background:#4b3374;border:0;border-radius:10px;color:#fff;padding:9px 14px;cursor:pointer}
+.pvCallAccept{background:#287e58!important}
+.pvCallDecline,.pvCallEnd{background:#ac314b!important}
+.pvCallActionGroup{display:flex;gap:8px;margin-left:auto}
+.pvCallAction{padding:7px 10px;font-size:16px}
+@media(max-width:600px){.pvSuiteModal,.pvCallOverlay{padding:8px}.pvSuiteBox,.pvCallBox{max-height:94dvh}.pvCallLocal{width:70px;bottom:100px}}
 </style></head><body class="pvBooting"><header><div class="top"><div class="brand">PAVORA ✦</div><small>India Edition</small><button class="secondary" id="reset">Reset demo</button></div></header>
 <main><aside class="left panel"><div class="intro"><div class="row"><div class="profilepic">P</div><div><b>@pavora_user</b><div class="muted">Creator account</div></div></div><hr style="border:0;border-top:1px solid #34344a;margin:16px 0"></div><button class="nav active" data-view="home">⌂ Home</button><button class="nav" data-view="reels">▣ Reels</button><button class="nav" data-view="explore">⌕ Explore</button><button class="nav" data-view="profile">◉ Profile</button></aside>
 <section class="feed"><div id="home"><div class="story" id="stories"></div><div class="composer"><h2>Share a moment ✨</h2><textarea id="caption" maxlength="1200" placeholder="What's happening?"></textarea><div class="actions"><div><label for="photo" class="secondary" style="cursor:pointer">＋ Add photo</label><input class="upload" id="photo" type="file" accept="image/*"><span id="filename" class="hint"></span></div><button class="primary" id="publish">Publish</button></div><p class="hint">Share photos and moments with your PAVORA community.</p></div><div id="posts"></div></div><div id="reels" class="hide"><h2>Reels ▣</h2><div class="empty">Reels player is coming in the next version.</div></div><div id="explore" class="hide"><h2>Explore ✨</h2><div class="empty">Discover creators and trending posts — coming soon.</div></div><div id="profile" class="hide"><div class="panel"><div class="row"><div class="profilepic" style="width:70px;height:70px">P</div><div><h2 style="margin:0">@pavora_user</h2><p class="muted">Welcome to your PAVORA profile</p></div></div><p id="stats"></p><p class="muted">Your posts appear in Home Feed.</p></div></div></section><aside class="right panel"><h3>Welcome to PAVORA 💜</h3><p class="muted">A new space for creators to connect, share and grow.</p><hr style="border:0;border-top:1px solid #34344a"><p class="hint">This is an offline-first browser demo, not a live social network. Sign-in, cloud sync and calling are planned for later phases.</p></aside></main>
@@ -249,4 +286,4 @@ document.querySelectorAll('[data-view]').forEach(btn=>btn.onclick=()=>{document.
 $('photo').onchange=()=>{$('filename').textContent=$('photo').files[0]?.name||''};
 $('publish').onclick=()=>{const caption=$('caption').value.trim(),file=$('photo').files[0];if(!caption&&!file)return alert('Add a caption or photo');const add=image=>{posts.unshift({id:Date.now(),time:Date.now(),caption,image,likes:0,liked:false,comments:[]});save();$('caption').value='';$('photo').value='';$('filename').textContent='';render()};if(!file)return add('');if(!file.type.startsWith('image/'))return alert('Please choose an image');const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{const scale=Math.min(1,1000/img.width,1000/img.height),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);add(canvas.toDataURL('image/jpeg',.72))};img.onerror=()=>alert('Unable to read image');img.src=reader.result};reader.readAsDataURL(file)};
 $('reset').onclick=()=>{if(confirm('Delete all demo posts from this browser?')){posts=[];save();render()}};render();
-</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="./cloud.js"></script></body></html>
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="./cloud.js"></script><script src="./social-suite.js"></script><script src="./calls.js"></script></body></html>
