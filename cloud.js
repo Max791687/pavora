@@ -446,11 +446,14 @@ function pvStartDmRealtime(){
   pvScheduleLiveDmRefresh();
  };
  channel.on('postgres_changes',{event:'INSERT',schema:'public',table:'direct_messages',filter:'recipient_id=eq.'+uid},onChange);
+ channel.on('postgres_changes',{event:'INSERT',schema:'public',table:'direct_messages',filter:'sender_id=eq.'+uid},onChange);
  channel.on('postgres_changes',{event:'UPDATE',schema:'public',table:'direct_messages',filter:'sender_id=eq.'+uid},onChange);
  channel.on('postgres_changes',{event:'DELETE',schema:'public',table:'direct_messages',filter:'recipient_id=eq.'+uid},onChange);
  channel.subscribe(status=>{
   if(pvDmRealtimeUser!==uid)return;
   pvDmRealtimeStatus=status==='SUBSCRIBED'?'live':'offline';
+  const label=document.querySelector('#pvChatArea .pvDmRealtimeLabel');
+  if(label){label.textContent=pvDmRealtimeStatus==='live'?'Live':'Syncing';label.title=pvDmRealtimeStatus==='live'?'Messages update in real time':'Message polling is active'}
   if(status==='SUBSCRIBED')pvScheduleLiveDmRefresh();
  });
  pvDmRealtimeChannel=channel;
@@ -590,7 +593,7 @@ const filter=()=>{const q=pvInboxSearch.toLowerCase();for(const {entry,p} of row
 search.oninput=()=>{pvInboxSearch=search.value;filter()};filter();
 if(selectedPeer)await renderChat(selectedPeer);await pvCheckUnread();
 }
-async function openChat(id,navigate=true){if(!user||id===user.id)return;if(pvHiddenChats.has(id)){const {error}=await db.from('hidden_conversations').delete().eq('owner_id',user.id).eq('peer_id',id);if(!error)pvHiddenChats.delete(id)}selectedPeer=id;if(navigate){const {data:req}=await db.from('message_requests').select('sender_id').eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null).maybeSingle();const {data:following}=req?await db.from('follows').select('follower_id').eq('follower_id',id).eq('following_id',user.id).maybeSingle():{data:null};pvInboxTab=req&&!following?'Requests':pvConversationSetting(id).folder==='general'?'General':'Primary';pvNavigate('messages')}else{inboxView.classList.add('pvChatSelected');inboxView.querySelectorAll('.pvThreadPerson').forEach(b=>b.classList.toggle('active',b.dataset.peerId===id));await renderChat(id)}pvRememberInboxPosition();if(!chatPoll)chatPoll=setInterval(()=>{if(!inboxView.classList.contains('hide')&&selectedPeer&&!pvChatPollBusy){pvChatPollBusy=true;renderChat(selectedPeer,true).catch(e=>console.warn('Chat poll:',e)).finally(()=>{pvChatPollBusy=false})}},4000)}
+async function openChat(id,navigate=true){if(!user||id===user.id)return;if(pvHiddenChats.has(id)){const {error}=await db.from('hidden_conversations').delete().eq('owner_id',user.id).eq('peer_id',id);if(!error)pvHiddenChats.delete(id)}selectedPeer=id;if(navigate){const {data:req}=await db.from('message_requests').select('sender_id').eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null).maybeSingle();const {data:following}=req?await db.from('follows').select('follower_id').eq('follower_id',id).eq('following_id',user.id).maybeSingle():{data:null};pvInboxTab=req&&!following?'Requests':pvConversationSetting(id).folder==='general'?'General':'Primary';pvNavigate('messages')}else{inboxView.classList.add('pvChatSelected');inboxView.querySelectorAll('.pvThreadPerson').forEach(b=>b.classList.toggle('active',b.dataset.peerId===id));await renderChat(id)}pvRememberInboxPosition();if(!chatPoll)chatPoll=setInterval(()=>{if(!inboxView.classList.contains('hide')&&selectedPeer&&!pvChatPollBusy){pvChatPollBusy=true;renderChat(selectedPeer,true).catch(e=>console.warn('Chat poll:',e)).finally(()=>{pvChatPollBusy=false})}},pvDmRealtimeStatus==='live'?12000:4000)}
 async function renderChat(id,silent=false){const area=document.getElementById('pvChatArea');if(!area||!user||selectedPeer!==id)return;
 const pollingExisting=!!(silent&&area.querySelector('.pvMessageForm'));
 const [{data:person,error:personError},{data:messages,error}]=await Promise.all([
@@ -639,6 +642,9 @@ function pvChatAvatar(target){target.replaceChildren();if(person.avatar_url){con
 pvChatAvatar(headerAvatar);headerAvatar.onclick=()=>openCreator(id);
 const headerText=node('button','pvChatHeaderIdentity');headerText.type='button';headerText.onclick=()=>openCreator(id);headerText.append(heading,handle);chatWho.append(headerAvatar,headerText);chatTop.append(back,chatWho);
 try{window.PVKit?.addCallActions?.(id,chatTop)}catch(e){console.warn('Call buttons:',e)}
+const liveLabel=node('span','pvDmRealtimeLabel',pvDmRealtimeStatus==='live'?'Live':'Syncing');
+liveLabel.title=pvDmRealtimeStatus==='live'?'Real-time messages enabled':'Using background message checks';
+chatTop.append(liveLabel);
 const infoButton=node('button','pvChatInfoButton');infoButton.type='button';infoButton.title='View profile';infoButton.setAttribute('aria-label','View profile');infoButton.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>';infoButton.onclick=()=>openCreator(id);chatTop.append(infoButton);
 const intro=node('div','pvChatIntro'),introAvatar=node('div','pvChatIntroAvatar');pvChatAvatar(introAvatar);
 intro.append(introAvatar,node('strong','',person.display_name||person.username),node('span','pvChatIntroHandle','@'+person.username+' · PAVORA'));
