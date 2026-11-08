@@ -25,6 +25,7 @@ const typeInfo:Record<string,{title:string;body:string;url:string}>={
  story_view:{title:'Story activity 👀',body:'Someone viewed your story.',url:'/pavora/#notifications'}
 };
 Deno.serve(async req=>{
+ if(req.method==='GET')return Response.json({publicKey:publicKey||null},{headers:{'Cache-Control':'public, max-age=300'}});
  if(req.method!=='POST')return new Response('Method not allowed',{status:405});
  if(!webhookSecret||req.headers.get('x-pavora-webhook-secret')!==webhookSecret)return new Response('Unauthorized',{status:401});
  if(!url||!role||!publicKey||!privateKey)return new Response('Push secrets are not configured',{status:503});
