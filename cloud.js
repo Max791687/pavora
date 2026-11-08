@@ -335,7 +335,7 @@ const originalReelsCleanup=window.pvReelsWheelCleanup;
 window.pvReelsWheelCleanup=()=>{originalReelsCleanup?.();window.removeEventListener('resize',pvReelsResize)};
 
 for(const reel of data){const person=people.get(reel.author_id)||{},card=node('article','pvReelCard'),screen=node('div','pvReelScreen'),video=node('video'),meta=node('div','pvReelMeta'),author=node('div','pvReelAuthor'),actions=node('div','pvReelActions');
-video.src=db.storage.from('reel-videos').getPublicUrl(reel.video_path).data.publicUrl;video.loop=true;video.playsInline=true;video.preload=cards.length<2?'metadata':'none';video.controls=false;video.setAttribute('aria-label','Reel by '+(person.username||'creator'));
+video.src=db.storage.from('reel-videos').getPublicUrl(reel.video_path).data.publicUrl;video.loop=true;video.playsInline=true;video.muted=true;video.defaultMuted=true;video.autoplay=false;video.preload=cards.length<2?'metadata':'none';video.controls=false;video.setAttribute('muted','');video.setAttribute('playsinline','');video.setAttribute('aria-label','Reel by '+(person.username||'creator'));
 const avatar=node('div','pvReelAvatar');if(person.avatar_url){const img=node('img');img.src=person.avatar_url;img.alt='';avatar.append(img)}else avatar.textContent=(person.username||'P')[0].toUpperCase();
 const who=node('button','pvReelCreator','@'+(person.username||'creator'));who.type='button';who.onclick=()=>openCreator(reel.author_id);author.append(avatar,who);
 if(reel.author_id!==user.id){const follow=node('button','pvReelFollow','View profile');follow.type='button';follow.onclick=()=>openCreator(reel.author_id);author.append(follow)}
@@ -351,13 +351,13 @@ try{window.PVKit?.addReel?.(reel,actions,video)}catch(e){console.warn('Reel extr
 // Single playback controller above owns play/pause: no IntersectionObserver races.
 if(reelObserver){reelObserver.disconnect();reelObserver=null}
 pvReelsLoadedAt=Date.now();pvReelsLoadedFor=user.id;
-requestAnimationFrame(()=>goTo(0,'auto'));
+requestAnimationFrame(()=>{goTo(0,'auto');pvActivateReel(0)});
 const hash=location.hash.slice(1);if(hash.startsWith('reel-')){const target=document.getElementById(hash);if(target)setTimeout(()=>goTo(cards.indexOf(target),'auto'),100)}
 })().finally(()=>{pvReelsLoading=null});
 return pvReelsLoading;
 }
 reelForm.onsubmit=async event=>{event.preventDefault();if(!user)return;const file=document.getElementById('reelVideo').files[0],caption=document.getElementById('reelCaption').value.trim(),feedback=document.getElementById('reelFeedback'),btn=reelForm.querySelector('button');if(!file||!['video/mp4','video/webm'].includes(file.type)){feedback.textContent='Choose an MP4 or WebM video. Your Supabase project may limit upload size.';return}btn.disabled=true;feedback.textContent='Uploading video…';let path=null;try{path=user.id+'/'+crypto.randomUUID()+(file.type==='video/mp4'?'.mp4':'.webm');const upload=await db.storage.from('reel-videos').upload(path,file,{contentType:file.type});if(upload.error)throw upload.error;const result=await db.from('reels').insert({author_id:user.id,caption,video_path:path});if(result.error)throw result.error;feedback.textContent='Reel published!';reelForm.reset();await loadReels(true)}catch(e){feedback.textContent=e.message;if(path)await db.storage.from('reel-videos').remove([path])}finally{btn.disabled=false}};
-document.querySelector('[data-view="reels"]').addEventListener('click',()=>loadReels());
+// pvNavigate('reels') owns loading and playback; avoid duplicate fetches.
 document.querySelectorAll('[data-view]').forEach(btn=>{if(btn.dataset.view!=='reels')btn.addEventListener('click',()=>document.querySelectorAll('#reelList video').forEach(v=>v.pause()))});
 
 
@@ -478,6 +478,11 @@ function pvSyncDesktopChatHeight(){
 }
 window.addEventListener('resize',()=>{if(document.body.classList.contains('pvMessagesMode'))requestAnimationFrame(pvSyncDesktopChatHeight)},{passive:true});
 function pvNavigate(view){pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');document.body.classList.toggle('pvExploreMode',view==='explore');document.body.classList.toggle('pvReelsMode',view==='reels');try{window.PVKit?.onNavigate?.(view)}catch(e){console.warn('Feature navigation:',e)}if(view==='messages'){loadInbox();requestAnimationFrame(pvSyncDesktopChatHeight)}if(view==='reels')loadReels();if(view==='explore')pvLoadExplore();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
+// Legacy demo's button.onclick only hides/shows HTML. Connect each section
+// to the real cloud navigation so desktop rail opens Reels Mode + autoplay.
+document.querySelectorAll('aside.left [data-view="home"],aside.left [data-view="reels"],aside.left [data-view="profile"]').forEach(button=>{
+ button.addEventListener('click',()=>pvNavigate(button.dataset.view));
+});
 socialNav.addEventListener('click',()=>pvNavigate('messages'));
 document.querySelectorAll('[data-view="explore"]').forEach(btn=>btn.addEventListener('click',()=>pvNavigate('explore')));
 document.querySelectorAll('[data-view]:not([data-view="explore"])').forEach(btn=>btn.addEventListener('click',()=>document.body.classList.remove('pvExploreMode')));
@@ -704,7 +709,7 @@ more:'<path d="M4 6h16M4 12h16M4 18h16"/>'
 function pvIconSvg(key){return '<svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+pvIcons[key]+'</svg>'}
 for(const key of ['home','reels','messages','explore','profile']){
  const b=node('button','pvRailButton');b.innerHTML=pvIconSvg(key);b.type='button';b.dataset.railView=key;b.title=key[0].toUpperCase()+key.slice(1);b.setAttribute('aria-label',b.title);
- b.onclick=()=>{document.querySelector('aside.left [data-view="'+key+'"]')?.click();document.body.classList.remove('pvDrawerOpen');pvSyncRail()};
+ b.onclick=()=>{pvNavigate(key);document.body.classList.remove('pvDrawerOpen');pvSyncRail()};
  pvRail.append(b);
 }
 const pvRailCreate=node('button','pvRailButton');pvRailCreate.innerHTML=pvIconSvg('create');pvRailCreate.type='button';pvRailCreate.title='Create post';pvRailCreate.setAttribute('aria-label','Create post');pvRailCreate.onclick=()=>pvCreateBtn.click();pvRail.insertBefore(pvRailCreate,pvRail.querySelector('[data-rail-view="profile"]'));
