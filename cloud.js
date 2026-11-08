@@ -4,12 +4,13 @@ const URL='https://iyqmjaomslffqfwbsydr.supabase.co';
 const KEY='sb_publishable_uaHMT5xlLu6egTFd7uaqQQ_LN6sbwhr';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 if(!window.supabase?.createClient){document.body.classList.remove('pvBooting');alert('Unable to load Supabase SDK. Check internet connection.');return}
-const db=window.supabase.createClient(URL,KEY);
+const db=window.supabase.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:window.localStorage}});
 // Keep the sign-in form responsive if authentication or network is unavailable.
 function pvAuthTimeout(promise,ms=15000){return Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Login is taking too long. Check your internet connection, then try again.')),ms))])}
 
 let user=null,feed=[],profile=null;
 let pvSessionInitializing=null,pvSessionInitUser=null;
+let pvAuthBootstrapped=false,pvExplicitSignout=false;
 const style=document.createElement('style');style.textContent=`
 #authOverlay.pvAuthHidden{display:none!important}#authOverlay{position:fixed;inset:0;background:#fafafa;color:#161616;z-index:20;display:flex;min-height:100dvh;overflow:auto;font-family:Inter,system-ui,Arial}
 #authOverlay .authShowcase{width:55%;min-height:100dvh;padding:45px clamp(25px,6vw,95px);display:flex;flex-direction:column;justify-content:center;background:radial-gradient(circle at 75% 70%,#f5dcff 0,transparent 45%),linear-gradient(135deg,#fff7fc,#f4f1ff);border-right:1px solid #e8e2ec}
@@ -58,7 +59,7 @@ document.getElementById('signup').onclick=()=>setAuthMode(authMode==='login'?'si
 document.getElementById('authForgot').onclick=()=>setAuthMode('reset');
 document.getElementById('authTogglePassword').onclick=()=>{const input=document.getElementById('authPassword');input.type=input.type==='password'?'text':'password';document.getElementById('authTogglePassword').textContent=input.type==='password'?'Show':'Hide'};
 document.getElementById('authForm').onsubmit=async e=>{e.preventDefault();const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value,btn=document.getElementById('authSubmit');if(!email)return msg('Please enter your email.');if(authMode==='signup'&&password!==document.getElementById('authConfirm').value)return msg('Passwords do not match.');btn.disabled=true;msg(authMode==='login'?'Logging in…':authMode==='signup'?'Creating your account…':'Sending reset link…');try{if(authMode==='login'){const {data,error}=await pvAuthTimeout(db.auth.signInWithPassword({email,password}));if(error)throw error;if(data?.session){msg('Login successful! Opening PAVORA…');await setSession(data.session)}else throw Error('No session returned. Please try logging in again.')}else if(authMode==='reset'){const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:'https://max791687.github.io/pavora/'});if(error)throw error;msg('If this email has an account, a reset link will arrive shortly. Check spam too.')}else{const username=document.getElementById('authUsername').value.trim(),display_name=document.getElementById('authName').value.trim();if(!/^[a-zA-Z0-9_]{3,24}$/.test(username))throw Error('Username must be 3–24 letters, numbers or underscores.');const {data:existing,error:lookupError}=await db.from('profiles').select('id').eq('username',username).maybeSingle();if(lookupError)throw lookupError;if(existing)throw Error('This username is already taken. Try another.');const {data,error}=await db.auth.signUp({email,password,options:{emailRedirectTo:'https://max791687.github.io/pavora/',data:{username,display_name}}});if(error)throw error;msg(data.session?'Account created! Opening PAVORA…':'Account created! Check your email to confirm, then log in.')}}catch(err){msg(err.message||'Something went wrong. Please try again.')}finally{btn.disabled=false}};
-signout.onclick=()=>db.auth.signOut();
+signout.onclick=async()=>{pvExplicitSignout=true;try{const {error}=await db.auth.signOut();if(error)throw error;await setSession(null)}catch(e){pvExplicitSignout=false;alert('Could not log out: '+e.message)}};
 async function ensureProfile(){if(!user)return;let {data,error}=await db.from('profiles').select('*').eq('id',user.id).maybeSingle();if(error)throw error;if(!data){const base=(user.email||'creator').split('@')[0].replace(/[^a-zA-Z0-9_]/g,'').slice(0,12)||'creator';const requested=user.user_metadata?.username;const username=/^[a-zA-Z0-9_]{3,24}$/.test(requested||'')?requested:(base+'_'+user.id.slice(0,7)).slice(0,24);const display_name=String(user.user_metadata?.display_name||base).slice(0,60);let created=await db.from('profiles').insert({id:user.id,username,display_name}).select().single();if(created.error?.code==='23505'&&username===requested){created=await db.from('profiles').insert({id:user.id,username:(base+'_'+user.id.slice(0,7)).slice(0,24),display_name}).select().single()}if(created.error)throw created.error;data=created.data}profile=data;document.querySelectorAll('.intro b').forEach(e=>e.textContent='@'+data.username);{const title=document.querySelector('#profile h2');if(title)title.textContent=data.username}}
 async function refresh(){if(!user)return;status.textContent='Loading cloud posts…';const {data,error}=await db.from('posts').select('id,author_id,caption,image_path,created_at').order('created_at',{ascending:false}).limit(50);if(error){status.textContent='Cloud feed error: '+error.message;return}feed=data||[];const ids=feed.map(p=>p.id);if(ids.length){const [profiles,likes,comments]=await Promise.all([db.from('profiles').select('id,username,display_name,avatar_url').in('id',[...new Set(feed.map(p=>p.author_id))]),db.from('likes').select('post_id,user_id').in('post_id',ids),db.from('comments').select('id,post_id,user_id,body').in('post_id',ids)]);if(profiles.error||likes.error||comments.error){status.textContent='Cloud posts loaded; some social details unavailable: '+[profiles.error,likes.error,comments.error].filter(Boolean).map(e=>e.message).join('; ')}const names=new Map((profiles.data||[]).map(p=>[p.id,p]));feed.forEach(p=>{p.profiles=names.get(p.author_id)||null;p.likes=(likes.data||[]).filter(x=>x.post_id===p.id);p.comments=(comments.data||[]).filter(x=>x.post_id===p.id)})}if(!status.textContent.startsWith('Cloud posts loaded'))status.textContent='☁ Cloud feed · '+feed.length+' posts';draw()}
 function node(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e}
@@ -602,6 +603,24 @@ await pvSafeSetup('Profile',updateSocialProfile);
 pvHiddenChats=new Map();await pvSafeSetup('Hidden chats',pvLoadHiddenChats);
 pvConversationSettings=new Map();await pvSafeSetup('Conversation folders',pvLoadConversationSettings);pvUnreadAvailable=true;pvLastNotified=null;pvLastNoticeId=null;pvIncomingBaseline=null;pvUnreadInitialized=false;await pvSafeSetup('Unread messages',()=>pvCheckUnread(true));if(pvUnreadTimer)clearInterval(pvUnreadTimer);pvUnreadTimer=setInterval(()=>{if(!document.hidden)pvCheckUnread()},2500);if(pvActivityUserId!==user.id){pvActivityUserId=user.id;pvActivityReady=false;pvActivityLatest=null;pvActivityLatestTime=null}await pvSafeSetup('Activity notifications',()=>pvCheckActivity(!pvActivityReady));if(pvActivityTimer)clearInterval(pvActivityTimer);pvActivityTimer=setInterval(()=>{if(!document.hidden)pvCheckActivity()},3000);await pvSafeSetup('Saved page',pvRestoreView)}catch(e){console.error('PAVORA startup failed:',e.stack||e);status.textContent='App setup error: '+e.message+' — Please refresh. If this continues, send a screenshot.'}finally{pvSessionInitializing=null}})();await pvSessionInitializing}else{pvSessionInitUser=null;pvSessionInitializing=null;pvCloseActivity();if(pvActivityTimer){clearInterval(pvActivityTimer);pvActivityTimer=null}pvActivityUserId=null;pvActivityReady=false;pvActivityLatest=null;pvActivityLatestTime=null;pvSetActivityCount(0);pvRestoredForUser=null;selectedPeer=null;pvHiddenChats=new Map();pvConversationSettings=new Map();if(pvUnreadTimer){clearInterval(pvUnreadTimer);pvUnreadTimer=null}pvSetUnreadBadge(0);pvLastNotified=null;pvLastNoticeId=null;pvIncomingBaseline=null;pvUnreadInitialized=false;if(chatPoll){clearInterval(chatPoll);chatPoll=null}profile=null;feed=[];document.getElementById('posts').replaceChildren();status.textContent='Sign in to access the cloud feed.'}document.body.classList.remove('pvBooting')}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&user){pvCheckUnread();pvCheckActivity()}});
-db.auth.onAuthStateChange((event,session)=>{if(event==='TOKEN_REFRESHED'&&user?.id===session?.user?.id)return;if(event==='INITIAL_SESSION'&&!session&&user)return;setTimeout(()=>setSession(session).catch(e=>console.warn('Session setup failed:',e)),0)});
-try{const {data:{session},error}=await pvAuthTimeout(db.auth.getSession(),12000);if(error)throw error;await setSession(session)}catch(e){document.body.classList.remove('pvBooting');msg('Session check is taking too long. Please log in again.');console.warn('Initial session unavailable:',e.message)}
+// Restore a saved session before considering the user logged out. Supabase can
+// emit INITIAL_SESSION while refresh and token recovery are still in progress.
+db.auth.onAuthStateChange((event,session)=>{
+if(event==='SIGNED_OUT'){if(!pvAuthBootstrapped&&!pvExplicitSignout)return;setTimeout(()=>setSession(null).catch(e=>console.warn('Logout failed:',e)),0);return}
+if(!session?.user)return;
+if(event==='TOKEN_REFRESHED'&&user?.id===session.user.id)return;
+setTimeout(()=>setSession(session).catch(e=>console.warn('Session setup failed:',e)),0)
+});
+try{
+const {data,error}=await pvAuthTimeout(db.auth.getSession(),20000);
+if(error)throw error;
+pvAuthBootstrapped=true;
+if(data?.session?.user)await setSession(data.session);
+else if(!user)await setSession(null);
+}catch(e){
+pvAuthBootstrapped=true;
+document.body.classList.remove('pvBooting');
+msg('Could not restore your saved login. Check your connection, then refresh.');
+console.warn('Initial session unavailable:',e.message)
+}
 })();
