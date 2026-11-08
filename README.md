@@ -1,21 +1,49 @@
-# PAVORA — India Edition
+# PAVORA — India Edition 💜
 
-Instagram-inspired responsive browser demo.
+PAVORA is a live social app, available as a website, installable mobile web app and Android app project.
 
-## Features
-- Home feed, profile, Explore and Reels placeholders
-- Create text and image posts
-- Likes and comments
-- Posts saved in this browser via localStorage
+**Live app:** https://max791687.github.io/pavora/
 
-## Run
-Open `index.html` in a browser.
+## Install on a phone (no coding required)
 
-## Publish
-Settings → Pages → Deploy from a branch → main → / (root) → Save.
-Once deployed, expected URL: https://max791687.github.io/pavora/
+**Android Chrome:** Open the website → Chrome menu (⋮) → **Install app** or **Add to Home screen**.
 
-## Next
-React, Supabase authentication, cloud storage, database, real-time chat and WebRTC calling.
+**iPhone Safari:** Open the website → Share → **Add to Home Screen** → Add.
 
-This is a prototype, not a production multi-user app.
+The app launches with its own icon and uses the same live PAVORA Supabase account. Internet is required for profiles, messages and uploads.
+
+## PAVORA features
+
+- Email sign-in and persistent login
+- Home photos, likes, comments, uploads
+- Search/Explore and creator profiles
+- Reels, likes/comments/views and saving
+- Primary/General/Requests direct messages
+- Follow and activity notifications (in-app)
+- 24-hour Stories, viewer counts
+- Profile and Saved media
+- Browser-supported voice/video calls (WebRTC; some networks need TURN)
+
+Some modules need their corresponding SQL scripts to be run in Supabase SQL Editor; see `supabase/`.
+
+## Native Android project / APK
+
+The full Android Studio project is in `android-app/`. It is a native WebView wrapper of the PAVORA website, with microphone/camera permissions, file uploads, persistent browser storage and full-screen app experience. It is not a separate offline-native rewrite.
+
+**Android APK via GitHub Actions:**
+
+1. Open [Build PAVORA Android APK](https://github.com/Max791687/pavora/actions/workflows/build-android.yml).
+2. Choose a successful build and download its **PAVORA-Android-debug-APK** artifact ZIP.
+3. Extract `app-debug.apk` and install on your Android phone (Android may ask permission to install from this source).
+
+If no successful build appears, open the workflow, click **Run workflow**, and inspect its build logs.
+
+**Android Studio:** Open the `android-app` folder, sync Gradle, then **Build → Build APK(s)**.
+
+## Notes
+
+- The Android debug APK is for testing; Play Store release requires signed release credentials.
+- In-app notification sounds/badges work while the app runs; true background push notifications are not yet implemented.
+- WebRTC uses STUN only unless TURN is configured, so voice/video calls may fail on restricted mobile networks.
+- App and website share the same Supabase data. Never use Reset demo.
+- Current code has not been fully device-tested across all features.
