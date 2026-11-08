@@ -476,7 +476,46 @@ const emojiTray=node('div','pvChatEmojiTray');emojiTray.hidden=true;for(const em
 emojiButton.onclick=()=>{emojiTray.hidden=!emojiTray.hidden};
 const send=node('button','primary pvChatSend','Send');send.type='submit';
 const composerWrap=node('div','pvChatComposerWrap');form.append(emojiButton,input,send);composerWrap.append(emojiTray,form);
-if(pendingOutgoing&&alreadySent){input.disabled=true;send.disabled=true;input.placeholder='Request pending — waiting for acceptance';}form.onsubmit=async e=>{e.preventDefault();const body=input.value.trim();if(!body)return;send.disabled=true;const {error}=await db.from('direct_messages').insert({sender_id:user.id,recipient_id:id,body});if(error){alert(error.message);send.disabled=false;return}await renderChat(id);await pvCheckUnread();};area.append(chatTop);
+if(pendingOutgoing&&alreadySent){input.disabled=true;send.disabled=true;input.placeholder='Request pending — waiting for acceptance';}form.onsubmit=async e=>{
+ e.preventDefault();
+ const body=input.value.trim();if(!body||send.disabled)return;
+ // Keep the original input element mounted. Rebuilding renderChat() here
+ // makes iOS/Android close the soft keyboard after every message.
+ input.value='';
+ input.focus({preventScroll:true});
+ send.disabled=true;
+ const {error}=await db.from('direct_messages').insert({sender_id:user.id,recipient_id:id,body});
+ if(error){
+   input.value=body+(input.value?' '+input.value:'');
+   input.focus({preventScroll:true});
+   send.disabled=false;
+   alert(error.message);
+   return;
+ }
+ if(selectedPeer!==id||!list.isConnected)return;
+ const today=new Date(),dayKey=today.toDateString();
+ if(dayKey!==pvLastMessageDay){
+   pvLastMessageDay=dayKey;
+   list.append(node('div','pvChatDayDivider',today.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})));
+ }
+ list.querySelector('.pvChatEmptyMessage')?.remove();
+ const row=node('div','pvMessageRow mine'),bubble=node('div','pvBubble mine',body);
+ bubble.title=today.toLocaleString();row.append(bubble);list.append(row);
+ list.scrollTop=list.scrollHeight;
+ if(pendingOutgoing){
+   // Preserve the existing single-message request limit.
+   input.disabled=true;send.disabled=true;emojiButton.disabled=true;
+   input.placeholder='Request pending — waiting for acceptance';
+   area.querySelector('.pvPendingRequestNote')?.remove();
+   const pendingNote=node('p','pvPendingRequestNote','Request sent. Wait for acceptance, or follow this account to continue.');
+   area.insertBefore(pendingNote,list);
+ }else{
+   send.disabled=false;
+   // Keep the keyboard open and let the user send another message immediately.
+   if(document.activeElement!==input)input.focus({preventScroll:true});
+ }
+ pvCheckUnread().catch(err=>console.warn('Unread update:',err));
+};area.append(chatTop);
 if(pendingIncoming){const banner=node('div','pvRequestBanner'),description=node('p','','Message request from someone who does not follow you.'),accept=node('button','pvAcceptRequest','Accept'),remove=node('button','pvDeclineRequest','Remove');accept.type=remove.type='button';accept.onclick=async()=>{accept.disabled=true;const {error}=await db.from('message_requests').update({accepted_at:new Date().toISOString()}).eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null);if(error){alert('Could not accept request: '+error.message);accept.disabled=false;return}pvInboxTab='Primary';await loadInbox();await pvCheckUnread()};remove.onclick=()=>pvRemoveChat(id);banner.append(description,accept,remove);area.append(banner)}
 if(pendingOutgoing){area.append(node('p','pvPendingRequestNote',alreadySent?'Request sent. Wait for acceptance, or follow this account to continue.':'You can send one message request. Follow this account to message freely.'))}
 area.append(list,composerWrap);emojiButton.disabled=input.disabled;list.scrollTop=list.scrollHeight}
