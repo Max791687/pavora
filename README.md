@@ -38,6 +38,83 @@ Implemented: live message updates for authenticated senders and recipients via S
 
 Typing indicators, reply threads, media attachments and reactions are not yet implemented; they are planned later.
 
+## Lock-screen phone push notifications (setup required)
+
+This is a **Web Push** implementation, not just in-app badges. Once deployed and opted in,
+supported installed web apps can display notifications when PAVORA is closed or the screen is locked.
+Push covers direct messages, post likes/comments, follows, Reel likes/comments and **story views**.
+Notification sound/vibration/lock-screen display depend on Android or iOS settings (including
+Do Not Disturb / Focus); the web app cannot force audible sound.
+
+### Step 1 — Database
+
+In Supabase Dashboard > SQL Editor, run prerequisite scripts first if not already present:
+[supabase/activity-notifications.sql](supabase/activity-notifications.sql),
+[supabase/social-suite.sql](supabase/social-suite.sql),
+[supabase/messages.sql](supabase/messages.sql).
+Then run [supabase/background-push.sql](supabase/background-push.sql). It creates
+owner-only subscriptions, a private push event queue and server-side activity triggers.
+
+### Step 2 — Generate VAPID keys and configure secrets
+
+On a trusted developer computer with Node/npm installed run:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+In Supabase Dashboard > Edge Functions > Secrets set these **private server secrets**:
+- `VAPID_PUBLIC_KEY` — generated public key (the app fetches it from the Edge Function).
+- `VAPID_PRIVATE_KEY` — generated private key (NEVER put in GitHub or the browser).
+- `PUSH_CONTACT_EMAIL` — your actual contact email in `mailto:you@example.com` form.
+- `PUSH_WEBHOOK_SECRET` — a strong random secret (e.g. generated with `openssl rand -hex 32`).
+
+Supabase supplies `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to hosted Edge Functions;
+verify they are present in the function runtime. Never expose the service-role key in browser code.
+
+### Step 3 — Deploy the server function
+
+Deploy [supabase/functions/send-push/index.ts](supabase/functions/send-push/index.ts)
+to project `iyqmjaomslffqfwbsydr` as function `send-push`. With Supabase CLI:
+
+```bash
+supabase login
+supabase link --project-ref iyqmjaomslffqfwbsydr
+supabase functions deploy send-push --no-verify-jwt
+```
+
+`--no-verify-jwt` is intentional for Database Webhooks; incoming POSTs are authenticated
+via the `x-pavora-webhook-secret` header instead. Never use an empty webhook secret.
+A public GET only returns the **public** VAPID key. The Edge Function only sends
+pushes for events written in the protected `push_jobs` table.
+
+### Step 4 — Configure Database Webhook
+
+In Supabase Dashboard > Database > Webhooks create an **INSERT** webhook:
+- Name: `pavora-push`.
+- Table: `public.push_jobs`.
+- URL: `https://iyqmjaomslffqfwbsydr.supabase.co/functions/v1/send-push`.
+- HTTP header: `x-pavora-webhook-secret` = same `PUSH_WEBHOOK_SECRET` value.
+- Method: POST.
+
+### Step 5 — Activate on the phone
+
+**Android:** Open PAVORA in Chrome, install from the browser menu, sign in, and tap
+**🔔 Enable alerts** in the app header, then grant notifications.
+**iPhone:** iOS 16.4 or later; Safari > Share > Add to Home Screen, launch the installed
+home-screen PAVORA app, tap **🔔 Enable alerts**, and grant permission.
+Allow notifications (including lock-screen and sound) in the phone's Settings.
+Android Chrome PWA supports Web Push. The separate Android Studio **WebView APK**
+does not automatically support this system; native APK background alerts would require
+separate Firebase Cloud Messaging (FCM) integration.
+
+**Verification:** Close the installed PWA or lock the phone, then from a *second account*
+send a DM, like a post or view a story. Check Edge Function logs, the Database Webhook
+logs, the `push_jobs` row's `processed_at`, and phone notification settings.
+Notifications are best-effort: offline delivery timing, battery restrictions and sounds
+are controlled by the phone and push service. The system has **not yet been
+deployed to Supabase or end-to-end tested on a locked phone**.
+
 ## Native Android project / APK
 
 The full Android Studio project is in `android-app/`. It is a native WebView wrapper of the PAVORA website, with microphone/camera permissions, file uploads, persistent browser storage and full-screen app experience. It is not a separate offline-native rewrite.
@@ -55,7 +132,7 @@ If no successful build appears, open the workflow, click **Run workflow**, and i
 ## Notes
 
 - The Android debug APK is for testing; Play Store release requires signed release credentials.
-- In-app notification sounds/badges work while the app runs; true background push notifications are not yet implemented.
+- Web Push source code is included; lock-screen delivery requires the Supabase deployment and per-phone opt-in described above.
 - WebRTC uses STUN only unless TURN is configured, so voice/video calls may fail on restricted mobile networks.
 - App and website share the same Supabase data. Never use Reset demo.
 - Current code has not been fully device-tested across all features.
