@@ -348,7 +348,7 @@ function pvRouteKey(){return user?'pavora-route:'+user.id:null}
 function pvRememberView(view,creatorId){const key=pvRouteKey();if(!key)return;try{const previous=JSON.parse(sessionStorage.getItem(key)||'{}');const next={...previous,view};if(creatorId)next.creatorId=creatorId;if(view!=='creator')delete next.creatorId;if(view==='messages'){next.tab=pvInboxTab;next.peer=selectedPeer||null}else{delete next.peer}sessionStorage.setItem(key,JSON.stringify(next))}catch(e){console.warn('Could not save current page',e)}}
 function pvRememberInboxPosition(){pvRememberView('messages')}
 async function pvRestoreView(){const key=pvRouteKey();if(!key||pvRestoredForUser===user.id)return;pvRestoredForUser=user.id;let saved=null;try{saved=JSON.parse(sessionStorage.getItem(key)||'null')}catch(e){}if(!saved||!['home','reels','explore','profile','messages','creator'].includes(saved.view))return;
-if(saved.view==='creator'&&saved.creatorId){await openCreator(saved.creatorId);return}
+if(saved.view==='creator'&&saved.creatorId){openCreator(saved.creatorId).catch(e=>console.warn('Creator profile restore:',e));return}
 if(saved.view==='messages'){pvInboxTab=['Primary','General','Requests'].includes(saved.tab)?saved.tab:'Primary';selectedPeer=typeof saved.peer==='string'&&/^[0-9a-f-]{36}$/i.test(saved.peer)?saved.peer:null;pvNavigate('messages');if(selectedPeer&&!chatPoll)chatPoll=setInterval(()=>{if(!inboxView.classList.contains('hide')&&selectedPeer)renderChat(selectedPeer,true)},2500);return}
 const b=document.querySelector('aside.left [data-view="'+saved.view+'"]');if(b)b.click();else pvNavigate(saved.view)}
 function pvSyncDesktopChatHeight(){
