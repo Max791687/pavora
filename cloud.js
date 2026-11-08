@@ -3,7 +3,7 @@
 const URL='https://iyqmjaomslffqfwbsydr.supabase.co';
 const KEY='sb_publishable_uaHMT5xlLu6egTFd7uaqQQ_LN6sbwhr';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-if(!window.supabase?.createClient){alert('Unable to load Supabase SDK. Check internet connection.');return}
+if(!window.supabase?.createClient){document.body.classList.remove('pvBooting');alert('Unable to load Supabase SDK. Check internet connection.');return}
 const db=window.supabase.createClient(URL,KEY);
 let user=null,feed=[],profile=null;
 const style=document.createElement('style');style.textContent=`
