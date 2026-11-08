@@ -216,6 +216,7 @@ const cards=[];
 function reelSvg(path){return '<svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+'</svg>'}
 function reelAction(label,svg,handler){const b=node('button','pvReelAction');b.type='button';b.title=label;b.setAttribute('aria-label',label);b.innerHTML=reelSvg(svg);b.onclick=handler;return b}
 let current=0,gestureLocked=false,gestureTimer=null,touchStartY=null,touchStartX=null,touchConsumed=false;
+let pvMobileReelFrame=0;
 let desktopWheelLastAt=0,desktopWheelGestureAt=0,desktopWheelDirection=0;
 const videoFor=index=>cards[index]?.querySelector('video');
 function pvActivateReel(index){
@@ -250,17 +251,37 @@ function goTo(index,behavior='smooth'){
  }else{
   cards.forEach(card=>{card.style.transitionDuration='';card.removeAttribute('data-reel-position');card.removeAttribute('aria-hidden')});
   reelStack.style.transform='';
+  cancelAnimationFrame(pvMobileReelFrame);
   const top=cards[next].offsetTop-cards[0].offsetTop;
-  reelStack.scrollTo({top,behavior});
+  if(behavior==='smooth'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+   // Native smooth scroll can take 500ms+ on mobile and interacts badly
+   // with mandatory snap. Drive a short, frame-timed transition ourselves.
+   const from=reelStack.scrollTop,distance=top-from,start=performance.now(),duration=235;
+   reelStack.style.scrollSnapType='none';
+   const tick=now=>{
+    if(!reelStack.isConnected)return;
+    const t=Math.min(1,(now-start)/duration),ease=1-Math.pow(1-t,3);
+    reelStack.scrollTop=from+distance*ease;
+    if(t<1)pvMobileReelFrame=requestAnimationFrame(tick);
+    else{reelStack.scrollTop=top;reelStack.style.scrollSnapType='';}
+   };
+   pvMobileReelFrame=requestAnimationFrame(tick);
+  }else{
+   reelStack.style.scrollSnapType='none';
+   reelStack.scrollTop=top;
+   reelStack.style.scrollSnapType='';
+  }
  }
  pvActivateReel(next);
  clearTimeout(gestureTimer);
  gestureLocked=behavior==='smooth';
  gestureTimer=setTimeout(()=>{
   gestureLocked=false;
-  if(!window.matchMedia('(min-width:701px)').matches)reelStack.scrollTop=cards[next].offsetTop-cards[0].offsetTop;
-  pvActivateReel(current);
- },behavior==='smooth'?480:0);
+  if(!window.matchMedia('(min-width:701px)').matches){
+   reelStack.scrollTop=cards[current].offsetTop-cards[0].offsetTop;
+   reelStack.style.scrollSnapType='';
+  }
+ },behavior==='smooth'?(desktop?480:260):0);
 }
 function stepReel(direction){
  if(gestureLocked||!direction)return;
@@ -299,7 +320,7 @@ reelStack.addEventListener('touchmove',e=>{
  if(touchStartY===null||e.touches.length!==1)return;
  const dy=e.touches[0].clientY-touchStartY,dx=e.touches[0].clientX-touchStartX;
  if(Math.abs(dy)>Math.abs(dx)&&e.cancelable)e.preventDefault();
- if(!touchConsumed&&Math.abs(dy)>42&&Math.abs(dy)>Math.abs(dx)*1.15){
+ if(!touchConsumed&&Math.abs(dy)>32&&Math.abs(dy)>Math.abs(dx)*1.15){
   touchConsumed=true;
   stepReel(dy<0?1:-1);
  }
@@ -307,12 +328,12 @@ reelStack.addEventListener('touchmove',e=>{
 reelStack.addEventListener('touchend',e=>{
  if(touchStartY!==null&&!touchConsumed&&e.changedTouches.length){
   const dy=e.changedTouches[0].clientY-touchStartY,dx=e.changedTouches[0].clientX-touchStartX;
-  if(Math.abs(dy)>42&&Math.abs(dy)>Math.abs(dx)*1.15)stepReel(dy<0?1:-1);
+  if(Math.abs(dy)>32&&Math.abs(dy)>Math.abs(dx)*1.15)stepReel(dy<0?1:-1);
  }
  touchStartY=null;touchStartX=null;touchConsumed=false;
 },{passive:true});
 reelStack.addEventListener('touchcancel',()=>{touchStartY=null;touchConsumed=false},{passive:true});
-window.pvReelsWheelCleanup=()=>{document.removeEventListener('wheel',pvWheelHandler,true);clearTimeout(gestureTimer);desktopWheelLastAt=0};
+window.pvReelsWheelCleanup=()=>{document.removeEventListener('wheel',pvWheelHandler,true);clearTimeout(gestureTimer);cancelAnimationFrame(pvMobileReelFrame);reelStack.style.scrollSnapType='';desktopWheelLastAt=0};
 reelStack.addEventListener('keydown',e=>{
  if(['ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();stepReel(1)}
  else if(['ArrowUp','PageUp'].includes(e.key)){e.preventDefault();stepReel(-1)}
