@@ -157,6 +157,37 @@ body.pvBooting main,body.pvBooting header,body.pvBooting .pvIconRail{visibility:
 #pvInboxView .pvInboxActions{display:flex;align-items:center;gap:7px}#pvInboxView .pvInboxBell{border:0;background:transparent;color:#eee;position:relative;display:grid;place-items:center;width:35px;height:35px;border-radius:10px}#pvInboxView .pvInboxBell:hover{background:#322a39}#pvInboxView .pvInboxBell svg{width:23px;height:23px}#pvInboxView .pvInboxBell .pvActivityBadge{top:-2px;right:-3px}
 .pvActivityBadge.pvActivityErrorBadge{background:#f59e0b;color:#1a1206;min-width:18px;font-size:12px}
 
+
+/* PAVORA Explore: media-first discovery grid */
+body.pvExploreMode main{max-width:1500px;grid-template-columns:0 minmax(0,1fr) 0;gap:0;padding-left:76px;padding-right:28px;margin:0 auto}
+body.pvExploreMode main>aside.left,body.pvExploreMode main>aside.right{display:none}
+body.pvExploreMode main>.feed{max-width:1050px;width:100%;margin:0 auto;padding:18px 10px 70px}
+body.pvExploreMode #cloudStatus{display:none}
+#explore{width:100%;min-width:0}
+.pvExploreSearchWrap{max-width:430px;width:100%;position:relative;margin:0 auto 26px}
+.pvExploreMagnify{position:absolute;left:17px;top:50%;transform:translateY(-50%);font-size:25px;color:#a4a5ae;pointer-events:none}
+.pvExploreSearch{height:45px;width:100%;background:#24262c;border:1px solid #34363e;border-radius:14px;outline:none;padding:0 18px 0 51px;color:#f5f5fa;font-size:14px}
+.pvExploreSearch:focus{border-color:#9c6ad4;background:#2b2931}
+.pvExploreSearch::placeholder{color:#a6a4af}
+.pvExploreGrid{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;align-items:stretch}
+.pvExploreTile{aspect-ratio:4/5;display:block;position:relative;width:100%;overflow:hidden;border:0;padding:0;background:#191920;color:white;cursor:pointer}
+.pvExploreTile img,.pvExploreTile video{display:block;width:100%;height:100%;object-fit:cover;transition:transform .22s ease}
+.pvExploreTile:hover img,.pvExploreTile:hover video{transform:scale(1.035)}
+.pvExploreReelMark{position:absolute;right:11px;top:10px;z-index:1;padding:5px 8px;border-radius:7px;background:#1119;color:#fff;font-size:16px}
+.pvExploreTileShade{position:absolute;bottom:0;left:0;right:0;padding:23px 10px 9px;background:linear-gradient(transparent,#0009);font-size:12px;text-align:left;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;opacity:0;transition:opacity .15s}
+.pvExploreTile:hover .pvExploreTileShade{opacity:1}
+.pvExploreResults{background:#18191f;border:1px solid #34333e;border-radius:13px;margin:0 auto 17px;padding:8px;max-width:650px}
+.pvExploreResults.hide{display:none!important}
+.pvExploreResults h3{font-size:14px;margin:7px 10px 12px}
+.pvExplorePerson{display:flex;width:100%;align-items:center;gap:12px;text-align:left;border:0;background:transparent;color:#fff;border-radius:9px;padding:8px;cursor:pointer}
+.pvExplorePerson:hover{background:#2b2634}
+.pvExplorePersonAvatar{height:43px;width:43px;flex:none;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#8762d5,#e470b6);font-size:16px;font-weight:700}
+.pvExplorePersonAvatar img{height:100%;width:100%;object-fit:cover}
+.pvExplorePerson strong,.pvExplorePerson small{display:block}
+.pvExplorePerson strong{font-size:13px}
+.pvExplorePerson small{color:#a9a4b4;font-size:12px;margin-top:3px}
+.pvExploreEmpty{grid-column:1/-1;padding:65px 20px;text-align:center;color:#b6b1c1}
+@media(max-width:700px){body.pvExploreMode main{display:block;padding:0;margin:0}body.pvExploreMode main>.feed{padding:10px 0 90px;max-width:none}.pvExploreSearchWrap{width:calc(100% - 24px);margin:7px auto 15px;max-width:450px}.pvExploreGrid{gap:2px}.pvExploreTile{aspect-ratio:3/4}.pvExploreReelMark{font-size:12px;right:5px;top:5px;padding:3px 6px}.pvExploreResults{margin:0 12px 16px}}
 </style></head><body class="pvBooting"><header><div class="top"><div class="brand">PAVORA ✦</div><small>India Edition</small><button class="secondary" id="reset">Reset demo</button></div></header>
 <main><aside class="left panel"><div class="intro"><div class="row"><div class="profilepic">P</div><div><b>@pavora_user</b><div class="muted">Creator account</div></div></div><hr style="border:0;border-top:1px solid #34344a;margin:16px 0"></div><button class="nav active" data-view="home">⌂ Home</button><button class="nav" data-view="reels">▣ Reels</button><button class="nav" data-view="explore">⌕ Explore</button><button class="nav" data-view="profile">◉ Profile</button></aside>
 <section class="feed"><div id="home"><div class="story" id="stories"></div><div class="composer"><h2>Share a moment ✨</h2><textarea id="caption" maxlength="1200" placeholder="What's happening?"></textarea><div class="actions"><div><label for="photo" class="secondary" style="cursor:pointer">＋ Add photo</label><input class="upload" id="photo" type="file" accept="image/*"><span id="filename" class="hint"></span></div><button class="primary" id="publish">Publish</button></div><p class="hint">Share photos and moments with your PAVORA community.</p></div><div id="posts"></div></div><div id="reels" class="hide"><h2>Reels ▣</h2><div class="empty">Reels player is coming in the next version.</div></div><div id="explore" class="hide"><h2>Explore ✨</h2><div class="empty">Discover creators and trending posts — coming soon.</div></div><div id="profile" class="hide"><div class="panel"><div class="row"><div class="profilepic" style="width:70px;height:70px">P</div><div><h2 style="margin:0">@pavora_user</h2><p class="muted">Welcome to your PAVORA profile</p></div></div><p id="stats"></p><p class="muted">Your posts appear in Home Feed.</p></div></div></section><aside class="right panel"><h3>Welcome to PAVORA 💜</h3><p class="muted">A new space for creators to connect, share and grow.</p><hr style="border:0;border-top:1px solid #34344a"><p class="hint">This is an offline-first browser demo, not a live social network. Sign-in, cloud sync and calling are planned for later phases.</p></aside></main>
