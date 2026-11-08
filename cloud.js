@@ -272,6 +272,7 @@ area.replaceChildren();const heading=node('h3','',person.display_name||person.us
 // Slide-out navigation and separate Create Post dialog; retain existing publish handlers.
 const pvComposer=document.querySelector('#home .composer');
 if(pvComposer){
+ pvComposer.remove(); // Legacy Share a Moment composer is no longer shown; unified Create handles uploads.
  const pvMenuBtn=node('button','pvTopAction','☰');pvMenuBtn.type='button';pvMenuBtn.title='Open menu';pvMenuBtn.setAttribute('aria-label','Open menu');
  const pvCreateBtn=node('button','pvTopAction pvCreateTop','＋ Create');pvCreateBtn.type='button';
  const pvTop=document.querySelector('header .top');pvTop.insertBefore(pvMenuBtn,pvTop.firstChild);pvTop.append(pvCreateBtn);
