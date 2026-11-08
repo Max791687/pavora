@@ -132,7 +132,29 @@ body.pvMessagesMode #pvInboxView{padding:0!important;max-width:none!important;wi
 .pvMessageToast[hidden]{display:none!important}
 @media(max-width:600px){.pvIconRail .pvRailUnreadBadge{right:calc(50% - 23px);top:1px}.pvMessageToast{top:64px;right:10px;left:10px;max-width:none}}
 #pvInboxView .pvInboxTopActions{display:flex;align-items:center;gap:8px}#pvInboxView .pvTestSound{background:transparent;border:1px solid #51435e;color:#ead3ff;border-radius:9px;min-width:35px;height:35px;font-size:21px;cursor:pointer}#pvInboxView .pvTestSound:hover{background:#33273d}
-body.pvBooting main,body.pvBooting header,body.pvBooting .pvIconRail{visibility:hidden!important}body.pvBooting{background:#0b0c10}</style></head><body class="pvBooting"><header><div class="top"><div class="brand">PAVORA ✦</div><small>India Edition</small><button class="secondary" id="reset">Reset demo</button></div></header>
+body.pvBooting main,body.pvBooting header,body.pvBooting .pvIconRail{visibility:hidden!important}body.pvBooting{background:#0b0c10}
+/* Social activity bell + notification inbox */
+.pvActivityBell{position:relative;display:grid;place-items:center;cursor:pointer}
+.pvActivityBell svg{width:26px;height:26px;pointer-events:none}
+.pvActivityBadge{position:absolute;right:1px;top:0;min-width:19px;height:19px;padding:2px 5px;border:2px solid #0b0c10;border-radius:999px;background:#f13470;color:#fff;font-size:10px;font-weight:800;line-height:13px;text-align:center;pointer-events:none}
+.pvActivityBadge[hidden],.pvActivityPanel[hidden]{display:none!important}
+.pvMobileActivity{display:none;border:0;background:transparent;color:#fff;border-radius:10px;width:41px;height:42px;padding:7px;margin-left:5px}
+.pvActivityPanel{position:fixed;z-index:35;left:78px;top:12px;bottom:12px;width:min(395px,calc(100vw - 95px));border-radius:16px;border:1px solid #39333f;box-shadow:0 14px 50px #000a;background:#16151b;color:#f8f7fc;display:flex;flex-direction:column;overflow:hidden}
+.pvActivityHead{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:20px 18px;border-bottom:1px solid #343039;font-size:19px}
+.pvActivityClose{border:0;background:transparent;color:#fff;font-size:28px;cursor:pointer}
+.pvActivityList{overflow-y:auto;flex:1;min-height:0;padding:6px 0}
+.pvActivityEmpty{font-size:13px;color:#bcb5c4;padding:24px 20px;line-height:1.5}
+.pvActivityItem{width:100%;border:0;background:transparent;color:#eeeaf2;display:flex;gap:12px;align-items:center;text-align:left;padding:14px 16px;cursor:pointer}
+.pvActivityItem:hover{background:#28222e}
+.pvActivityItem.unread{background:#27202d}
+.pvActivityAvatar{height:45px;width:45px;min-width:45px;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:linear-gradient(130deg,#7850e9,#ed59a6);font-weight:750}
+.pvActivityAvatar img{width:100%;height:100%;object-fit:cover}
+.pvActivityWords{min-width:0;font-size:13px;line-height:1.45}
+.pvActivityWords strong{font-weight:800}
+.pvActivityWords small{display:block;color:#c5b4d6;overflow-wrap:anywhere;max-height:45px;overflow:hidden;margin:4px 0}
+.pvActivityWords time{display:block;color:#a9a2b4;font-size:11px;margin-top:4px}
+@media(max-width:600px){.pvDesktopActivity{display:none!important}.pvMobileActivity{display:grid!important;margin-left:auto}.pvActivityPanel{left:0;right:0;top:0;bottom:63px;width:100%;border:0;border-radius:0}.pvActivityHead{padding:17px 16px}.pvActivityBadge{right:0}.top .brand{flex:none}}
+</style></head><body class="pvBooting"><header><div class="top"><div class="brand">PAVORA ✦</div><small>India Edition</small><button class="secondary" id="reset">Reset demo</button></div></header>
 <main><aside class="left panel"><div class="intro"><div class="row"><div class="profilepic">P</div><div><b>@pavora_user</b><div class="muted">Creator account</div></div></div><hr style="border:0;border-top:1px solid #34344a;margin:16px 0"></div><button class="nav active" data-view="home">⌂ Home</button><button class="nav" data-view="reels">▣ Reels</button><button class="nav" data-view="explore">⌕ Explore</button><button class="nav" data-view="profile">◉ Profile</button></aside>
 <section class="feed"><div id="home"><div class="story" id="stories"></div><div class="composer"><h2>Share a moment ✨</h2><textarea id="caption" maxlength="1200" placeholder="What's happening?"></textarea><div class="actions"><div><label for="photo" class="secondary" style="cursor:pointer">＋ Add photo</label><input class="upload" id="photo" type="file" accept="image/*"><span id="filename" class="hint"></span></div><button class="primary" id="publish">Publish</button></div><p class="hint">Share photos and moments with your PAVORA community.</p></div><div id="posts"></div></div><div id="reels" class="hide"><h2>Reels ▣</h2><div class="empty">Reels player is coming in the next version.</div></div><div id="explore" class="hide"><h2>Explore ✨</h2><div class="empty">Discover creators and trending posts — coming soon.</div></div><div id="profile" class="hide"><div class="panel"><div class="row"><div class="profilepic" style="width:70px;height:70px">P</div><div><h2 style="margin:0">@pavora_user</h2><p class="muted">Welcome to your PAVORA profile</p></div></div><p id="stats"></p><p class="muted">Your posts appear in Home Feed.</p></div></div></section><aside class="right panel"><h3>Welcome to PAVORA 💜</h3><p class="muted">A new space for creators to connect, share and grow.</p><hr style="border:0;border-top:1px solid #34344a"><p class="hint">This is an offline-first browser demo, not a live social network. Sign-in, cloud sync and calling are planned for later phases.</p></aside></main>
 <script>
