@@ -424,8 +424,8 @@ function pvSetActivityError(message){for(const button of document.querySelectorA
 pvCloseActivity=function(){pvActivityOpen=false;pvActivityPanel.hidden=true;document.querySelectorAll('.pvActivityBell').forEach(b=>b.classList.remove('active'))}
 async function pvOpenActivity(){if(!user)return;pvActivityOpen=!pvActivityOpen;pvActivityPanel.hidden=!pvActivityOpen;document.querySelectorAll('.pvActivityBell').forEach(b=>b.classList.toggle('active',pvActivityOpen));if(pvActivityOpen){await pvLoadActivity(true)}}
 pvActivityClear.onclick=async()=>{if(!user||pvActivityClear.disabled)return;if(!confirm('Clear all your notifications? This cannot be undone.'))return;pvActivityClear.disabled=true;pvActivityClear.textContent='Clearing…';try{
-const {error}=await db.from('activity_notifications').delete().eq('recipient_id',user.id);
-if(error){alert('Could not clear notifications. Run supabase/clear-activity-notifications.sql in Supabase SQL Editor first. '+error.message);return}
+const {data:deleted,error}=await db.from('activity_notifications').delete().eq('recipient_id',user.id).select('id');
+if(error||(!deleted?.length&&pvActivityList.querySelector('.pvActivityItem'))){alert('Could not clear notifications. Run supabase/clear-activity-notifications.sql in Supabase SQL Editor first. '+(error?.message||'Database delete permission is not enabled.'));return}
 pvActivityList.replaceChildren(node('p','pvActivityEmpty','No notifications yet. New likes, comments and follows will show here.'));
 pvSetActivityCount(0);pvActivityLatest=null;pvActivityLatestTime=null;pvActivityReady=true;
 await pvCheckActivity(false);
