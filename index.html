@@ -28,6 +28,61 @@
 /* Unified photo and video upload modal */
 .pvComposeOverlay{align-items:center;justify-content:center;background:#000c;padding:15px}.pvUnifiedCreate{width:min(780px,96vw);max-height:94dvh;background:#222328;border-radius:15px;overflow:hidden;border:1px solid #383840;display:flex;flex-direction:column}.pvCreateHeader{position:relative;min-height:49px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid #3c3c42;background:#222328;color:white;font-size:16px}.pvCreateHeader .pvComposeClose{top:2px;right:9px;font-size:25px}.pvCreateDrop{min-height:min(72dvh,650px);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;text-align:center;padding:30px;cursor:pointer;outline:0}.pvCreateDrop.pvDragOver{background:#30293a;border:2px dashed #ab6fff}.pvUploadArt{width:108px;height:100px;color:#f4f2f7}.pvUploadArt svg{width:100%;height:100%}.pvCreateDrop h2{font-size:21px;font-weight:650;margin:0}.pvChooseMedia,.pvUnifiedPublish{background:#6554f4;color:#fff;border:0;border-radius:8px;font-size:14px;font-weight:750;padding:11px 18px}.pvChooseMedia:hover,.pvUnifiedPublish:hover{background:#7e68ff}.pvMediaHint{font-size:12px;color:#a5a3ac;margin:0}.pvCreateSelected{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(220px,.7fr);min-height:420px;max-height:78dvh}.pvCreateSelected.hide{display:none!important}.pvCreatePreview{display:flex;align-items:center;justify-content:center;background:#08080b;min-width:0;min-height:420px;overflow:hidden}.pvCreatePreview img,.pvCreatePreview video{max-width:100%;max-height:76dvh;object-fit:contain}.pvCreateDetails{display:flex;flex-direction:column;gap:12px;padding:18px;min-width:0}.pvCreateFilename{font-size:13px;overflow-wrap:anywhere;color:#d4cde0}.pvCreateCaption{width:100%;min-height:130px;resize:vertical;background:#15141b;color:white;border:1px solid #4b4556;border-radius:9px;padding:12px}.pvCreateFeedback{font-size:12px;color:#f0bad9;overflow-wrap:anywhere}.pvCreateButtons{display:flex;gap:8px;margin-top:auto;justify-content:flex-end}.pvChangeMedia{background:#383440;border:0;color:#fff;border-radius:8px;padding:10px}.pvUnifiedPublish:disabled{opacity:.6;cursor:wait}
 @media(max-width:600px){.pvUnifiedCreate{width:100%;max-height:91dvh}.pvCreateDrop{min-height:65dvh;padding:20px}.pvCreateSelected{grid-template-columns:1fr;overflow-y:auto;min-height:0}.pvCreatePreview{min-height:220px;max-height:48dvh}.pvCreatePreview img,.pvCreatePreview video{max-height:48dvh}.pvCreateDetails{padding:12px}.pvCreateCaption{min-height:80px}}
+
+/* PAVORA Direct Messages — desktop split-pane and mobile conversation */
+body.pvMessagesMode header{display:none}
+body.pvMessagesMode main{display:block!important;max-width:none!important;margin:0 0 0 73px!important;padding:0!important;width:calc(100% - 73px)!important}
+body.pvMessagesMode .feed{width:100%!important;max-width:none!important}
+body.pvMessagesMode #pvInboxView{padding:0!important;max-width:none!important;width:100%}
+#pvInboxView .pvInboxLayout{height:100dvh;min-height:550px;display:grid;grid-template-columns:minmax(290px,385px) minmax(0,1fr);background:#0c0d10;color:#fafafa;gap:0}
+#pvInboxView .pvInboxSide{border-right:1px solid #2b2931;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+#pvInboxView .pvInboxTop{display:flex;align-items:center;justify-content:space-between;padding:30px 24px 12px;font-size:19px;min-height:73px}
+#pvInboxView .pvInboxCompose{border:0;background:none;color:#fff;font-size:29px;cursor:pointer}
+#pvInboxView .pvInboxTabs{display:flex;border-bottom:1px solid #26252c}
+#pvInboxView .pvInboxTabs button{flex:1;background:none;color:#a9a5ae;border:0;border-bottom:2px solid transparent;padding:13px 5px;font-size:13px;font-weight:700;cursor:pointer}
+#pvInboxView .pvInboxTabs button.active{color:#fff;border-bottom-color:#fafafa}
+#pvInboxView .pvInboxSearch{margin:14px 16px 15px;background:#26272e;border-radius:10px;display:flex;align-items:center;gap:8px;padding:0 12px;color:#a4a5ad}
+#pvInboxView .pvInboxSearch input{width:100%;background:transparent;border:0;outline:0;height:42px;color:#fff;font-size:14px}
+#pvInboxView .pvThreadList{border:0;padding:0 9px 20px;flex:1;overflow-y:auto;min-height:0}
+#pvInboxView .pvThreadEntry{display:flex;align-items:center;gap:2px;margin:0;border-radius:11px}
+#pvInboxView .pvThreadEntry:hover,#pvInboxView .pvThreadEntry:has(.pvThreadPerson.active){background:#24252d}
+#pvInboxView .pvThreadEntry .pvThreadPerson{display:flex!important;align-items:center!important;gap:12px;flex:1;min-width:0;margin:0!important;padding:11px 7px!important;background:transparent!important;text-align:left;border:0}
+#pvInboxView .pvThreadAvatar{width:54px;height:54px;min-width:54px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#8c61f5,#e957b2);font-size:18px;font-weight:750;overflow:hidden;color:white}
+#pvInboxView .pvThreadAvatar img{width:100%;height:100%;object-fit:cover}
+#pvInboxView .pvThreadDetails{min-width:0;flex:1;display:flex;flex-direction:column;gap:5px}
+#pvInboxView .pvThreadDetails strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:650}
+#pvInboxView .pvThreadDetails small{font-size:12px;color:#a4a3ac;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#pvInboxView .pvThreadWhen{font-size:10px;color:#a7a3ae;white-space:nowrap}
+#pvInboxView .pvThreadEntry .pvRemoveChat{flex:0 0 30px!important;width:30px!important;padding:5px!important;margin:0 4px 0 0!important;background:transparent!important;color:#ad9faa;font-size:20px}
+#pvInboxView .pvThreadEntry .pvRemoveChat:hover{color:#ff7b94;background:#442a3a!important}
+#pvInboxView .pvChatArea{min-width:0;display:flex;flex-direction:column;height:100%;background:#0c0d10}
+#pvInboxView .pvEmptyChat{display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;margin:auto;padding:35px}
+#pvInboxView .pvEmptyIcon{width:90px;height:90px;border:2px solid #fff;border-radius:50%;display:grid;place-items:center;margin-bottom:18px}
+#pvInboxView .pvEmptyIcon svg{width:46px;height:46px}
+#pvInboxView .pvEmptyChat h2{font-size:21px;margin:0 0 10px}
+#pvInboxView .pvEmptyChat p{font-size:14px;color:#a7a5ae;margin:0 0 20px}
+#pvInboxView .pvStartMessage{padding:10px 16px;border:0;border-radius:9px;background:#7054fa;color:white;font-weight:750}
+#pvInboxView .pvChatTop{min-height:77px;display:flex;align-items:center;border-bottom:1px solid #292830;padding:13px 20px}
+#pvInboxView .pvChatTop h3{margin:0;font-size:16px}
+#pvInboxView .pvChatTop p{margin:4px 0 0}
+#pvInboxView .pvChatBack{display:none;border:0;background:transparent;color:white;font-size:34px;padding:0 14px 0 0}
+#pvInboxView .pvMessages{flex:1;min-height:0;height:auto!important;overflow-y:auto;padding:20px!important;display:flex;flex-direction:column;gap:10px}
+#pvInboxView .pvMessageForm{display:flex;gap:9px;margin:12px 18px 20px;padding:8px;border:1px solid #42404a;border-radius:25px}
+#pvInboxView .pvMessageForm input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:white;padding:8px}
+#pvInboxView .pvMessageForm button{border-radius:19px;padding:8px 18px}
+#pvInboxView .pvEmptyThreads{font-size:13px;color:#aaa;padding:15px}
+@media(max-width:700px){
+ body.pvMessagesMode main{margin:0!important;width:100%!important;padding:0!important}
+ #pvInboxView .pvInboxLayout{height:calc(100dvh - 63px);min-height:0;grid-template-columns:1fr!important}
+ #pvInboxView .pvInboxSide{height:100%;border:0;min-width:0}
+ #pvInboxView .pvChatArea{display:none}
+ #pvInboxView.pvChatSelected .pvInboxSide{display:none}
+ #pvInboxView.pvChatSelected .pvChatArea{display:flex}
+ #pvInboxView .pvChatBack{display:block}
+ #pvInboxView .pvInboxTop{padding:15px 18px 7px}
+ #pvInboxView .pvMessages{padding:12px!important}
+ #pvInboxView .pvMessageForm{margin:8px 9px 13px}
+}
 </style></head><body><header><div class="top"><div class="brand">PAVORA ✦</div><small>India Edition</small><button class="secondary" id="reset">Reset demo</button></div></header>
 <main><aside class="left panel"><div class="intro"><div class="row"><div class="profilepic">P</div><div><b>@pavora_user</b><div class="muted">Creator account</div></div></div><hr style="border:0;border-top:1px solid #34344a;margin:16px 0"></div><button class="nav active" data-view="home">⌂ Home</button><button class="nav" data-view="reels">▣ Reels</button><button class="nav" data-view="explore">⌕ Explore</button><button class="nav" data-view="profile">◉ Profile</button></aside>
 <section class="feed"><div id="home"><div class="story" id="stories"></div><div class="composer"><h2>Share a moment ✨</h2><textarea id="caption" maxlength="1200" placeholder="What's happening?"></textarea><div class="actions"><div><label for="photo" class="secondary" style="cursor:pointer">＋ Add photo</label><input class="upload" id="photo" type="file" accept="image/*"><span id="filename" class="hint"></span></div><button class="primary" id="publish">Publish</button></div><p class="hint">Share photos and moments with your PAVORA community.</p></div><div id="posts"></div></div><div id="reels" class="hide"><h2>Reels ▣</h2><div class="empty">Reels player is coming in the next version.</div></div><div id="explore" class="hide"><h2>Explore ✨</h2><div class="empty">Discover creators and trending posts — coming soon.</div></div><div id="profile" class="hide"><div class="panel"><div class="row"><div class="profilepic" style="width:70px;height:70px">P</div><div><h2 style="margin:0">@pavora_user</h2><p class="muted">Welcome to your PAVORA profile</p></div></div><p id="stats"></p><p class="muted">Your posts appear in Home Feed.</p></div></div></section><aside class="right panel"><h3>Welcome to PAVORA 💜</h3><p class="muted">A new space for creators to connect, share and grow.</p><hr style="border:0;border-top:1px solid #34344a"><p class="hint">This is an offline-first browser demo, not a live social network. Sign-in, cloud sync and calling are planned for later phases.</p></aside></main>
