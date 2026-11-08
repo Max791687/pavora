@@ -228,8 +228,11 @@ function pvActivateReel(index){
    if(v.paused)v.play().catch(()=>{});
   }else if(!v.paused)v.pause();
  });
- const nextVideo=videoFor(index+1);
- if(nextVideo&&nextVideo.preload==='none')nextVideo.preload='metadata';
+ // Prepare the next and previous clip so a swipe does not wait for metadata.
+ for(const nearby of [index-1,index+1]){
+  const adjacent=videoFor(nearby);
+  if(adjacent&&adjacent.preload==='none')adjacent.preload='metadata';
+ }
 }
 function goTo(index,behavior='smooth'){
  if(!cards.length)return;
@@ -257,19 +260,19 @@ function goTo(index,behavior='smooth'){
    // Native smooth scroll can take 500ms+ on mobile and interacts badly
    // with mandatory snap. Drive a short, frame-timed transition ourselves.
    const from=reelStack.scrollTop,distance=top-from,start=performance.now(),duration=235;
-   reelStack.style.scrollSnapType='none';
+   reelStack.style.setProperty('scroll-snap-type','none','important');
    const tick=now=>{
     if(!reelStack.isConnected)return;
     const t=Math.min(1,(now-start)/duration),ease=1-Math.pow(1-t,3);
     reelStack.scrollTop=from+distance*ease;
     if(t<1)pvMobileReelFrame=requestAnimationFrame(tick);
-    else{reelStack.scrollTop=top;reelStack.style.scrollSnapType='';}
+    else{reelStack.scrollTop=top;reelStack.style.removeProperty('scroll-snap-type');}
    };
    pvMobileReelFrame=requestAnimationFrame(tick);
   }else{
-   reelStack.style.scrollSnapType='none';
+   reelStack.style.setProperty('scroll-snap-type','none','important');
    reelStack.scrollTop=top;
-   reelStack.style.scrollSnapType='';
+   reelStack.style.removeProperty('scroll-snap-type');
   }
  }
  pvActivateReel(next);
@@ -279,7 +282,7 @@ function goTo(index,behavior='smooth'){
   gestureLocked=false;
   if(!window.matchMedia('(min-width:701px)').matches){
    reelStack.scrollTop=cards[current].offsetTop-cards[0].offsetTop;
-   reelStack.style.scrollSnapType='';
+   reelStack.style.removeProperty('scroll-snap-type');
   }
  },behavior==='smooth'?(desktop?480:260):0);
 }
@@ -333,7 +336,7 @@ reelStack.addEventListener('touchend',e=>{
  touchStartY=null;touchStartX=null;touchConsumed=false;
 },{passive:true});
 reelStack.addEventListener('touchcancel',()=>{touchStartY=null;touchConsumed=false},{passive:true});
-window.pvReelsWheelCleanup=()=>{document.removeEventListener('wheel',pvWheelHandler,true);clearTimeout(gestureTimer);cancelAnimationFrame(pvMobileReelFrame);reelStack.style.scrollSnapType='';desktopWheelLastAt=0};
+window.pvReelsWheelCleanup=()=>{document.removeEventListener('wheel',pvWheelHandler,true);clearTimeout(gestureTimer);cancelAnimationFrame(pvMobileReelFrame);reelStack.style.removeProperty('scroll-snap-type');desktopWheelLastAt=0};
 reelStack.addEventListener('keydown',e=>{
  if(['ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();stepReel(1)}
  else if(['ArrowUp','PageUp'].includes(e.key)){e.preventDefault();stepReel(-1)}
