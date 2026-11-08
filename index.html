@@ -552,6 +552,44 @@ body.pvReelsMode .pvReelScreen video{height:100%!important;width:100%!important;
   transform:translate3d(0,100%,0);z-index:2;
  }
 }
+
+/* Mobile Reels: render exactly one GPU-composited card instead of
+   scrolling a long list. Preserves touch gesture controls and overlays. */
+@media(max-width:700px){
+ body.pvReelsMode .pvReelStage{
+  position:relative!important;height:100%!important;overflow:hidden!important;
+ }
+ body.pvReelsMode .pvReelStack{
+  position:relative!important;display:block!important;
+  height:100%!important;max-height:100%!important;
+  overflow:hidden!important;scroll-snap-type:none!important;
+  scroll-behavior:auto!important;overscroll-behavior:contain!important;
+  touch-action:none!important;
+  transform:none!important;
+ }
+ body.pvReelsMode .pvReelCard{
+  position:absolute!important;inset:0!important;
+  width:100%!important;height:100%!important;min-height:0!important;
+  max-height:100%!important;margin:0!important;
+  display:flex!important;box-sizing:border-box!important;
+  transform:translate3d(0,100%,0);
+  transition:transform 260ms cubic-bezier(.22,1,.36,1)!important;
+  pointer-events:none;
+  contain:layout style;
+ }
+ body.pvReelsMode .pvReelCard[data-reel-position="active"]{
+  transform:translate3d(0,0,0);z-index:3;pointer-events:auto;
+ }
+ body.pvReelsMode .pvReelCard[data-reel-position="before"]{
+  transform:translate3d(0,-100%,0);z-index:2;
+ }
+ body.pvReelsMode .pvReelCard[data-reel-position="after"]{
+  transform:translate3d(0,100%,0);z-index:2;
+ }
+ body.pvReelsMode .pvReelScreen{
+  min-height:0!important;height:100%!important;overflow:hidden!important;
+ }
+}
 </style></head><body class="pvBooting"><header><div class="top"><div class="brand">PAVORA ✦</div><small>India Edition</small><button class="secondary" id="reset">Reset demo</button></div></header>
 <main><aside class="left panel"><div class="intro"><div class="row"><div class="profilepic">P</div><div><b>@pavora_user</b><div class="muted">Creator account</div></div></div><hr style="border:0;border-top:1px solid #34344a;margin:16px 0"></div><button class="nav active" data-view="home">⌂ Home</button><button class="nav" data-view="reels">▣ Reels</button><button class="nav" data-view="explore">⌕ Explore</button><button class="nav" data-view="profile">◉ Profile</button></aside>
 <section class="feed"><div id="home"><div class="story" id="stories"></div><div class="composer"><h2>Share a moment ✨</h2><textarea id="caption" maxlength="1200" placeholder="What's happening?"></textarea><div class="actions"><div><label for="photo" class="secondary" style="cursor:pointer">＋ Add photo</label><input class="upload" id="photo" type="file" accept="image/*"><span id="filename" class="hint"></span></div><button class="primary" id="publish">Publish</button></div><p class="hint">Share photos and moments with your PAVORA community.</p></div><div id="posts"></div></div><div id="reels" class="hide"><h2>Reels ▣</h2><div class="empty">Reels player is coming in the next version.</div></div><div id="explore" class="hide"><h2>Explore ✨</h2><div class="empty">Discover creators and trending posts — coming soon.</div></div><div id="profile" class="hide"><div class="panel"><div class="row"><div class="profilepic" style="width:70px;height:70px">P</div><div><h2 style="margin:0">@pavora_user</h2><p class="muted">Welcome to your PAVORA profile</p></div></div><p id="stats"></p><p class="muted">Your posts appear in Home Feed.</p></div></div></section><aside class="right panel"><h3>Welcome to PAVORA 💜</h3><p class="muted">A new space for creators to connect, share and grow.</p><hr style="border:0;border-top:1px solid #34344a"><p class="hint">This is an offline-first browser demo, not a live social network. Sign-in, cloud sync and calling are planned for later phases.</p></aside></main>
@@ -564,4 +602,4 @@ document.querySelectorAll('[data-view]').forEach(btn=>btn.onclick=()=>{document.
 $('photo').onchange=()=>{$('filename').textContent=$('photo').files[0]?.name||''};
 $('publish').onclick=()=>{const caption=$('caption').value.trim(),file=$('photo').files[0];if(!caption&&!file)return alert('Add a caption or photo');const add=image=>{posts.unshift({id:Date.now(),time:Date.now(),caption,image,likes:0,liked:false,comments:[]});save();$('caption').value='';$('photo').value='';$('filename').textContent='';render()};if(!file)return add('');if(!file.type.startsWith('image/'))return alert('Please choose an image');const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{const scale=Math.min(1,1000/img.width,1000/img.height),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);add(canvas.toDataURL('image/jpeg',.72))};img.onerror=()=>alert('Unable to read image');img.src=reader.result};reader.readAsDataURL(file)};
 $('reset').onclick=()=>{if(confirm('Delete all demo posts from this browser?')){posts=[];save();render()}};render();
-</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="./cloud.js?v=20261109-mobile-reels-smooth"></script><script src="./social-suite.js"></script><script src="./calls.js"></script><script src="./app-install.js" defer></script></body></html>
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="./cloud.js?v=20261109-mobile-reels-slides"></script><script src="./social-suite.js"></script><script src="./calls.js"></script><script src="./app-install.js" defer></script></body></html>
