@@ -198,7 +198,11 @@ async function loadReels(force=false){
  const list=document.getElementById('reelList');
  if(!force&&pvReelsLoadedFor===user.id&&list.querySelector('.pvReelCard')&&Date.now()-pvReelsLoadedAt<120000){
   const stack=list.querySelector('.pvReelStack');
-  if(document.body.classList.contains('pvReelsMode')){const video=stack?.querySelector('.pvReelCard video');if(video)video.play().catch(()=>{})}
+  if(document.body.classList.contains('pvReelsMode')&&stack){
+   const cards=[...stack.querySelectorAll('.pvReelCard')];
+   const index=Math.min(cards.length-1,Math.max(0,Math.round(stack.scrollTop/(stack.clientHeight||1))));
+   cards.forEach((card,i)=>{const v=card.querySelector('video');if(v){if(i===index)v.play().catch(()=>{});else v.pause()}});
+  }
   return;
  }
  if(pvReelsLoading)return pvReelsLoading;
@@ -210,44 +214,81 @@ const reelStage=node('div','pvReelStage'),reelStack=node('div','pvReelStack'),ar
 const cards=[];
 function reelSvg(path){return '<svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+'</svg>'}
 function reelAction(label,svg,handler){const b=node('button','pvReelAction');b.type='button';b.title=label;b.setAttribute('aria-label',label);b.innerHTML=reelSvg(svg);b.onclick=handler;return b}
-let current=0,lastWheelTime=0,snapInProgress=false,snapTimer=null,scrollIdle=null;
+let current=0,gestureLocked=false,gestureTimer=null,touchStartY=null,touchStartX=null,touchConsumed=false;
+const videoFor=index=>cards[index]?.querySelector('video');
+function pvActivateReel(index){
+ if(!cards.length||!document.body.classList.contains('pvReelsMode'))return;
+ cards.forEach((card,i)=>{
+  const v=card.querySelector('video');if(!v)return;
+  if(i===index){
+   if(v.preload==='none')v.preload='metadata';
+   if(v.paused)v.play().catch(()=>{});
+  }else if(!v.paused)v.pause();
+ });
+ const nextVideo=videoFor(index+1);
+ if(nextVideo&&nextVideo.preload==='none')nextVideo.preload='metadata';
+}
 function goTo(index,behavior='smooth'){
  if(!cards.length)return;
  const next=Math.max(0,Math.min(cards.length-1,index));
  current=next;
- const target=cards[next];
- const top=target.offsetTop-cards[0].offsetTop;
+ // Each card occupies exactly one stack viewport; no freely scrolling momentum.
+ const top=next*reelStack.clientHeight;
  reelStack.scrollTo({top,behavior});
- snapInProgress=behavior==='smooth';
- clearTimeout(snapTimer);
- snapTimer=setTimeout(()=>{snapInProgress=false},620);
+ pvActivateReel(next);
+ clearTimeout(gestureTimer);
+ gestureLocked=behavior==='smooth';
+ gestureTimer=setTimeout(()=>{
+  gestureLocked=false;
+  reelStack.scrollTop=next*reelStack.clientHeight;
+  pvActivateReel(current);
+ },behavior==='smooth'?520:0);
 }
-up.onclick=()=>goTo(current-1);down.onclick=()=>goTo(current+1);
-// Wheel events can land on the video, right-side buttons, or the page gutter.
-// Capture them at document level and keep the active Reels feed as the only scroller.
+function stepReel(direction){
+ if(gestureLocked||!direction)return;
+ const next=Math.max(0,Math.min(cards.length-1,current+direction));
+ if(next===current)return;
+ gestureLocked=true;goTo(next,'smooth');
+}
+up.onclick=()=>stepReel(-1);down.onclick=()=>stepReel(1);
 const pvWheelHandler=e=>{
  if(!document.body.classList.contains('pvReelsMode')||document.querySelector('.pvSuiteModal:not([hidden]),.pvCallOverlay:not([hidden])'))return;
  if(e.target.closest('input,textarea,select,.pvReelComments,.pvSuiteBox'))return;
  if(Math.abs(e.deltaY)<2)return;
  e.preventDefault();
- const now=performance.now();
- if(snapInProgress||now-lastWheelTime<550)return;
- lastWheelTime=now;goTo(current+(e.deltaY>0?1:-1));
+ stepReel(e.deltaY>0?1:-1);
 };
 document.addEventListener('wheel',pvWheelHandler,{passive:false,capture:true});
-window.pvReelsWheelCleanup=()=>{document.removeEventListener('wheel',pvWheelHandler,true);clearTimeout(snapTimer);clearTimeout(scrollIdle)};
-// Touch scroll uses native momentum and CSS snap. At rest, sync the index and player.
-reelStack.addEventListener('scroll',()=>{
- clearTimeout(scrollIdle);
- scrollIdle=setTimeout(()=>{
- const height=reelStack.clientHeight||1;
- current=Math.max(0,Math.min(cards.length-1,Math.round(reelStack.scrollTop/height)));
- snapInProgress=false;
- cards.forEach((card,index)=>{const v=card.querySelector('video');if(!v)return;if(index===current&&document.body.classList.contains('pvReelsMode'))v.play().catch(()=>{});else v.pause()});
- },130);
+// Native touch momentum can skip multiple snap positions on quick swipes.
+// Interpret one deliberate vertical swipe as exactly one reel transition.
+reelStack.addEventListener('touchstart',e=>{
+ if(e.touches.length!==1||e.target.closest('button,input,textarea,select,.pvSuiteBox')){touchStartY=null;return}
+ touchStartY=e.touches[0].clientY;touchStartX=e.touches[0].clientX;touchConsumed=false;
 },{passive:true});
-reelStack.addEventListener('keydown',e=>{if(['ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();goTo(current+1)}else if(['ArrowUp','PageUp'].includes(e.key)){e.preventDefault();goTo(current-1)}});
-reelStack.tabIndex=0;reelStack.setAttribute('aria-label','Reels feed — scroll for next video');
+reelStack.addEventListener('touchmove',e=>{
+ if(touchStartY===null||e.touches.length!==1)return;
+ const dy=e.touches[0].clientY-touchStartY,dx=e.touches[0].clientX-touchStartX;
+ if(Math.abs(dy)>Math.abs(dx)&&e.cancelable)e.preventDefault();
+ if(!touchConsumed&&Math.abs(dy)>42&&Math.abs(dy)>Math.abs(dx)*1.15){
+  touchConsumed=true;
+  stepReel(dy<0?1:-1);
+ }
+},{passive:false});
+reelStack.addEventListener('touchend',e=>{
+ if(touchStartY!==null&&!touchConsumed&&e.changedTouches.length){
+  const dy=e.changedTouches[0].clientY-touchStartY,dx=e.changedTouches[0].clientX-touchStartX;
+  if(Math.abs(dy)>42&&Math.abs(dy)>Math.abs(dx)*1.15)stepReel(dy<0?1:-1);
+ }
+ touchStartY=null;touchStartX=null;touchConsumed=false;
+},{passive:true});
+reelStack.addEventListener('touchcancel',()=>{touchStartY=null;touchConsumed=false},{passive:true});
+window.pvReelsWheelCleanup=()=>{document.removeEventListener('wheel',pvWheelHandler,true);clearTimeout(gestureTimer)};
+reelStack.addEventListener('keydown',e=>{
+ if(['ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();stepReel(1)}
+ else if(['ArrowUp','PageUp'].includes(e.key)){e.preventDefault();stepReel(-1)}
+});
+reelStack.tabIndex=0;
+reelStack.setAttribute('aria-label','Reels feed — one swipe for one video');
 
 for(const reel of data){const person=people.get(reel.author_id)||{},card=node('article','pvReelCard'),screen=node('div','pvReelScreen'),video=node('video'),meta=node('div','pvReelMeta'),author=node('div','pvReelAuthor'),actions=node('div','pvReelActions');
 video.src=db.storage.from('reel-videos').getPublicUrl(reel.video_path).data.publicUrl;video.loop=true;video.playsInline=true;video.preload=cards.length<2?'metadata':'none';video.controls=false;video.setAttribute('aria-label','Reel by '+(person.username||'creator'));
@@ -263,7 +304,8 @@ actions.append(reelAction('More options','<circle cx="5" cy="12" r="1" fill="cur
 card.append(screen,actions);reelStack.append(card);cards.push(card);card.id='reel-'+reel.id;
 try{window.PVKit?.addReel?.(reel,actions,video)}catch(e){console.warn('Reel extras:',e)}
 }
-reelObserver=new IntersectionObserver(entries=>{for(const entry of entries){const index=cards.indexOf(entry.target);const video=entry.target.querySelector('video');if(entry.isIntersecting&&entry.intersectionRatio>=.65&&document.body.classList.contains('pvReelsMode')){video.play().catch(()=>{});const upcoming=cards[index+1]?.querySelector('video');if(upcoming&&upcoming.preload==='none')upcoming.preload='metadata'}else video.pause()}},{root:reelStack,threshold:[0,.35,.65,.95]});cards.forEach(c=>reelObserver.observe(c));
+// Single playback controller above owns play/pause: no IntersectionObserver races.
+if(reelObserver){reelObserver.disconnect();reelObserver=null}
 pvReelsLoadedAt=Date.now();pvReelsLoadedFor=user.id;
 requestAnimationFrame(()=>goTo(0,'auto'));
 const hash=location.hash.slice(1);if(hash.startsWith('reel-')){const target=document.getElementById(hash);if(target)setTimeout(()=>goTo(cards.indexOf(target),'auto'),100)}
