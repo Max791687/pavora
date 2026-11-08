@@ -684,6 +684,7 @@ if(user){
   try{
    // Restore the previously open tab first, without waiting for feed,
    // notifications and other unrelated Supabase requests.
+   await ensureProfile();
    await pvRestoreView();
    document.body.classList.remove('pvBooting');
    pvSessionReadyForUser=user.id;
@@ -692,7 +693,7 @@ if(user){
    // hold up showing the saved screen.
    pvHiddenChats=new Map();pvConversationSettings=new Map();
    await Promise.all([
-    pvSafeSetup('Profile',async()=>{await ensureProfile();await updateSocialProfile()}),
+    pvSafeSetup('Profile',updateSocialProfile),
     pvSafeSetup('Hidden chats',pvLoadHiddenChats),
     pvSafeSetup('Conversation folders',pvLoadConversationSettings),
     pvSafeSetup('Home feed',refresh),
