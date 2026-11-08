@@ -453,7 +453,8 @@ if(silent&&area.querySelector('.pvMessageForm')){
  if(list){
   const known=new Set([...list.querySelectorAll('.pvMessageRow[data-message-id]')].map(row=>row.dataset.messageId));
   const received=(messages||[]).filter(m=>!known.has(String(m.id)));
-  let lastDay=list.querySelector('.pvChatDayDivider:last-of-type')?.dataset.dayKey||'';
+  const dayMarkers=list.querySelectorAll('.pvChatDayDivider');
+  let lastDay=dayMarkers.length?dayMarkers[dayMarkers.length-1].dataset.dayKey||'':'';
   for(const m of received){
    const stamp=new Date(m.created_at),dayKey=stamp.toDateString();
    if(dayKey!==lastDay){lastDay=dayKey;const dateLabel=node('div','pvChatDayDivider',stamp.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}));dateLabel.dataset.dayKey=dayKey;list.append(dateLabel)}
