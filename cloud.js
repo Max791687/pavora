@@ -412,7 +412,9 @@ document.body.append(pvRail);
 
 const pvActivityPanel=node('section','pvActivityPanel');pvActivityPanel.hidden=true;pvActivityPanel.setAttribute('aria-label','Activity notifications');
 const pvActivityHead=node('div','pvActivityHead'),pvActivityTitle=node('strong','','Notifications'),pvActivityClose=node('button','pvActivityClose','×');
-pvActivityClose.type='button';pvActivityClose.setAttribute('aria-label','Close notifications');pvActivityHead.append(pvActivityTitle,pvActivityClose);
+pvActivityClose.type='button';pvActivityClose.setAttribute('aria-label','Close notifications');
+const pvActivityClear=node('button','pvActivityClear','Clear all');pvActivityClear.type='button';pvActivityClear.title='Clear all notifications';pvActivityClear.setAttribute('aria-label','Clear all notifications');
+const pvActivityActions=node('div','pvActivityActions');pvActivityActions.append(pvActivityClear,pvActivityClose);pvActivityHead.append(pvActivityTitle,pvActivityActions);
 const pvActivityList=node('div','pvActivityList');pvActivityPanel.append(pvActivityHead,pvActivityList);document.body.append(pvActivityPanel);
 const pvActivityBellSvg='<svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 10h18c0-2-3-3-3-10"/><path d="M10 22h4"/></svg>';
 function pvActivityAlert(){pvShowActivityToast();pvPlayMessageSound()}
@@ -421,6 +423,13 @@ pvSetActivityCount=function(count){pvActivityCount=count;for(const button of doc
 function pvSetActivityError(message){for(const button of document.querySelectorAll('.pvActivityBell')){const badge=button.querySelector('.pvActivityBadge');if(badge){badge.hidden=false;badge.textContent='!';badge.classList.add('pvActivityErrorBadge')}button.title='Notifications setup needed: '+message}}
 pvCloseActivity=function(){pvActivityOpen=false;pvActivityPanel.hidden=true;document.querySelectorAll('.pvActivityBell').forEach(b=>b.classList.remove('active'))}
 async function pvOpenActivity(){if(!user)return;pvActivityOpen=!pvActivityOpen;pvActivityPanel.hidden=!pvActivityOpen;document.querySelectorAll('.pvActivityBell').forEach(b=>b.classList.toggle('active',pvActivityOpen));if(pvActivityOpen){await pvLoadActivity(true)}}
+pvActivityClear.onclick=async()=>{if(!user||pvActivityClear.disabled)return;if(!confirm('Clear all your notifications? This cannot be undone.'))return;pvActivityClear.disabled=true;pvActivityClear.textContent='Clearing…';try{
+const {error}=await db.from('activity_notifications').delete().eq('recipient_id',user.id);
+if(error){alert('Could not clear notifications. Run supabase/clear-activity-notifications.sql in Supabase SQL Editor first. '+error.message);return}
+pvActivityList.replaceChildren(node('p','pvActivityEmpty','No notifications yet. New likes, comments and follows will show here.'));
+pvSetActivityCount(0);pvActivityLatest=null;pvActivityLatestTime=null;pvActivityReady=true;
+await pvCheckActivity(false);
+}catch(e){alert('Could not clear notifications: '+e.message)}finally{pvActivityClear.disabled=false;pvActivityClear.textContent='Clear all'}};
 pvActivityClose.onclick=pvCloseActivity;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')pvCloseActivity()});
 document.addEventListener('pointerdown',e=>{if(pvActivityOpen&&!e.target.closest('.pvActivityPanel')&&!e.target.closest('.pvActivityBell'))pvCloseActivity()});
@@ -430,6 +439,7 @@ const {data,error}=await db.from('activity_notifications').select('id,actor_id,k
 if(error){pvSetActivityError(error.message);pvActivityList.replaceChildren(node('p','pvActivityEmpty','Notifications setup required. Open supabase/activity-notifications.sql on GitHub, copy it into Supabase SQL Editor and press Run. Details: '+error.message));return}
 const entries=data||[];const actorIds=[...new Set(entries.map(e=>e.actor_id))];let profiles=[];if(actorIds.length){const response=await db.from('profiles').select('id,username,display_name,avatar_url').in('id',actorIds);profiles=response.data||[]}
 const lookup=new Map(profiles.map(p=>[p.id,p]));pvActivityList.replaceChildren();
+pvActivityClear.disabled=!entries.length;
 if(!entries.length)pvActivityList.append(node('p','pvActivityEmpty','No notifications yet. Likes, comments and follows will appear here.'));
 for(const item of entries){const person=lookup.get(item.actor_id)||{},row=node('button','pvActivityItem'+(!item.read_at?' unread':'')),avatar=node('div','pvActivityAvatar'),words=node('div','pvActivityWords');row.type='button';if(person.avatar_url){const img=node('img');img.src=person.avatar_url;img.alt='';avatar.append(img)}else avatar.textContent=(person.display_name||person.username||'P')[0].toUpperCase();const message=item.kind==='follow'?'started following you':item.kind==='like'?'liked your post':'commented on your post';const title=node('div');title.append(node('strong','',person.username?'@'+person.username:'Creator'),document.createTextNode(' '+message));words.append(title);if(item.kind==='comment'&&item.body_preview)words.append(node('small','',item.body_preview));words.append(node('time','',new Date(item.created_at).toLocaleString()));row.append(avatar,words);row.onclick=()=>{pvCloseActivity();openCreator(item.actor_id)};pvActivityList.append(row)}
 if(markRead&&entries.some(x=>!x.read_at)){const ids=entries.filter(x=>!x.read_at).map(x=>x.id);const {error:readError}=await db.from('activity_notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',user.id).in('id',ids);if(!readError){pvSetActivityCount(0);pvActivityList.querySelectorAll('.pvActivityItem.unread').forEach(e=>e.classList.remove('unread'))}}
