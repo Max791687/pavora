@@ -11,17 +11,18 @@ document.body.append(modal);modal.querySelector('.pvSuiteClose').onclick=()=>{mo
 function open(title){modal.querySelector('.pvSuiteTitle').textContent=title;const body=modal.querySelector('.pvSuiteBody');body.replaceChildren();modal.hidden=false;return body}
 async function save(kind,id,button){const user=owner();if(!user)return;button.disabled=true;const key=kind==='reel'?'reel_id':'post_id';try{const {data,error}=await db.from('saved_media').select(key).eq('user_id',user.id).eq(key,id).maybeSingle();if(error)throw error;const r=data?await db.from('saved_media').delete().eq('user_id',user.id).eq(key,id):await db.from('saved_media').insert({user_id:user.id,[key]:id});if(r.error)throw r.error;if(button.classList.contains('pvSuiteIconAction')){button.innerHTML=icon('bookmark',!data)+'<span class="pvSuiteCount"></span>';button.classList.toggle('pvSuiteIsSaved',!data)}else button.textContent=data?'☆ Save':'★ Saved'}catch(e){alert('Saved feature needs supabase/social-suite.sql: '+e.message)}finally{button.disabled=false}}
 function saveButton(kind,id){const b=el('button','pvSuiteSave','☆ Save');b.type='button';b.onclick=()=>save(kind,id,b);if(owner())db.from('saved_media').select('user_id').eq('user_id',owner().id).eq(kind==='reel'?'reel_id':'post_id',id).maybeSingle().then(({data})=>{if(data)b.textContent='★ Saved'});return b}
+const icon=(name,filled=false)=>{const paths={
+heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',
+comment:'<path d="M20.8 11.5a8.8 8.8 0 0 1-9.1 8.9 9.5 9.5 0 0 1-4-.8L3 21l1.4-4.4A8.7 8.7 0 0 1 3 11.5 8.8 8.8 0 0 1 12 2.7a8.8 8.8 0 0 1 8.8 8.8Z"/>',
+bookmark:'<path d="M6 3.5h12a1 1 0 0 1 1 1V22l-7-5.1L5 22V4.5a1 1 0 0 1 1-1Z"/>'
+};return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="'+(filled?'currentColor':'none')+'" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+paths[name]+'</svg>'};
 kit.addPostSave=(post,foot)=>foot.append(saveButton('post',post.id));
 kit.addReel=(reel,actions,video)=>{
 const user=owner();if(!user)return;
 const area=el('div','pvSuiteReelActions'),
 like=el('button','pvSuiteIconAction'),comments=el('button','pvSuiteIconAction'),views=el('span','pvSuiteCount pvSuiteViews','0 views'),
 bookmark=el('button','pvSuiteIconAction');
-const icon=(name,filled=false)=>{const paths={
-heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',
-comment:'<path d="M20.8 11.5a8.8 8.8 0 0 1-9.1 8.9 9.5 9.5 0 0 1-4-.8L3 21l1.4-4.4A8.7 8.7 0 0 1 3 11.5 8.8 8.8 0 0 1 12 2.7a8.8 8.8 0 0 1 8.8 8.8Z"/>',
-bookmark:'<path d="M6 3.5h12a1 1 0 0 1 1 1V22l-7-5.1L5 22V4.5a1 1 0 0 1 1-1Z"/>'
-};return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="'+(filled?'currentColor':'none')+'" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+paths[name]+'</svg>'};
+
 function decorate(button,name,count=''){button.type='button';button.innerHTML=icon(name)+'<span class="pvSuiteCount"></span>';button.querySelector('.pvSuiteCount').textContent=count;button.title=name==='heart'?'Like Reel':name==='comment'?'Comment on Reel':'Save Reel';button.setAttribute('aria-label',button.title)}
 decorate(like,'heart','0');decorate(comments,'comment','0');decorate(bookmark,'bookmark','');
 area.append(like,comments);
