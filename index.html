@@ -346,6 +346,67 @@ body.pvReelsMode .pvReelCard{padding:0!important}
 .pvInstallButton{background:#9463e8;border:0;color:#fff;padding:8px 12px;border-radius:9px;font-weight:700;font-size:12px}
 .pvInstallDismiss{background:transparent;border:0;color:#e9deee;font-size:21px}
 @media(max-width:600px){.pvInstallPrompt{left:12px;right:12px;bottom:75px;max-width:none}}
+
+/* PAVORA premium Instagram-inspired direct messaging — visual only, original components */
+#pvInboxView .pvChatArea{background:#0d0f12!important;overflow:hidden}
+#pvInboxView .pvChatTop{min-height:72px!important;flex:0 0 72px;gap:11px;padding:10px 18px!important;border-bottom:1px solid #26282e!important;background:#0d0f12;position:relative;z-index:1}
+#pvInboxView .pvChatWho{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
+#pvInboxView .pvChatHeaderAvatar{width:37px;height:37px;min-width:37px;display:grid;place-items:center;border:0;padding:0;background:linear-gradient(135deg,#7656cd,#d65aa7);border-radius:50%;color:white;font-weight:800;font-size:15px;overflow:hidden;cursor:pointer}
+#pvInboxView .pvChatHeaderAvatar img,#pvInboxView .pvChatIntroAvatar img{width:100%;height:100%;object-fit:cover}
+#pvInboxView .pvChatHeaderIdentity{min-width:0;background:none;border:0;color:#fafafb;display:flex;flex-direction:column;align-items:flex-start;gap:3px;cursor:pointer;padding:0;text-align:left}
+#pvInboxView .pvChatHeaderIdentity h3{font-size:14px!important;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pvInboxView .pvChatHeaderIdentity p{font-size:11px!important;color:#a8aab3;margin:0!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+#pvInboxView .pvChatInfoButton{background:transparent;border:0;padding:8px;color:#f6f6f7;border-radius:50%;display:grid;place-items:center;cursor:pointer;flex:none}
+#pvInboxView .pvChatInfoButton svg{width:25px;height:25px}
+#pvInboxView .pvChatInfoButton:hover{background:#24272b}
+#pvInboxView .pvMessages{padding:16px 22px 25px!important;gap:4px!important;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#353640 transparent}
+#pvInboxView .pvChatIntro{display:flex;align-items:center;flex-direction:column;gap:7px;text-align:center;margin:0 auto 0;padding:35px 10px 45px;max-width:410px;color:#f7f7fa}
+#pvInboxView .pvChatIntroAvatar{width:90px;height:90px;min-width:90px;border-radius:50%;background:linear-gradient(135deg,#7656cd,#d65aa7);display:grid;place-items:center;overflow:hidden;font-size:34px;font-weight:800;margin-bottom:8px}
+#pvInboxView .pvChatIntro strong{font-size:17px;line-height:1.3}
+#pvInboxView .pvChatIntroHandle{font-size:12px;color:#aaaab3}
+#pvInboxView .pvChatViewProfile{border:0;background:#292c32;color:#f4f4f5;font-size:12px;font-weight:800;border-radius:9px;padding:9px 16px;cursor:pointer;margin-top:12px}
+#pvInboxView .pvChatViewProfile:hover{background:#3b3f47}
+#pvInboxView .pvChatDayDivider{align-self:center;text-align:center;font-size:11px;color:#9b9ba5;margin:18px 0 13px;font-weight:650}
+#pvInboxView .pvMessageRow{width:fit-content;max-width:min(78%,560px);display:flex;gap:7px;align-items:center;margin:2px 0;align-self:flex-start;min-width:0}
+#pvInboxView .pvMessageRow.mine{align-self:flex-end}
+#pvInboxView .pvBubble{background:#272930;color:#f5f5f8;border-radius:18px;line-height:1.42;font-size:13px;padding:11px 14px;max-width:100%;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
+#pvInboxView .pvBubble.mine{background:linear-gradient(115deg,#6740cd,#954de5);color:#fff}
+#pvInboxView .pvDeleteMessage{font-size:11px;opacity:0;transition:opacity .15s;border-radius:7px}
+#pvInboxView .pvMessageRow:hover .pvDeleteMessage,#pvInboxView .pvDeleteMessage:focus-visible{opacity:1}
+#pvInboxView .pvChatEmptyMessage{font-size:12px;color:#aaaab2;text-align:center;align-self:center;margin:0 auto 20px}
+#pvInboxView .pvChatComposerWrap{position:relative;flex:none;padding:9px 18px 18px;background:#0d0f12}
+#pvInboxView .pvMessageForm{margin:0!important;border:1px solid #3b3d45!important;display:flex;align-items:center;gap:8px;padding:5px 7px!important;background:#15171c;border-radius:30px!important;min-height:49px}
+#pvInboxView .pvMessageForm:focus-within{border-color:#6b6378!important}
+#pvInboxView .pvMessageForm input{border:0!important;min-width:0;flex:1;background:transparent;color:white;outline:0;padding:8px 0!important;font-size:13px}
+#pvInboxView .pvMessageForm input::placeholder{color:#92929d}
+#pvInboxView .pvChatEmojiButton{border:0;background:transparent;color:#f4f4f6;width:35px;height:35px;padding:5px;display:grid;place-items:center;flex:none;cursor:pointer}
+#pvInboxView .pvChatEmojiButton svg{width:25px;height:25px}
+#pvInboxView .pvChatEmojiButton:hover{color:#c79aff}
+#pvInboxView .pvChatSend{border:0!important;border-radius:22px!important;background:linear-gradient(110deg,#7b53eb,#db4eab)!important;color:#fff;padding:8px 18px!important;font-size:12px;font-weight:800;cursor:pointer;min-width:55px}
+#pvInboxView .pvChatSend:disabled{opacity:.5;cursor:default}
+#pvInboxView .pvChatEmojiTray{position:absolute;bottom:calc(100% + 4px);left:20px;z-index:5;display:grid;grid-template-columns:repeat(6,35px);gap:4px;background:#24212f;border:1px solid #51435e;border-radius:12px;padding:10px;box-shadow:0 12px 35px #0008}
+#pvInboxView .pvChatEmojiTray[hidden]{display:none!important}
+#pvInboxView .pvChatEmojiTray button{border:0;border-radius:7px;background:transparent;font-size:20px;cursor:pointer;padding:4px}
+#pvInboxView .pvChatEmojiTray button:hover{background:#493e5d}
+#pvInboxView .pvCallActionGroup{display:flex;align-items:center;gap:5px;margin-left:auto}
+#pvInboxView .pvCallAction{background:transparent;color:#f8f8fa;border:0;display:grid;place-items:center;width:36px;height:36px;padding:4px;border-radius:10px;font-size:22px}
+#pvInboxView .pvCallAction:hover{background:#28282f}
+@media(max-width:700px){
+#pvInboxView .pvChatTop{padding:10px 12px!important;min-height:63px!important;flex-basis:63px}
+#pvInboxView .pvChatWho{gap:8px}
+#pvInboxView .pvChatHeaderAvatar{width:32px;height:32px;min-width:32px}
+#pvInboxView .pvChatHeaderIdentity h3{font-size:13px!important}
+#pvInboxView .pvChatHeaderIdentity p{font-size:10px!important}
+#pvInboxView .pvChatIntro{padding-top:30px;padding-bottom:30px}
+#pvInboxView .pvChatIntroAvatar{width:78px;height:78px;min-width:78px}
+#pvInboxView .pvMessages{padding:12px!important}
+#pvInboxView .pvMessageRow{max-width:87%}
+#pvInboxView .pvBubble{font-size:13px}
+#pvInboxView .pvDeleteMessage{opacity:.7}
+#pvInboxView .pvChatComposerWrap{padding:8px 10px 14px}
+#pvInboxView .pvCallAction{width:32px;height:34px;font-size:19px}
+#pvInboxView .pvChatInfoButton svg{width:22px;height:22px}
+}
 </style></head><body class="pvBooting"><header><div class="top"><div class="brand">PAVORA ✦</div><small>India Edition</small><button class="secondary" id="reset">Reset demo</button></div></header>
 <main><aside class="left panel"><div class="intro"><div class="row"><div class="profilepic">P</div><div><b>@pavora_user</b><div class="muted">Creator account</div></div></div><hr style="border:0;border-top:1px solid #34344a;margin:16px 0"></div><button class="nav active" data-view="home">⌂ Home</button><button class="nav" data-view="reels">▣ Reels</button><button class="nav" data-view="explore">⌕ Explore</button><button class="nav" data-view="profile">◉ Profile</button></aside>
 <section class="feed"><div id="home"><div class="story" id="stories"></div><div class="composer"><h2>Share a moment ✨</h2><textarea id="caption" maxlength="1200" placeholder="What's happening?"></textarea><div class="actions"><div><label for="photo" class="secondary" style="cursor:pointer">＋ Add photo</label><input class="upload" id="photo" type="file" accept="image/*"><span id="filename" class="hint"></span></div><button class="primary" id="publish">Publish</button></div><p class="hint">Share photos and moments with your PAVORA community.</p></div><div id="posts"></div></div><div id="reels" class="hide"><h2>Reels ▣</h2><div class="empty">Reels player is coming in the next version.</div></div><div id="explore" class="hide"><h2>Explore ✨</h2><div class="empty">Discover creators and trending posts — coming soon.</div></div><div id="profile" class="hide"><div class="panel"><div class="row"><div class="profilepic" style="width:70px;height:70px">P</div><div><h2 style="margin:0">@pavora_user</h2><p class="muted">Welcome to your PAVORA profile</p></div></div><p id="stats"></p><p class="muted">Your posts appear in Home Feed.</p></div></div></section><aside class="right panel"><h3>Welcome to PAVORA 💜</h3><p class="muted">A new space for creators to connect, share and grow.</p><hr style="border:0;border-top:1px solid #34344a"><p class="hint">This is an offline-first browser demo, not a live social network. Sign-in, cloud sync and calling are planned for later phases.</p></aside></main>
