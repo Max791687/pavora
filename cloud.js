@@ -250,7 +250,7 @@ reelStack.addEventListener('keydown',e=>{if(['ArrowDown','PageDown',' '].include
 reelStack.tabIndex=0;reelStack.setAttribute('aria-label','Reels feed — scroll for next video');
 
 for(const reel of data){const person=people.get(reel.author_id)||{},card=node('article','pvReelCard'),screen=node('div','pvReelScreen'),video=node('video'),meta=node('div','pvReelMeta'),author=node('div','pvReelAuthor'),actions=node('div','pvReelActions');
-video.src=db.storage.from('reel-videos').getPublicUrl(reel.video_path).data.publicUrl;video.loop=true;video.playsInline=true;video.preload='metadata';video.controls=false;video.setAttribute('aria-label','Reel by '+(person.username||'creator'));
+video.src=db.storage.from('reel-videos').getPublicUrl(reel.video_path).data.publicUrl;video.loop=true;video.playsInline=true;video.preload=cards.length<2?'metadata':'none';video.controls=false;video.setAttribute('aria-label','Reel by '+(person.username||'creator'));
 const avatar=node('div','pvReelAvatar');if(person.avatar_url){const img=node('img');img.src=person.avatar_url;img.alt='';avatar.append(img)}else avatar.textContent=(person.username||'P')[0].toUpperCase();
 const who=node('button','pvReelCreator','@'+(person.username||'creator'));who.type='button';who.onclick=()=>openCreator(reel.author_id);author.append(avatar,who);
 if(reel.author_id!==user.id){const follow=node('button','pvReelFollow','View profile');follow.type='button';follow.onclick=()=>openCreator(reel.author_id);author.append(follow)}
@@ -263,7 +263,7 @@ actions.append(reelAction('More options','<circle cx="5" cy="12" r="1" fill="cur
 card.append(screen,actions);reelStack.append(card);cards.push(card);card.id='reel-'+reel.id;
 try{window.PVKit?.addReel?.(reel,actions,video)}catch(e){console.warn('Reel extras:',e)}
 }
-reelObserver=new IntersectionObserver(entries=>{for(const entry of entries){const index=cards.indexOf(entry.target);const video=entry.target.querySelector('video');if(entry.isIntersecting&&entry.intersectionRatio>=.65&&document.body.classList.contains('pvReelsMode')){video.play().catch(()=>{});const upcoming=cards[index+1]?.querySelector('video');if(upcoming&&upcoming.preload==='metadata')upcoming.preload='auto'}else video.pause()}},{root:reelStack,threshold:[0,.35,.65,.95]});cards.forEach(c=>reelObserver.observe(c));
+reelObserver=new IntersectionObserver(entries=>{for(const entry of entries){const index=cards.indexOf(entry.target);const video=entry.target.querySelector('video');if(entry.isIntersecting&&entry.intersectionRatio>=.65&&document.body.classList.contains('pvReelsMode')){video.play().catch(()=>{});const upcoming=cards[index+1]?.querySelector('video');if(upcoming&&upcoming.preload==='none')upcoming.preload='metadata'}else video.pause()}},{root:reelStack,threshold:[0,.35,.65,.95]});cards.forEach(c=>reelObserver.observe(c));
 pvReelsLoadedAt=Date.now();pvReelsLoadedFor=user.id;
 requestAnimationFrame(()=>goTo(0,'auto'));
 const hash=location.hash.slice(1);if(hash.startsWith('reel-')){const target=document.getElementById(hash);if(target)setTimeout(()=>goTo(cards.indexOf(target),'auto'),100)}
