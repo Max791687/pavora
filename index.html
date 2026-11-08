@@ -299,6 +299,32 @@ body.pvExploreMode #cloudStatus{display:none}
 .pvSuiteViewCount{font-size:10px}
 }
 .pvSuiteReelActions .pvSuiteViews{font-size:11px;color:#dad3e7;white-space:nowrap;line-height:15px;text-align:center;margin-top:1px}
+
+/* Smooth, dedicated full-height Reels scrolling. Prevent the entire document from
+   moving between videos; allow snap for touch and one-at-a-time wheel paging. */
+body.pvReelsMode{overflow:hidden}
+body.pvReelsMode main{margin:0 auto;padding:0 0 0 72px;max-width:none;display:block}
+body.pvReelsMode main>aside.left,body.pvReelsMode main>aside.right{display:none}
+body.pvReelsMode main>.feed{width:100%;max-width:none;min-width:0;margin:0;padding:0}
+body.pvReelsMode #cloudStatus{display:none}
+body.pvReelsMode #reels{position:relative;padding:0!important;height:calc(100dvh - 68px);min-height:0;overflow:hidden}
+body.pvReelsMode #reelList{height:100%;min-height:0}
+body.pvReelsMode .pvReelStage{position:relative;height:100%;min-height:0;display:flex;align-items:stretch;justify-content:center}
+body.pvReelsMode .pvReelStack{position:relative;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;scroll-snap-type:y mandatory;scroll-behavior:smooth;scrollbar-width:none;width:min(100%,670px);height:100%;max-height:100%;gap:0;display:flex;flex-direction:column;align-items:stretch;outline:none}
+body.pvReelsMode .pvReelStack::-webkit-scrollbar{display:none}
+body.pvReelsMode .pvReelCard{position:relative;width:100%;max-width:none;min-width:0;min-height:100%;height:100%;flex:0 0 100%;gap:10px;scroll-snap-align:start;scroll-snap-stop:always;box-sizing:border-box;align-items:center;padding:8px 5px}
+body.pvReelsMode .pvReelScreen{height:100%;min-height:0;flex:1;max-width:100%;border-radius:9px}
+body.pvReelsMode .pvReelArrows{position:fixed;right:20px;top:45%}
+body.pvReelsMode .pvReelUploadToggle{z-index:4}
+@media(max-width:600px){
+body.pvReelsMode main{padding:0!important}
+body.pvReelsMode #reels{height:calc(100dvh - 117px);min-height:0}
+body.pvReelsMode .pvReelStage{height:100%}
+body.pvReelsMode .pvReelStack{width:100%;height:100%;touch-action:pan-y;scroll-snap-type:y mandatory}
+body.pvReelsMode .pvReelCard{height:100%;min-height:100%;padding:0;gap:0}
+body.pvReelsMode .pvReelScreen{height:100%;border:0;border-radius:0}
+body.pvReelsMode .pvReelArrows{display:none}
+}
 </style></head><body class="pvBooting"><header><div class="top"><div class="brand">PAVORA ✦</div><small>India Edition</small><button class="secondary" id="reset">Reset demo</button></div></header>
 <main><aside class="left panel"><div class="intro"><div class="row"><div class="profilepic">P</div><div><b>@pavora_user</b><div class="muted">Creator account</div></div></div><hr style="border:0;border-top:1px solid #34344a;margin:16px 0"></div><button class="nav active" data-view="home">⌂ Home</button><button class="nav" data-view="reels">▣ Reels</button><button class="nav" data-view="explore">⌕ Explore</button><button class="nav" data-view="profile">◉ Profile</button></aside>
 <section class="feed"><div id="home"><div class="story" id="stories"></div><div class="composer"><h2>Share a moment ✨</h2><textarea id="caption" maxlength="1200" placeholder="What's happening?"></textarea><div class="actions"><div><label for="photo" class="secondary" style="cursor:pointer">＋ Add photo</label><input class="upload" id="photo" type="file" accept="image/*"><span id="filename" class="hint"></span></div><button class="primary" id="publish">Publish</button></div><p class="hint">Share photos and moments with your PAVORA community.</p></div><div id="posts"></div></div><div id="reels" class="hide"><h2>Reels ▣</h2><div class="empty">Reels player is coming in the next version.</div></div><div id="explore" class="hide"><h2>Explore ✨</h2><div class="empty">Discover creators and trending posts — coming soon.</div></div><div id="profile" class="hide"><div class="panel"><div class="row"><div class="profilepic" style="width:70px;height:70px">P</div><div><h2 style="margin:0">@pavora_user</h2><p class="muted">Welcome to your PAVORA profile</p></div></div><p id="stats"></p><p class="muted">Your posts appear in Home Feed.</p></div></div></section><aside class="right panel"><h3>Welcome to PAVORA 💜</h3><p class="muted">A new space for creators to connect, share and grow.</p><hr style="border:0;border-top:1px solid #34344a"><p class="hint">This is an offline-first browser demo, not a live social network. Sign-in, cloud sync and calling are planned for later phases.</p></aside></main>
