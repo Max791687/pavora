@@ -215,6 +215,7 @@ const cards=[];
 function reelSvg(path){return '<svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+'</svg>'}
 function reelAction(label,svg,handler){const b=node('button','pvReelAction');b.type='button';b.title=label;b.setAttribute('aria-label',label);b.innerHTML=reelSvg(svg);b.onclick=handler;return b}
 let current=0,gestureLocked=false,gestureTimer=null,touchStartY=null,touchStartX=null,touchConsumed=false;
+let desktopWheelLastAt=0,desktopWheelGestureAt=0,desktopWheelDirection=0;
 const videoFor=index=>cards[index]?.querySelector('video');
 function pvActivateReel(index){
  if(!cards.length||!document.body.classList.contains('pvReelsMode'))return;
@@ -233,14 +234,14 @@ function goTo(index,behavior='smooth'){
  const next=Math.max(0,Math.min(cards.length-1,index));
  current=next;
  // Each card occupies exactly one stack viewport; no freely scrolling momentum.
- const top=next*reelStack.clientHeight;
+ const top=cards[next].offsetTop-cards[0].offsetTop;
  reelStack.scrollTo({top,behavior});
  pvActivateReel(next);
  clearTimeout(gestureTimer);
  gestureLocked=behavior==='smooth';
  gestureTimer=setTimeout(()=>{
   gestureLocked=false;
-  reelStack.scrollTop=next*reelStack.clientHeight;
+  reelStack.scrollTop=cards[next].offsetTop-cards[0].offsetTop;
   pvActivateReel(current);
  },behavior==='smooth'?520:0);
 }
@@ -253,10 +254,21 @@ function stepReel(direction){
 up.onclick=()=>stepReel(-1);down.onclick=()=>stepReel(1);
 const pvWheelHandler=e=>{
  if(!document.body.classList.contains('pvReelsMode')||document.querySelector('.pvSuiteModal:not([hidden]),.pvCallOverlay:not([hidden])'))return;
- if(e.target.closest('input,textarea,select,.pvReelComments,.pvSuiteBox'))return;
- if(Math.abs(e.deltaY)<2)return;
- e.preventDefault();
- stepReel(e.deltaY>0?1:-1);
+ if(e.target instanceof Element&&e.target.closest('input,textarea,select,.pvReelComments,.pvSuiteBox'))return;
+ // Take over the desktop wheel even for tiny trackpad deltas, avoiding page
+ // movement while the gesture is still decelerating.
+ if(e.cancelable)e.preventDefault();
+ if(!e.deltaY||Math.abs(e.deltaY)<1)return;
+ const now=performance.now(),direction=e.deltaY>0?1:-1;
+ // Treat a trackpad's momentum events as part of the same gesture instead of
+ // advancing one reel for every wheel event.
+ const withinBurst=now-desktopWheelLastAt<240;
+ const withinCooldown=now-desktopWheelGestureAt<850;
+ desktopWheelLastAt=now;
+ if((withinBurst&&withinCooldown)||gestureLocked)return;
+ if(withinCooldown&&direction===desktopWheelDirection)return;
+ desktopWheelGestureAt=now;desktopWheelDirection=direction;
+ stepReel(direction);
 };
 document.addEventListener('wheel',pvWheelHandler,{passive:false,capture:true});
 // Native touch momentum can skip multiple snap positions on quick swipes.
@@ -282,7 +294,7 @@ reelStack.addEventListener('touchend',e=>{
  touchStartY=null;touchStartX=null;touchConsumed=false;
 },{passive:true});
 reelStack.addEventListener('touchcancel',()=>{touchStartY=null;touchConsumed=false},{passive:true});
-window.pvReelsWheelCleanup=()=>{document.removeEventListener('wheel',pvWheelHandler,true);clearTimeout(gestureTimer)};
+window.pvReelsWheelCleanup=()=>{document.removeEventListener('wheel',pvWheelHandler,true);clearTimeout(gestureTimer);desktopWheelLastAt=0};
 reelStack.addEventListener('keydown',e=>{
  if(['ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();stepReel(1)}
  else if(['ArrowUp','PageUp'].includes(e.key)){e.preventDefault();stepReel(-1)}
