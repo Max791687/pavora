@@ -351,7 +351,17 @@ async function pvRestoreView(){const key=pvRouteKey();if(!key||pvRestoredForUser
 if(saved.view==='creator'&&saved.creatorId){await openCreator(saved.creatorId);return}
 if(saved.view==='messages'){pvInboxTab=['Primary','General','Requests'].includes(saved.tab)?saved.tab:'Primary';selectedPeer=typeof saved.peer==='string'&&/^[0-9a-f-]{36}$/i.test(saved.peer)?saved.peer:null;pvNavigate('messages');if(selectedPeer&&!chatPoll)chatPoll=setInterval(()=>{if(!inboxView.classList.contains('hide')&&selectedPeer)renderChat(selectedPeer,true)},2500);return}
 const b=document.querySelector('aside.left [data-view="'+saved.view+'"]');if(b)b.click();else pvNavigate(saved.view)}
-function pvNavigate(view){pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');document.body.classList.toggle('pvExploreMode',view==='explore');document.body.classList.toggle('pvReelsMode',view==='reels');try{window.PVKit?.onNavigate?.(view)}catch(e){console.warn('Feature navigation:',e)}if(view==='messages')loadInbox();if(view==='explore')pvLoadExplore();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
+function pvSyncDesktopChatHeight(){
+ if(!document.body.classList.contains('pvMessagesMode')||window.innerWidth<=700)return;
+ const main=document.querySelector('main'),view=document.getElementById('pvInboxView');
+ if(!main||!view)return;
+ const mainTop=Math.max(0,main.getBoundingClientRect().top);
+ const viewTop=Math.max(0,view.getBoundingClientRect().top);
+ document.body.style.setProperty('--pvMsgMainTop',mainTop+'px');
+ document.body.style.setProperty('--pvMsgViewTop',viewTop+'px');
+}
+window.addEventListener('resize',()=>{if(document.body.classList.contains('pvMessagesMode'))requestAnimationFrame(pvSyncDesktopChatHeight)},{passive:true});
+function pvNavigate(view){pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');document.body.classList.toggle('pvExploreMode',view==='explore');document.body.classList.toggle('pvReelsMode',view==='reels');try{window.PVKit?.onNavigate?.(view)}catch(e){console.warn('Feature navigation:',e)}if(view==='messages'){loadInbox();requestAnimationFrame(pvSyncDesktopChatHeight)}if(view==='explore')pvLoadExplore();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
 socialNav.addEventListener('click',()=>pvNavigate('messages'));
 document.querySelectorAll('[data-view="explore"]').forEach(btn=>btn.addEventListener('click',()=>pvNavigate('explore')));
 document.querySelectorAll('[data-view]:not([data-view="explore"])').forEach(btn=>btn.addEventListener('click',()=>document.body.classList.remove('pvExploreMode')));
@@ -388,6 +398,7 @@ function pvEmptyChat(){const empty=node('div','pvEmptyChat');empty.innerHTML='<d
 async function loadInbox(){if(!user)return;
 const layout=node('div','pvInboxLayout'),side=node('div','pvInboxSide'),right=node('div','pvChatArea');right.id='pvChatArea';right.append(pvEmptyChat());layout.append(side,right);inboxView.replaceChildren(layout);
 inboxView.classList.toggle('pvChatSelected',!!selectedPeer);
+requestAnimationFrame(pvSyncDesktopChatHeight);
 const top=node('div','pvInboxTop'),name=node('strong','',profile?.username||'Messages'),compose=node('button','pvInboxCompose','✎');compose.title='New message';compose.setAttribute('aria-label','New message');compose.onclick=()=>pvNavigate('explore');const pvInboxBell=pvMakeBell('pvInboxBell');const pvInboxActions=node('div','pvInboxActions');pvInboxActions.append(pvInboxBell,compose);top.append(name,pvInboxActions);side.append(top);
 const tabs=node('div','pvInboxTabs');for(const t of ['Primary','General','Requests']){const tab=node('button',pvInboxTab===t?'active':'',t);tab.type='button';tab.onclick=()=>{pvInboxTab=t;selectedPeer=null;pvRememberInboxPosition();loadInbox()};tabs.append(tab)}side.append(tabs);
 const searchBox=node('div','pvInboxSearch'),searchIcon=node('span','','⌕'),search=node('input');search.type='search';search.placeholder='Search';search.setAttribute('aria-label','Search conversations');search.value=pvInboxSearch;searchBox.append(searchIcon,search);side.append(searchBox);
