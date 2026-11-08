@@ -7,7 +7,7 @@ const overlay=el('div','pvCallOverlay');overlay.hidden=true;const box=el('sectio
 remote.autoplay=true;remote.playsInline=true;local.autoplay=true;local.muted=true;local.playsInline=true;
 const remoteAudio=el('audio','pvCallRemoteAudio'),playAudio=el('button','pvCallPlayAudio','🔊 Tap to hear call');
 remoteAudio.autoplay=true;remoteAudio.playsInline=true;playAudio.type='button';playAudio.hidden=true;
-playAudio.onclick=async()=>{try{await remoteAudio.play();playAudio.hidden=true;updateStatus('Audio playing')}catch(err){updateStatus('Audio playback blocked. Check silent mode / browser permissions.')}};
+playAudio.onclick=async()=>{try{await (current?.kind==='video'?remote:remoteAudio).play();playAudio.hidden=true;updateStatus('Audio playing')}catch(err){updateStatus('Audio playback blocked. Check silent mode / browser permissions.')}};
 remote.setAttribute('aria-label','Remote video');local.setAttribute('aria-label','Your camera preview');buttons.append(accept,decline,end);box.append(head,status,remote,remoteAudio,playAudio,local,buttons);overlay.append(box);document.body.append(overlay);
 let current=null,peer=null,mic=null,poll=null,seen=new Set(),requestInFlight=false,connectionTimer=null,callSession=0;
 const updateStatus=t=>status.textContent=t;
@@ -38,7 +38,7 @@ else{remote.srcObject=stream;remote.play().catch(()=>{playAudio.hidden=false;pla
 };
 peer.onconnectionstatechange=()=>{
 if(peer!==thisPeer)return;
-if(thisPeer.connectionState==='connected'){if(connectionTimer){clearTimeout(connectionTimer);connectionTimer=null}updateStatus('Connected · '+(kind==='video'?'Video':'Voice')+' call');playAudio.hidden=false;playAudio.textContent='🔊 Audio';}
+if(thisPeer.connectionState==='connected'){if(connectionTimer){clearTimeout(connectionTimer);connectionTimer=null}updateStatus('Connected · '+(kind==='video'?'Video':'Voice')+' call');if((kind==='video'?remote:remoteAudio).paused){playAudio.hidden=false;playAudio.textContent='🔊 Tap to hear call'}}
 else if(thisPeer.connectionState==='failed')updateStatus('Unable to connect peer-to-peer. Try both phones on the same Wi-Fi; other networks may need a TURN server.');
 else if(thisPeer.connectionState==='disconnected'){updateStatus('Connection temporarily interrupted — reconnecting…');if(connectionTimer)clearTimeout(connectionTimer);connectionTimer=setTimeout(()=>{if(peer===thisPeer&&thisPeer.connectionState==='disconnected')updateStatus('Connection still interrupted. Try same Wi-Fi or use a TURN relay.')},8000)}
 };
