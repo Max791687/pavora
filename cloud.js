@@ -244,6 +244,28 @@ if(!document.hidden&&messages?.some(m=>m.recipient_id===user.id&&!m.read_at))pvM
 if(silent&&area.querySelector('input:focus'))return;
 area.replaceChildren();const heading=node('h3','',person.display_name||person.username),handle=node('p','muted','@'+person.username),list=node('div','pvMessages');for(const m of messages||[]){const mine=m.sender_id===user.id,row=node('div','pvMessageRow'+(mine?' mine':'')),bubble=node('div','pvBubble'+(mine?' mine':''),m.body);bubble.title=new Date(m.created_at).toLocaleString();row.append(bubble);if(mine){const del=node('button','pvDeleteMessage','Delete');del.type='button';del.title='Delete this message for everyone';del.setAttribute('aria-label','Delete message for everyone');del.onclick=async()=>{if(!confirm('Delete this message for everyone? This cannot be undone.'))return;del.disabled=true;const {error}=await db.from('direct_messages').delete().eq('id',m.id).eq('sender_id',user.id);if(error){alert('Could not delete message: '+error.message);del.disabled=false;return}await renderChat(id);await pvCheckUnread()};row.append(del)}list.append(row)}if(!messages?.length)list.append(node('p','muted','Say hello!'));const form=node('form','pvMessageForm'),input=node('input');input.placeholder='Write a message…';input.maxLength=2000;input.required=true;const send=node('button','primary','Send');send.type='submit';form.append(input,send);form.onsubmit=async e=>{e.preventDefault();const body=input.value.trim();if(!body)return;send.disabled=true;const {error}=await db.from('direct_messages').insert({sender_id:user.id,recipient_id:id,body});if(error){alert(error.message);send.disabled=false;return}await renderChat(id);await pvCheckUnread();};area.append(heading,handle,list,form);list.scrollTop=list.scrollHeight}
 
+
+// Slide-out navigation and separate Create Post dialog; retain existing publish handlers.
+const pvComposer=document.querySelector('#home .composer');
+if(pvComposer){
+ const pvMenuBtn=node('button','pvTopAction','☰');pvMenuBtn.type='button';pvMenuBtn.title='Open menu';pvMenuBtn.setAttribute('aria-label','Open menu');
+ const pvCreateBtn=node('button','pvTopAction pvCreateTop','＋ Create');pvCreateBtn.type='button';
+ const pvTop=document.querySelector('header .top');pvTop.insertBefore(pvMenuBtn,pvTop.firstChild);pvTop.append(pvCreateBtn);
+ const pvScrim=node('div','pvDrawerScrim');pvScrim.setAttribute('aria-hidden','true');document.body.append(pvScrim);
+ const pvDialog=node('div','pvComposeOverlay');pvDialog.setAttribute('role','dialog');pvDialog.setAttribute('aria-modal','true');pvDialog.setAttribute('aria-label','Create a post');
+ const pvCard=node('div','pvComposeCard'),pvClose=node('button','pvComposeClose','×');pvClose.type='button';pvClose.setAttribute('aria-label','Close create post');pvCard.append(pvClose,pvComposer);pvDialog.append(pvCard);document.body.append(pvDialog);
+ function pvCloseDrawer(){document.body.classList.remove('pvDrawerOpen')}
+ function pvCloseCompose(){document.body.classList.remove('pvComposeOpen')}
+ pvMenuBtn.onclick=()=>document.body.classList.toggle('pvDrawerOpen');
+ pvScrim.onclick=pvCloseDrawer;
+ pvCreateBtn.onclick=()=>{pvCloseDrawer();document.body.classList.add('pvComposeOpen');document.getElementById('caption')?.focus()};
+ pvClose.onclick=pvCloseCompose;
+ pvDialog.addEventListener('click',e=>{if(e.target===pvDialog)pvCloseCompose()});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'){pvCloseDrawer();pvCloseCompose()}});
+ document.querySelectorAll('aside.left [data-view]').forEach(b=>b.addEventListener('click',pvCloseDrawer));
+ const pvPublish=document.getElementById('publish');pvPublish.addEventListener('click',()=>{if(document.getElementById('caption')?.value.trim()||document.getElementById('photo')?.files?.length)setTimeout(()=>{if(!pvPublish.disabled)pvCloseCompose()},900)});
+}
+
 document.getElementById('reset').style.display='none';
 async function setSession(session){user=session?.user||null;overlay.classList.toggle('pvAuthHidden',!!user);signout.style.display=user?'':'none';if(user){try{await ensureProfile();await refreshStoryAvatars();await refresh();await updateSocialProfile();pvHiddenChats=new Map();await pvLoadHiddenChats();pvUnreadAvailable=true;pvLastNotified=null;pvUnreadInitialized=false;await pvCheckUnread(true);if(pvUnreadTimer)clearInterval(pvUnreadTimer);pvUnreadTimer=setInterval(()=>{if(!document.hidden)pvCheckUnread()},2500)}catch(e){status.textContent='Setup error: '+e.message+' — Check Supabase SQL schema.'}}else{selectedPeer=null;pvHiddenChats=new Map();if(pvUnreadTimer){clearInterval(pvUnreadTimer);pvUnreadTimer=null}pvNavBadge.hidden=true;pvLastNotified=null;pvUnreadInitialized=false;if(chatPoll){clearInterval(chatPoll);chatPoll=null}profile=null;feed=[];document.getElementById('posts').replaceChildren();status.textContent='Sign in to access the cloud feed.'}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&user)pvCheckUnread()});
