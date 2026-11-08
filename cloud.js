@@ -178,16 +178,50 @@ const reelList=document.createElement('div');reelList.id='reelList';reelsView.ap
 let reelObserver=null;
 async function loadReels(){if(!user)return;const list=document.getElementById('reelList');list.replaceChildren(node('p','muted','Loading reels…'));const {data,error}=await db.from('reels').select('id,author_id,caption,video_path,created_at').order('created_at',{ascending:false}).limit(40);if(error){list.replaceChildren(node('p','muted','Reels unavailable: '+error.message));return}list.replaceChildren();if(!data?.length){list.append(node('div','empty','No Reels yet. Upload your first video with ＋ Create Reel.'));return}
 const {data:authors}=await db.from('profiles').select('id,username,display_name,avatar_url').in('id',[...new Set(data.map(r=>r.author_id))]);const people=new Map((authors||[]).map(p=>[p.id,p]));if(reelObserver)reelObserver.disconnect();
+if(window.pvReelsWheelCleanup)window.pvReelsWheelCleanup();
 const reelStage=node('div','pvReelStage'),reelStack=node('div','pvReelStack'),arrows=node('div','pvReelArrows'),up=node('button','pvReelArrow','↑'),down=node('button','pvReelArrow','↓');up.type=down.type='button';up.title='Previous reel';down.title='Next reel';arrows.append(up,down);reelStage.append(reelStack,arrows);list.append(reelStage);
 const cards=[];
 function reelSvg(path){return '<svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+'</svg>'}
 function reelAction(label,svg,handler){const b=node('button','pvReelAction');b.type='button';b.title=label;b.setAttribute('aria-label',label);b.innerHTML=reelSvg(svg);b.onclick=handler;return b}
-let current=0,lastWheelTime=0,snapInProgress=false,snapTimer=null;
-function goTo(index,behavior='smooth'){if(!cards.length)return;const next=Math.max(0,Math.min(cards.length-1,index));current=next;const target=cards[next];if(target)reelStack.scrollTo({top:target.offsetTop-cards[0].offsetTop,behavior});snapInProgress=true;clearTimeout(snapTimer);snapTimer=setTimeout(()=>{snapInProgress=false},500)}
+let current=0,lastWheelTime=0,snapInProgress=false,snapTimer=null,scrollIdle=null;
+function goTo(index,behavior='smooth'){
+ if(!cards.length)return;
+ const next=Math.max(0,Math.min(cards.length-1,index));
+ current=next;
+ const target=cards[next];
+ const top=target.offsetTop-cards[0].offsetTop;
+ reelStack.scrollTo({top,behavior});
+ snapInProgress=behavior==='smooth';
+ clearTimeout(snapTimer);
+ snapTimer=setTimeout(()=>{snapInProgress=false},620);
+}
 up.onclick=()=>goTo(current-1);down.onclick=()=>goTo(current+1);
-reelStack.addEventListener('wheel',e=>{if(!document.body.classList.contains('pvReelsMode'))return;if(Math.abs(e.deltaY)<5)return;e.preventDefault();const now=performance.now();if(snapInProgress||now-lastWheelTime<440)return;lastWheelTime=now;goTo(current+(e.deltaY>0?1:-1))},{passive:false});
-reelStack.addEventListener('keydown',e=>{if(['ArrowDown','PageDown'].includes(e.key)){e.preventDefault();goTo(current+1)}else if(['ArrowUp','PageUp'].includes(e.key)){e.preventDefault();goTo(current-1)}});
+// Wheel events can land on the video, right-side buttons, or the page gutter.
+// Capture them at document level and keep the active Reels feed as the only scroller.
+const pvWheelHandler=e=>{
+ if(!document.body.classList.contains('pvReelsMode')||document.querySelector('.pvSuiteModal:not([hidden]),.pvCallOverlay:not([hidden])'))return;
+ if(e.target.closest('input,textarea,select,.pvReelComments,.pvSuiteBox'))return;
+ if(Math.abs(e.deltaY)<2)return;
+ e.preventDefault();
+ const now=performance.now();
+ if(snapInProgress||now-lastWheelTime<550)return;
+ lastWheelTime=now;goTo(current+(e.deltaY>0?1:-1));
+};
+document.addEventListener('wheel',pvWheelHandler,{passive:false,capture:true});
+window.pvReelsWheelCleanup=()=>{document.removeEventListener('wheel',pvWheelHandler,true);clearTimeout(snapTimer);clearTimeout(scrollIdle)};
+// Touch scroll uses native momentum and CSS snap. At rest, sync the index and player.
+reelStack.addEventListener('scroll',()=>{
+ clearTimeout(scrollIdle);
+ scrollIdle=setTimeout(()=>{
+ const height=reelStack.clientHeight||1;
+ current=Math.max(0,Math.min(cards.length-1,Math.round(reelStack.scrollTop/height)));
+ snapInProgress=false;
+ cards.forEach((card,index)=>{const v=card.querySelector('video');if(!v)return;if(index===current&&document.body.classList.contains('pvReelsMode'))v.play().catch(()=>{});else v.pause()});
+ },130);
+},{passive:true});
+reelStack.addEventListener('keydown',e=>{if(['ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();goTo(current+1)}else if(['ArrowUp','PageUp'].includes(e.key)){e.preventDefault();goTo(current-1)}});
 reelStack.tabIndex=0;reelStack.setAttribute('aria-label','Reels feed — scroll for next video');
+
 for(const reel of data){const person=people.get(reel.author_id)||{},card=node('article','pvReelCard'),screen=node('div','pvReelScreen'),video=node('video'),meta=node('div','pvReelMeta'),author=node('div','pvReelAuthor'),actions=node('div','pvReelActions');
 video.src=db.storage.from('reel-videos').getPublicUrl(reel.video_path).data.publicUrl;video.loop=true;video.playsInline=true;video.preload='metadata';video.controls=false;video.setAttribute('aria-label','Reel by '+(person.username||'creator'));
 const avatar=node('div','pvReelAvatar');if(person.avatar_url){const img=node('img');img.src=person.avatar_url;img.alt='';avatar.append(img)}else avatar.textContent=(person.username||'P')[0].toUpperCase();
@@ -202,7 +236,7 @@ actions.append(reelAction('More options','<circle cx="5" cy="12" r="1" fill="cur
 card.append(screen,actions);reelStack.append(card);cards.push(card);card.id='reel-'+reel.id;
 try{window.PVKit?.addReel?.(reel,actions,video)}catch(e){console.warn('Reel extras:',e)}
 }
-reelObserver=new IntersectionObserver(entries=>{for(const entry of entries){const index=cards.indexOf(entry.target);const video=entry.target.querySelector('video');if(entry.isIntersecting&&entry.intersectionRatio>=.6&&document.body.classList.contains('pvReelsMode')){current=index;video.play().catch(()=>{});const upcoming=cards[index+1]?.querySelector('video');if(upcoming&&upcoming.preload==='metadata')upcoming.preload='auto'}else video.pause()}},{root:reelStack,threshold:[0,.3,.6,.9]});cards.forEach(c=>reelObserver.observe(c));
+reelObserver=new IntersectionObserver(entries=>{for(const entry of entries){const index=cards.indexOf(entry.target);const video=entry.target.querySelector('video');if(entry.isIntersecting&&entry.intersectionRatio>=.65&&document.body.classList.contains('pvReelsMode')){video.play().catch(()=>{});const upcoming=cards[index+1]?.querySelector('video');if(upcoming&&upcoming.preload==='metadata')upcoming.preload='auto'}else video.pause()}},{root:reelStack,threshold:[0,.35,.65,.95]});cards.forEach(c=>reelObserver.observe(c));
 requestAnimationFrame(()=>goTo(0,'auto'));
 const hash=location.hash.slice(1);if(hash.startsWith('reel-')){const target=document.getElementById(hash);if(target)setTimeout(()=>goTo(cards.indexOf(target),'auto'),100)}
 }
