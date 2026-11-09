@@ -30,7 +30,7 @@ area.append(like,comments);
 const nativeShare=Array.from(actions.querySelectorAll('.pvReelAction')).find(b=>b.title==='Share reel');
 if(nativeShare){nativeShare.classList.add('pvSuiteIconAction','pvSuiteShare');area.append(nativeShare)}
 area.append(bookmark);
-const nativeMore=Array.from(actions.querySelectorAll('.pvReelAction')).find(b=>b.title==='More options');
+const nativeMore=Array.from(actions.querySelectorAll('.pvReelAction')).find(b=>b.title==='More options'||b.title==='Block account');
 if(nativeMore){nativeMore.classList.add('pvSuiteIconAction','pvSuiteMore');area.append(nativeMore)}
 area.append(views);actions.prepend(area);
 bookmark.onclick=()=>save('reel',reel.id,bookmark);
