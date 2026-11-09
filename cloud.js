@@ -1629,7 +1629,7 @@ async function pvShowDmMediaGallery(peer){
  if(error){grid.append(node('p','pvDmGalleryEmpty','Unable to load media: '+error.message));return}
  if(!data?.length){grid.append(node('p','pvDmGalleryEmpty','No photos or videos shared yet.'));return}
  // Signed links expire and are limited to media belonging to this chat.
- for(const m of data){
+ for(const m of data.slice(0,48)){
   const tile=node('button','pvDmGalleryItem'),isVideo=m.media_type?.startsWith('video/');
   tile.type='button';tile.title=isVideo?'View video':'View photo';tile.append(node('span','',isVideo?'🎬':'▧'));
   grid.append(tile);
@@ -1725,6 +1725,7 @@ function pvDmDecorateContent(list,messages,peer){
      if(!confirm('Delete this message for everyone?'))return;
      const {error}=await db.from('direct_messages').delete().eq('id',msg.id).eq('sender_id',user.id);
      if(error){alert('Could not delete message: '+error.message);return}
+     if(msg.media_path&&msg.sender_id===user.id)db.storage.from('pv-dm-media').remove([msg.media_path]).then(({error:mediaError})=>{if(mediaError)console.warn('Media cleanup:',mediaError.message)}).catch(()=>{});
      row.remove();pvScheduleLiveDmRefresh();
     });
     row.append(menu);
