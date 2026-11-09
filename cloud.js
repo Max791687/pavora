@@ -1184,7 +1184,7 @@ document.getElementById('pvReelsMediaTab')?.classList.toggle('active',pvProfileM
 const all=[...pvOwnPosts.map(p=>({...p,kind:'post'})),...pvOwnReels.map(r=>({...r,kind:'reel'}))].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
 const shown=all.filter(x=>x.kind===(pvProfileMediaTab==='reels'?'reel':'post'));
 if(!shown.length){grid.append(node('div','pvNoPosts',pvProfileMediaTab==='reels'?'No Reels uploaded yet.':'No posts yet. Share your first update!'));return}
-for(const item of shown){const tile=node('button','pvTile'+(item.kind==='reel'?' pvProfileReelTile':''));tile.type='button';tile.title=item.caption||'View '+item.kind;
+for(const item of shown){const tile=node(item.kind==='reel'?'div':'button','pvTile'+(item.kind==='reel'?' pvProfileReelTile':''));if(item.kind!=='reel')tile.type='button';else{tile.tabIndex=0;tile.setAttribute('role','button');tile.setAttribute('aria-label','Open Reel: '+(item.caption||'Video'));tile.addEventListener('keydown',e=>{if(e.target===tile&&(e.key==='Enter'||e.key===' ')){e.preventDefault();pvOpenProfileReel(item.id)}})}tile.title=item.caption||'View '+item.kind;
 if(item.kind==='post'){if(item.image_path){const img=node('img');img.loading='lazy';img.alt=item.caption||'Your post';img.src=db.storage.from('post-images').getPublicUrl(item.image_path).data.publicUrl;tile.append(img)}else{tile.classList.add('pvTextTile');tile.append(node('span','',item.caption||'Text post'))}tile.onclick=()=>openProfilePost(item)}
 else{
  const video=node('video');video.muted=true;video.playsInline=true;video.preload='metadata';video.src=db.storage.from('reel-videos').getPublicUrl(item.video_path).data.publicUrl;
