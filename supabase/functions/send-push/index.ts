@@ -48,8 +48,21 @@ Deno.serve(async req=>{
    const {data:actor}=await db.from('profiles').select('username').eq('id',job.actor_id).maybeSingle();
    actorName=typeof actor?.username==='string'?actor.username.slice(0,24):'';
   }
-  const body=actorName?'@'+actorName+': '+info.body:info.body;
-  const message=JSON.stringify({title:info.title,body,url:info.url,tag:'pavora-'+job.id});
+  // Android displays the app name separately, so keep the title readable.
+  // Never show private DM content on a locked phone by default.
+  const handle=actorName?'@'+actorName:'Someone';
+  const title=job.event_kind==='message'?'New message from '+handle
+   :job.event_kind==='like'?handle+' liked your post ❤️'
+   :job.event_kind==='comment'?handle+' commented 💬'
+   :job.event_kind==='follow'?handle+' followed you ✨'
+   :job.event_kind==='reel_like'?handle+' liked your Reel ❤️'
+   :job.event_kind==='reel_comment'?handle+' commented on your Reel 💬'
+   :job.event_kind==='story_view'?handle+' viewed your story 👀':info.title;
+  const body=job.event_kind==='message'?'Tap to open your PAVORA chat.'
+   :job.event_kind==='comment'?'You have a new comment on your post.'
+   :job.event_kind==='reel_comment'?'Check out the new comment on your Reel.'
+   :info.body;
+  const message=JSON.stringify({title,body,url:info.url,category:job.event_kind,tag:'pavora-'+job.id});
   const results=await Promise.allSettled((subs||[]).map(async sub=>{
    try{
     await webpush.sendNotification({endpoint:sub.endpoint,keys:{p256dh:sub.p256dh,auth:sub.auth}},message,{TTL:3600,urgency:'normal'});
