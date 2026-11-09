@@ -1701,37 +1701,104 @@ async function pvForwardDmMessage(message,originPeer){
 }
 
 document.addEventListener('click',e=>{if(!e.target.closest('.pvDmInlineMenu,.pvDmMoreButton'))document.querySelectorAll('.pvDmInlineMenu').forEach(menu=>menu.remove())});
+
+const pvDmLongPressStyle=document.createElement('style');pvDmLongPressStyle.textContent="\n/* Mobile DM interactions: messages remain visually uncluttered until held. */\n#pvInboxView .pvDmMoreButton,#pvInboxView .pvMsgReactButton,#pvInboxView .pvMsgReactionPalette{display:none!important}\n#pvInboxView .pvMsgReactionWrap{padding:0!important;margin:0!important;min-height:0!important;gap:0!important}\n#pvInboxView .pvMsgReactionBadge[hidden]{display:none!important}\n#pvInboxView .pvMessageRow .pvBubble{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:pan-y}\n.pvDmHoldBackdrop{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.58);display:block;touch-action:pan-y}\n.pvDmHoldPanel{position:fixed;z-index:601;width:min(340px,calc(100vw - 28px));max-height:min(72dvh,590px);overflow:auto;box-sizing:border-box;border:1px solid #34333a;border-radius:20px;background:#232428;box-shadow:0 20px 70px #000a;overscroll-behavior:contain}\n.pvDmHoldReact{display:flex;justify-content:space-around;align-items:center;gap:1px;padding:13px 9px;border-bottom:1px solid #39383e}\n.pvDmHoldReact button{flex:1;border:0;background:transparent;color:white;min-width:0;font-size:24px;cursor:pointer;border-radius:10px;padding:7px 2px;line-height:1.2}\n.pvDmHoldReact button:hover,.pvDmHoldReact button:focus-visible{background:#3d3b42}\n.pvDmHoldHint{text-align:center;font-size:10px;letter-spacing:.03em;color:#a9a7b0;margin:9px 4px 0}\n.pvDmHoldMenu{display:flex;flex-direction:column;padding:8px}\n.pvDmHoldMenu button{border:0;background:transparent;color:#f6f5f7;text-align:left;display:flex;align-items:center;gap:13px;font-size:15px;font-weight:520;padding:14px 15px;border-radius:12px;cursor:pointer}\n.pvDmHoldMenu button:hover,.pvDmHoldMenu button:focus-visible{background:#37373d}\n.pvDmHoldMenu button.pvDanger{color:#ff889f}\n.pvDmHoldMenu .pvDmActionSymbol{font-size:21px;line-height:1;width:25px;text-align:center}\n@media (max-width:700px){#pvInboxView .pvMessageRow{gap:0!important}#pvInboxView .pvMessageRow .pvBubble{max-width:min(78vw,400px)}.pvDmHoldPanel{border-radius:19px}}\n";document.head.append(pvDmLongPressStyle);
+let pvDmHoldCleanup=()=>{};
+function pvDmOpenHoldMenu(message,peer,row){
+ if(!user||selectedPeer!==peer||!row?.isConnected)return;
+ pvDmHoldCleanup();
+ const mine=message.sender_id===user.id,uid=user.id;
+ const backdrop=node('div','pvDmHoldBackdrop'),panel=node('div','pvDmHoldPanel');
+ backdrop.setAttribute('role','presentation');
+ panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Message actions');
+ const close=()=>{if(backdrop.isConnected)backdrop.remove();if(panel.isConnected)panel.remove();if(pvDmHoldCleanup===close)pvDmHoldCleanup=()=>{}};
+ pvDmHoldCleanup=close;backdrop.onclick=close;
+ const hint=node('div','pvDmHoldHint','REACT TO MESSAGE'),reactions=node('div','pvDmHoldReact');
+ const palette=[['❤️','❤️'],['😂','😂'],['😮','😮'],['😢','😢'],['🔥','🔥'],['👍','👍']];
+ for(const [emoji,label] of palette){
+  const btn=node('button','',label);btn.type='button';btn.title='React '+emoji;
+  btn.onclick=async()=>{
+   close();
+   const previous=row.dataset.myReaction||'';
+   const payload=previous===emoji
+    ?db.from('message_reactions').delete().eq('message_id',message.id).eq('user_id',uid)
+    :db.from('message_reactions').upsert({message_id:message.id,user_id:uid,emoji},{onConflict:'message_id,user_id'});
+   const {error}=await payload;
+   if(error)alert('Could not react: '+error.message);
+   else pvScheduleDmReactionRefresh(80);
+  };
+  reactions.append(btn);
+ }
+ const choices=node('div','pvDmHoldMenu');
+ function action(icon,label,fn,danger=false){
+  const button=node('button',danger?'pvDanger':''),symbol=node('span','pvDmActionSymbol',icon);
+  button.type='button';button.append(symbol,node('span','',label));
+  button.onclick=()=>{close();fn()};choices.append(button);
+ }
+ action('↩','Reply',()=>pvDmSetReply(peer,message));
+ if(mine&&message.body&&Date.now()-new Date(message.created_at).getTime()<15*60*1000)
+  action('✎','Edit',async()=>{
+   const value=prompt('Edit message',message.body);
+   if(value===null||value.trim()===message.body.trim())return;
+   const {error}=await db.rpc('pv_edit_own_dm',{p_message_id:message.id,p_body:value.trim()});
+   if(error){alert('Could not edit: '+error.message);return}
+   const bubble=row.querySelector('.pvBubble');
+   if(bubble){
+    // Preserve quoted and attached media while changing text.
+    for(const t of [...bubble.childNodes])if(t.nodeType===Node.TEXT_NODE)t.remove();
+    bubble.append(document.createTextNode(value.trim()));
+   }
+   pvScheduleLiveDmRefresh();
+  });
+ action('➤','Forward',()=>pvForwardDmMessage(message,peer));
+ if(message.body)action('▢','Copy',()=>{
+  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(message.body).catch(()=>prompt('Copy message',message.body));
+  else prompt('Copy message',message.body);
+ });
+ if(mine)action('↶','Unsend',async()=>{
+  if(!confirm('Unsend this message for everyone?'))return;
+  const {error}=await db.from('direct_messages').delete().eq('id',message.id).eq('sender_id',uid);
+  if(error){alert('Could not unsend: '+error.message);return}
+  if(message.media_path)db.storage.from('pv-dm-media').remove([message.media_path]).catch(()=>{});
+  row.remove();pvScheduleLiveDmRefresh();
+ },true);
+ // 'Delete for you' and 'Pin' need durable per-user database state; don't
+ // advertise controls that cannot work across devices.
+ panel.append(hint,reactions,choices);
+ document.body.append(backdrop,panel);
+ const bounds=row.querySelector('.pvBubble')?.getBoundingClientRect()||row.getBoundingClientRect();
+ const panelHeight=panel.getBoundingClientRect().height,viewportHeight=window.innerHeight;
+ const desiredTop=bounds.top-panelHeight-12;
+ const top=desiredTop>12?desiredTop:Math.min(viewportHeight-panelHeight-14,bounds.bottom+10);
+ const centered=Math.max(14,Math.min(window.innerWidth-panel.offsetWidth-14,bounds.left+(bounds.width-panel.offsetWidth)/2));
+ panel.style.left=centered+'px';panel.style.top=Math.max(10,top)+'px';
+ const onKey=e=>{if(e.key==='Escape'){close();document.removeEventListener('keydown',onKey)}};
+ document.addEventListener('keydown',onKey,{once:true});
+}
+function pvDmAttachHoldGesture(row,msg,peer){
+ if(row.dataset.pvHoldAttached)return;
+ row.dataset.pvHoldAttached='1';
+ const bubble=row.querySelector('.pvBubble');if(!bubble)return;
+ let handle=null,startX=0,startY=0,opened=false;
+ const cancel=()=>{if(handle){clearTimeout(handle);handle=null}};
+ bubble.addEventListener('pointerdown',event=>{
+  if(event.button!==0||event.target.closest('button,video,a'))return;
+  cancel();opened=false;startX=event.clientX;startY=event.clientY;
+  handle=setTimeout(()=>{handle=null;opened=true;try{navigator.vibrate?.(10)}catch(e){};pvDmOpenHoldMenu(msg,peer,row)},430);
+ });
+ bubble.addEventListener('pointermove',event=>{if(Math.abs(event.clientX-startX)>12||Math.abs(event.clientY-startY)>12)cancel()});
+ for(const event of ['pointerup','pointercancel','pointerleave'])bubble.addEventListener(event,cancel);
+ bubble.addEventListener('contextmenu',event=>{event.preventDefault();cancel();if(!opened)pvDmOpenHoldMenu(msg,peer,row)});
+}
+
 function pvDmDecorateContent(list,messages,peer){
  if(!list||!user||selectedPeer!==peer)return;
  const byId=new Map((messages||[]).map(x=>[String(x.id),x]));
  for(const row of list.querySelectorAll('.pvMessageRow[data-message-id]')){
   const msg=byId.get(row.dataset.messageId);
   if(!msg)continue;
-  // One compact menu keeps message bubbles uncluttered on narrow phones.
-  row.querySelectorAll('.pvDmReplyButton,.pvDmForwardButton,.pvDeleteMessage').forEach(b=>b.remove());
-  if(!row.querySelector('.pvDmMoreButton')){
-   const more=node('button','pvDmMoreButton','⋯');more.type='button';more.title='Message options';more.setAttribute('aria-label','Message options');
-   more.onclick=e=>{
-    e.stopPropagation();
-    document.querySelectorAll('.pvDmInlineMenu').forEach(menu=>menu.remove());
-    const menu=node('div','pvDmInlineMenu');
-    const action=(label,handler)=>{
-     const btn=node('button','',label);btn.type='button';
-     btn.onclick=event=>{event.stopPropagation();menu.remove();handler()};menu.append(btn)
-    };
-    action('↩ Reply',()=>pvDmSetReply(peer,msg));
-    action('↗ Forward',()=>pvForwardDmMessage(msg,peer));
-    if(msg.sender_id===user.id)action('Delete for everyone',async()=>{
-     if(!confirm('Delete this message for everyone?'))return;
-     const {error}=await db.from('direct_messages').delete().eq('id',msg.id).eq('sender_id',user.id);
-     if(error){alert('Could not delete message: '+error.message);return}
-     if(msg.media_path&&msg.sender_id===user.id)db.storage.from('pv-dm-media').remove([msg.media_path]).then(({error:mediaError})=>{if(mediaError)console.warn('Media cleanup:',mediaError.message)}).catch(()=>{});
-     row.remove();pvScheduleLiveDmRefresh();
-    });
-    row.append(menu);
-   };
-   row.append(more);
-  }
+  row.querySelectorAll('.pvDmReplyButton,.pvDmForwardButton,.pvDeleteMessage,.pvDmMoreButton,.pvDmInlineMenu').forEach(b=>b.remove());
+  pvDmAttachHoldGesture(row,msg,peer);
   if(msg.reply_to&&!row.querySelector('.pvDmReplyPreview')){
    const preview=node('div','pvDmReplyPreview',pvDmMessageSummary(byId.get(String(msg.reply_to))));
    preview.title='Reply to original message';
