@@ -1,6 +1,6 @@
 /* PAVORA: Cache only public application shell. Auth / Supabase API always network. */
-const CACHE='pavora-shell-2026-11-09-push-v2';
-const SHELL=['./','./index.html','./cloud.js','./social-suite.js','./calls.js','./app-install.js','./push.js','./manifest.webmanifest','./app-icon.svg','./app-icon-maskable.svg'];
+const CACHE='pavora-shell-2026-11-09-push-brand-v3';
+const SHELL=['./','./index.html','./cloud.js','./social-suite.js','./calls.js','./app-install.js','./push.js','./manifest.webmanifest','./app-icon.svg','./app-icon-maskable.svg','./notify-icon.png','./notify-badge.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).catch(err=>console.warn('Shell cache unavailable',err)));self.skipWaiting()});
 self.addEventListener('activate',event=>{event.waitUntil(Promise.all([caches.keys().then(names=>Promise.all(names.filter(n=>n.startsWith('pavora-shell-')&&n!==CACHE).map(n=>caches.delete(n)))),self.clients.claim()]))});
 self.addEventListener('fetch',event=>{
@@ -17,13 +17,18 @@ self.addEventListener('fetch',event=>{
 self.addEventListener('push',event=>{
  let data={};try{data=event.data?.json()||{}}catch(e){data={title:'PAVORA',body:'You have a new notification'}}
  const title=String(data.title||'PAVORA').slice(0,100);
+ const category=String(data.category||'activity').slice(0,25);
  const options={
-  body:String(data.body||'New activity on PAVORA').slice(0,180),
-  icon:'./app-icon.svg',badge:'./app-icon.svg',
-  tag:String(data.tag||'pavora-activity'),
+  body:String(data.body||'Someone interacted with you on PAVORA').slice(0,180),
+  // Android's system UI controls card colors/layout; actual PNG assets provide
+  // a crisp branded large icon and a monochrome small-status-bar badge.
+  icon:'./notify-icon.png',badge:'./notify-badge.png',
+  tag:String(data.tag||'pavora-'+category).slice(0,120),
   renotify:true,
-  vibrate:[180,80,180],
-  data:{url:(typeof data.url==='string'&&data.url.startsWith('/pavora/'))?data.url:'/pavora/'}
+  vibrate:[160,65,180],
+  timestamp:Date.now(),
+  data:{url:(typeof data.url==='string'&&data.url.startsWith('/pavora/'))?data.url:'/pavora/'},
+  actions:[{action:'open',title:category==='message'?'Open chat':'View on PAVORA'}]
  };
  event.waitUntil(self.registration.showNotification(title,options));
 });
