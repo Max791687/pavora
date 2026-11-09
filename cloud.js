@@ -1475,6 +1475,117 @@ async function refreshStoryAvatars(){
 }
 
 let selectedPeer=null,chatPoll=null,pvChatPollBusy=false;let pvHiddenChats=new Map();
+
+const pvDmExtrasCss=document.createElement('style');pvDmExtrasCss.textContent="\n.pvMsgReactionWrap{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:3px 0}\n.pvMsgReactButton{border:0!important;background:transparent!important;color:#b9a9ce!important;padding:3px 6px!important;cursor:pointer;font-size:17px!important;border-radius:999px!important}\n.pvMsgReactButton:hover{background:#524065!important}\n.pvMsgReactionBadge{font-size:13px;padding:4px 8px;border-radius:999px;border:1px solid #594a70;background:#2d2339;color:#fff}\n.pvMsgReactionBadge.mine{border-color:#bf8ef0;background:#503466}\n.pvMsgReactionPalette{display:flex;gap:4px;padding:7px;background:#292332;border:1px solid #625075;border-radius:30px;box-shadow:0 8px 22px #0008}\n.pvMsgReactionPalette[hidden]{display:none!important}\n.pvMsgReactionPalette button{border:0;background:transparent;font-size:20px;cursor:pointer;padding:4px;border-radius:50%}\n.pvMsgReactionPalette button:hover{background:#5a4972}\n.pvDmTypingLabel{font-size:12px;color:#d1adef;min-height:18px;padding:3px 16px 5px}\n.pvDmTypingLabel[hidden]{display:none!important}\n";document.head.append(pvDmExtrasCss);
+const pvDmReactionEmoji=['❤️','😂','👍','🔥','😮','😢'];
+let pvDmReactionBusy=false,pvDmReactionTimer=null,pvDmReactionRefreshPending=null;
+let pvDmTypingLastSent=0,pvDmTypingClearTimer=null,pvDmTypingTimer=null,pvDmTypingLastSeen=0;
+function pvRenderTyping(){
+ const label=document.querySelector('#pvChatArea .pvDmTypingLabel');
+ if(!label)return;
+ const active=selectedPeer&&!inboxView.classList.contains('hide')&&pvDmTypingLastSeen>Date.now()-6000;
+ label.hidden=!active;
+ if(active)label.textContent='● typing…';
+}
+async function pvCheckTyping(){
+ if(!user||!selectedPeer||document.hidden||inboxView.classList.contains('hide'))return;
+ const peer=selectedPeer,uid=user.id;
+ const {data,error}=await db.from('dm_typing_status').select('updated_at').eq('user_id',peer).eq('peer_id',uid).maybeSingle();
+ if(error||selectedPeer!==peer||user?.id!==uid)return;
+ pvDmTypingLastSeen=data?new Date(data.updated_at).getTime():0;
+ pvRenderTyping();
+}
+async function pvClearTyping(peerId){
+ if(!user||!peerId)return;
+ try{await db.from('dm_typing_status').delete().eq('user_id',user.id).eq('peer_id',peerId)}catch(e){}
+}
+function pvOnChatInput(peer){
+ if(!user||!peer||selectedPeer!==peer)return;
+ if(Date.now()-pvDmTypingLastSent>2600){
+  pvDmTypingLastSent=Date.now();
+  db.from('dm_typing_status').upsert({user_id:user.id,peer_id:peer,updated_at:new Date().toISOString()},{onConflict:'user_id,peer_id'})
+  .then(({error})=>{if(error)console.warn('Typing update:',error.message)});
+ }
+ if(pvDmTypingClearTimer)clearTimeout(pvDmTypingClearTimer);
+ pvDmTypingClearTimer=setTimeout(()=>{pvDmTypingClearTimer=null;pvClearTyping(peer)},4200);
+}
+function pvDmDecorateRows(list){
+ if(!list||!user)return;
+ for(const row of list.querySelectorAll('.pvMessageRow[data-message-id]')){
+  const id=row.dataset.messageId;
+  if(row.querySelector('.pvMsgReactionWrap'))continue;
+  const wrap=node('div','pvMsgReactionWrap');
+  const badge=node('span','pvMsgReactionBadge');badge.hidden=true;
+  const btn=node('button','pvMsgReactButton','♡');btn.type='button';btn.title='React to message';btn.setAttribute('aria-label','React to message');
+  const tray=node('div','pvMsgReactionPalette');tray.hidden=true;
+  for(const emoji of pvDmReactionEmoji){
+   const item=node('button','',emoji);item.type='button';item.title='React '+emoji;
+   item.onclick=async()=>{
+    tray.hidden=true;
+    if(item.disabled)return;
+    const selected=row.dataset.myReaction||null;
+    item.disabled=true;
+    try{
+     const result=selected===emoji?await db.from('message_reactions').delete().eq('message_id',id).eq('user_id',user.id)
+      :await db.from('message_reactions').upsert({message_id:id,user_id:user.id,emoji},{onConflict:'message_id,user_id'});
+     if(result.error)throw result.error;
+     row.dataset.myReaction=selected===emoji?'':emoji;
+     pvScheduleDmReactionRefresh(100);
+    }catch(error){alert('Reaction could not be saved: '+error.message)}
+    finally{item.disabled=false}
+   };
+   tray.append(item);
+  }
+  btn.onclick=()=>{for(const existing of document.querySelectorAll('.pvMsgReactionPalette'))if(existing!==tray)existing.hidden=true;tray.hidden=!tray.hidden};
+  wrap.append(badge,btn,tray);row.append(wrap);
+ }
+}
+async function pvRefreshDmReactions(){
+ if(pvDmReactionBusy||!user||!selectedPeer||document.hidden||inboxView.classList.contains('hide'))return;
+ const list=document.querySelector('#pvChatArea .pvMessages');if(!list)return;
+ const peer=selectedPeer,uid=user.id;
+ const rows=[...list.querySelectorAll('.pvMessageRow[data-message-id]')];if(!rows.length)return;
+ pvDmReactionBusy=true;
+ try{
+  const ids=rows.map(r=>r.dataset.messageId);
+  const {data,error}=await db.from('message_reactions').select('message_id,user_id,emoji').in('message_id',ids);
+  if(error)throw error;
+  if(selectedPeer!==peer||user?.id!==uid||!list.isConnected)return;
+  const byMessage=new Map();
+  for(const reaction of data||[]){
+   if(!byMessage.has(reaction.message_id))byMessage.set(reaction.message_id,[]);
+   byMessage.get(reaction.message_id).push(reaction);
+  }
+  pvDmDecorateRows(list);
+  for(const row of rows){
+   const reactions=byMessage.get(row.dataset.messageId)||[];
+   row.dataset.myReaction=reactions.find(x=>x.user_id===uid)?.emoji||'';
+   const badge=row.querySelector('.pvMsgReactionBadge');if(!badge)continue;
+   badge.textContent=[...new Set(reactions.map(x=>x.emoji))].map(emoji=>emoji+' '+reactions.filter(r=>r.emoji===emoji).length).join(' ');
+   badge.hidden=!reactions.length;
+   badge.classList.toggle('mine',reactions.some(x=>x.user_id===uid));
+  }
+ }catch(e){console.warn('Message reactions refresh:',e.message)}
+ finally{pvDmReactionBusy=false}
+}
+function pvScheduleDmReactionRefresh(delay=150){
+ if(pvDmReactionRefreshPending)clearTimeout(pvDmReactionRefreshPending);
+ pvDmReactionRefreshPending=setTimeout(()=>{pvDmReactionRefreshPending=null;pvRefreshDmReactions()},delay);
+}
+function pvStopDmExtras(){
+ if(pvDmReactionTimer)clearInterval(pvDmReactionTimer);
+ if(pvDmTypingTimer)clearInterval(pvDmTypingTimer);
+ if(pvDmTypingClearTimer)clearTimeout(pvDmTypingClearTimer);
+ if(pvDmReactionRefreshPending)clearTimeout(pvDmReactionRefreshPending);
+ pvDmReactionTimer=pvDmTypingTimer=pvDmTypingClearTimer=pvDmReactionRefreshPending=null;
+ pvDmTypingLastSeen=0;
+}
+function pvStartDmExtras(){
+ if(pvDmReactionTimer)return;
+ pvDmReactionTimer=setInterval(()=>{if(!document.hidden&&selectedPeer&&!inboxView.classList.contains('hide'))pvRefreshDmReactions()},12000);
+ pvDmTypingTimer=setInterval(()=>{if(!document.hidden&&selectedPeer&&!inboxView.classList.contains('hide'))pvCheckTyping()},3500);
+}
+
 let pvDmRealtimeChannel=null,pvDmRealtimeUser=null,pvDmRealtimeStatus='offline',pvDmRealtimeRefreshTimer=null;
 function pvStopDmRealtime(){
  if(pvDmRealtimeRefreshTimer){clearTimeout(pvDmRealtimeRefreshTimer);pvDmRealtimeRefreshTimer=null}
