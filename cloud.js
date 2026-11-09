@@ -1590,6 +1590,22 @@ function pvStartDmExtras(){
 const pvDmMediaCSS=document.createElement('style');
 pvDmMediaCSS.textContent=".pvDmReplyPreview{font-size:11px;color:#e1c7f9;background:#553776;border-left:3px solid #d2a6ff;padding:7px 10px;border-radius:7px;max-width:270px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px}.pvDmAttachment{display:block;max-width:min(260px,67vw);max-height:320px;object-fit:contain;border-radius:11px;margin:7px 0;background:#110e19}.pvDmAttachment.video{width:min(260px,67vw);max-height:300px}.pvDmReplyButton{border:0!important;background:transparent!important;color:#c9b1df!important;font-size:12px!important;padding:4px!important}.pvDmSendPreview{display:flex;align-items:center;gap:8px;padding:9px 12px;margin:6px 0;border-left:3px solid #bc95ea;background:#392747;border-radius:9px;color:#f6eaff;font-size:12px}.pvDmSendPreview strong{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pvDmSendPreview button{border:0!important;background:#57436a!important;color:#fff;border-radius:7px;padding:5px 10px}.pvDmAttachButton{border:0;background:transparent;color:#e0c4ff;font-size:24px;cursor:pointer;padding:5px 10px}.pvDmUploadNote{font-size:11px;color:#b8a9cb}.pvDmMediaError{color:#ffb3ba;font-size:12px}";
 document.head.append(pvDmMediaCSS);
+const pvDmPickerStyle=document.createElement('style');
+pvDmPickerStyle.textContent=`
+#pvInboxView .pvDmPicker{display:flex;flex-direction:column;grid-template-columns:none;width:min(328px,calc(100vw - 34px));max-height:min(310px,45dvh);padding:9px;gap:8px;overflow:hidden;bottom:calc(100% + 8px);left:12px;background:#24212c;border:1px solid #48404f;border-radius:17px;box-shadow:0 12px 35px #0009}
+#pvInboxView .pvDmPicker[hidden]{display:none!important}
+#pvInboxView .pvDmPickerTabs{display:flex;gap:4px}
+#pvInboxView .pvDmPickerTabs button{flex:1;min-width:0;font-size:12px;font-weight:700;color:#bbb2c8;padding:8px 4px;border-radius:9px}
+#pvInboxView .pvDmPickerTabs button.active{background:#44314f;color:#fff}
+#pvInboxView .pvDmPickerGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;overflow-y:auto;min-height:0;max-height:220px}
+#pvInboxView .pvDmPickerGrid .pvDmSticker{font-size:20px;min-height:47px;border-radius:11px;background:#34303b}
+#pvInboxView .pvDmPickerGrid .pvDmEmoji{font-size:22px;min-height:42px}
+#pvInboxView .pvDmPickerGrid .pvDmPickerHint{grid-column:1/-1;color:#d0c5d8;font-size:12px;line-height:1.5;margin:8px 3px}
+#pvInboxView .pvDmPickerGrid .pvDmGifChoose{grid-column:1/-1;background:#6845a5;color:#fff;font-weight:750;padding:10px;border-radius:10px;font-size:13px}
+#pvInboxView .pvMessageRow{animation:pvDmRowAppear .18s ease-out both}
+@keyframes pvDmRowAppear{from{opacity:.35;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){#pvInboxView .pvMessageRow{animation:none}}
+`;document.head.append(pvDmPickerStyle);
 const pvDmComposerPolish=document.createElement('style');pvDmComposerPolish.textContent="\n/* DM composer: keep previews compact and truly hidden when not needed. */\n#pvInboxView .pvDmSendPreview[hidden],#pvInboxView .pvDmReplyCompose[hidden]{display:none!important}\n#pvInboxView .pvDmSendPreview{box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;min-width:0;min-height:0;margin:0 0 8px;padding:9px 11px;border:1px solid #37313f;border-left:2px solid #aa75ed;border-radius:10px;background:#1b1922;box-shadow:none;color:#f2eaf8;font-size:12px}\n#pvInboxView .pvDmSendPreview strong{display:block;min-width:0;flex:1;font-size:12px;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#pvInboxView .pvDmSendPreview button{display:grid;place-items:center;flex:none;width:25px;height:25px;padding:0!important;border:0!important;border-radius:50%!important;background:#37323e!important;color:#eee!important;font-size:16px;cursor:pointer}\n#pvInboxView .pvDmReplyCompose{background:#191820;border-color:#322b3d;border-left-color:#9369c2}\n#pvInboxView .pvDmSendPreview .pvDmPreviewThumb{display:grid;place-items:center;flex:none;width:35px;height:35px;border-radius:7px;background:#292534;overflow:hidden;font-size:18px}\n#pvInboxView .pvDmSendPreview .pvDmPreviewThumb img{width:100%;height:100%;object-fit:cover}\n#pvInboxView .pvDmPreviewTitle{font-size:10px;color:#ab91c5;font-weight:700;display:block;margin-bottom:2px}\n#pvInboxView .pvDmPreviewText{min-width:0;flex:1}\n#pvInboxView .pvDmPreviewText strong{color:#e5dce9}\n#pvInboxView .pvDmAttachButton{font-size:22px;line-height:1;flex:none;display:grid;place-items:center;width:31px;height:34px;padding:0!important;color:#dbcee8!important}\n@media(max-width:600px){#pvInboxView .pvDmSendPreview{margin-bottom:6px;padding:7px 9px}#pvInboxView .pvChatComposerWrap{padding:6px 10px 12px!important}}\n";document.head.append(pvDmComposerPolish);
 function pvDmMessageSummary(message){
  if(!message)return 'Original message unavailable';
@@ -1683,7 +1699,7 @@ async function pvForwardDmMessage(message,originPeer){
      // else's original storage path with a different conversation.
      const downloaded=await db.storage.from('pv-dm-media').download(message.media_path);
      if(downloaded.error)throw downloaded.error;
-     const ext=message.media_type==='video/mp4'?'.mp4':message.media_type==='video/webm'?'.webm':message.media_type==='image/png'?'.png':message.media_type==='image/webp'?'.webp':'.jpg';
+     const ext=message.media_type==='video/mp4'?'.mp4':message.media_type==='video/webm'?'.webm':message.media_type==='image/png'?'.png':message.media_type==='image/webp'?'.webp':message.media_type==='image/gif'?'.gif':'.jpg';
      copiedPath=sender+'/'+crypto.randomUUID()+ext;
      const upload=await db.storage.from('pv-dm-media').upload(copiedPath,downloaded.data,{contentType:message.media_type});
      if(upload.error)throw upload.error;
@@ -2285,8 +2301,36 @@ const stamp=new Date(m.created_at),dayKey=stamp.toDateString();if(dayKey!==pvLas
 const mine=m.sender_id===user.id,row=node('div','pvMessageRow'+(mine?' mine':'')),bubble=node('div','pvBubble'+(mine?' mine':''),m.body);
 row.dataset.messageId=String(m.id);bubble.title=new Date(m.created_at).toLocaleString();row.append(bubble);if(mine){const del=node('button','pvDeleteMessage','Delete');del.type='button';del.title='Delete this message for everyone';del.setAttribute('aria-label','Delete message for everyone');del.onclick=async()=>{if(!confirm('Delete this message for everyone? This cannot be undone.'))return;del.disabled=true;const {error}=await db.from('direct_messages').delete().eq('id',m.id).eq('sender_id',user.id);if(error){alert('Could not delete message: '+error.message);del.disabled=false;return}await renderChat(id);await pvCheckUnread()};row.append(del)}list.append(row)}if(!visibleMessages.length)list.append(node('p','pvChatEmptyMessage','Say hello! 👋'));const form=node('form','pvMessageForm'),input=node('input');input.placeholder='Message…';input.maxLength=2000;input.required=true;input.setAttribute('aria-label','Message');
 const emojiButton=node('button','pvChatEmojiButton');emojiButton.type='button';emojiButton.title='Add emoji';emojiButton.setAttribute('aria-label','Add emoji');emojiButton.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 14c2 3 6 3 8 0"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/></svg>';
-const emojiTray=node('div','pvChatEmojiTray');emojiTray.hidden=true;for(const emoji of ['❤️','😂','😍','🥰','🔥','👏','🙌','😊','👍','💜','✨','👋']){const item=node('button','',emoji);item.type='button';item.onclick=()=>{input.value+=emoji;emojiTray.hidden=true;input.focus();input.dispatchEvent(new Event('input'))};emojiTray.append(item)}
-emojiButton.onclick=()=>{emojiTray.hidden=!emojiTray.hidden};
+const emojiTray=node('div','pvChatEmojiTray pvDmPicker');emojiTray.hidden=true;
+emojiTray.id='pvDmPicker-'+id.replace(/[^a-zA-Z0-9_-]/g,'');
+const pickerTabs=node('div','pvDmPickerTabs'),pickerGrid=node('div','pvDmPickerGrid');
+const pvEmojiSet=['❤️','😂','😍','🥰','🔥','👏','🙌','😊','👍','💜','✨','👋','😭','🤩','🙏','🎉','😘','😎','🤗','💯'];
+const pvStickerSet=['🥹💜','🫶✨','❤️‍🔥','🎉🥳','💜👑','😘💕','😂🙌','🥰🌸','🤝💖','✨🌙','😴💤','🔥💯','🙏💜','👀✨','😎🔥','🧸💕'];
+function pvSelectPickerTab(tab){
+ pickerGrid.replaceChildren();
+ pickerTabs.querySelectorAll('button').forEach(b=>{const active=b.dataset.tab===tab;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active))});
+ if(tab==='gif'){
+  const hint=node('p','pvDmPickerHint','Send an animated GIF from your phone or computer (up to 30 MB).');
+  const choose=node('button','pvDmGifChoose','Choose GIF');choose.type='button';
+  choose.onclick=()=>{fileInput.accept='image/gif';fileInput.click()};
+  pickerGrid.append(hint,choose);return;
+ }
+ for(const symbol of tab==='stickers'?pvStickerSet:pvEmojiSet){
+  const item=node('button',tab==='stickers'?'pvDmSticker':'pvDmEmoji',symbol);item.type='button';item.title='Insert '+symbol;
+  item.onclick=()=>{input.value+=symbol;emojiTray.hidden=true;emojiButton.setAttribute('aria-expanded','false');input.focus({preventScroll:true});input.dispatchEvent(new Event('input'))};
+  pickerGrid.append(item);
+ }
+}
+for(const [key,label] of [['emoji','Emoji'],['stickers','Stickers'],['gif','GIF']]){
+ const tab=node('button','',label);tab.type='button';tab.dataset.tab=key;tab.setAttribute('role','tab');
+ tab.onclick=()=>pvSelectPickerTab(key);pickerTabs.append(tab);
+}
+pickerTabs.setAttribute('role','tablist');pickerTabs.setAttribute('aria-label','Message extras');
+emojiTray.append(pickerTabs,pickerGrid);pvSelectPickerTab('emoji');
+emojiButton.setAttribute('aria-controls',emojiTray.id);emojiButton.setAttribute('aria-expanded','false');
+emojiButton.onclick=()=>{emojiTray.hidden=!emojiTray.hidden;emojiButton.setAttribute('aria-expanded',String(!emojiTray.hidden))};
+emojiTray.addEventListener('keydown',e=>{if(e.key==='Escape'){emojiTray.hidden=true;emojiButton.setAttribute('aria-expanded','false');emojiButton.focus()}});
+emojiTray.addEventListener('pointerdown',e=>{if(e.target.closest('button'))e.preventDefault()});
 const send=node('button','primary pvChatSend','Send');
 send.type='button';
 // The Send control is not a submitter: iOS Safari can dismiss the software
@@ -2307,7 +2351,7 @@ send.addEventListener('click',event=>{
 });
 const composerWrap=node('div','pvChatComposerWrap');
 const attach=node('button','pvDmAttachButton','＋');attach.type='button';attach.title='Attach photo or video';attach.setAttribute('aria-label','Attach photo or video');
-const fileInput=node('input');fileInput.type='file';fileInput.accept='image/jpeg,image/png,image/webp,video/mp4,video/webm';fileInput.hidden=true;
+const fileInput=node('input');fileInput.type='file';fileInput.accept='image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm';fileInput.hidden=true;
 let pvPendingMedia=null;
 const mediaSelection=node('div','pvDmSendPreview');mediaSelection.hidden=true;
 const thumb=node('span','pvDmPreviewThumb','📷'),fileSummary=node('div','pvDmPreviewText'),fileTitle=node('span','pvDmPreviewTitle','Attachment'),fileLabel=node('strong',''),removeFile=node('button','','×');
@@ -2318,8 +2362,8 @@ removeFile.onclick=()=>{pvPendingMedia=null;fileInput.value='';mediaSelection.hi
 fileSummary.append(fileTitle,fileLabel);mediaSelection.append(thumb,fileSummary,removeFile);
 fileInput.onchange=()=>{
  const file=fileInput.files?.[0];if(!file)return;
- const accepted=['image/jpeg','image/png','image/webp','video/mp4','video/webm'];
- if(!accepted.includes(file.type)||file.size>30*1024*1024){alert('Choose JPG, PNG, WebP, MP4 or WebM under 30 MB.');fileInput.value='';return}
+ const accepted=['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/webm'];
+ if(!accepted.includes(file.type)||file.size>30*1024*1024){alert('Choose JPG, PNG, WebP, GIF, MP4 or WebM under 30 MB.');fileInput.value='';return}
  revokePreview();pvPendingMedia=file;mediaSelection.hidden=false;fileLabel.textContent=file.name;
  thumb.replaceChildren();
  if(file.type.startsWith('image/')){const img=node('img');pvPreviewObjectUrl=URL.createObjectURL(file);img.src=pvPreviewObjectUrl;img.alt='Selected photo';thumb.append(img)}
@@ -2348,7 +2392,7 @@ async function pvSendMessage(){
  let sentMessage=null,uploadedPath=null;
  try{
   if(mediaFile){
-   uploadedPath=user.id+'/'+crypto.randomUUID()+(mediaFile.type==='video/mp4'?'.mp4':mediaFile.type==='video/webm'?'.webm':mediaFile.type==='image/png'?'.png':mediaFile.type==='image/webp'?'.webp':'.jpg');
+   uploadedPath=user.id+'/'+crypto.randomUUID()+(mediaFile.type==='video/mp4'?'.mp4':mediaFile.type==='video/webm'?'.webm':mediaFile.type==='image/png'?'.png':mediaFile.type==='image/webp'?'.webp':mediaFile.type==='image/gif'?'.gif':'.jpg');
    const uploaded=await db.storage.from('pv-dm-media').upload(uploadedPath,mediaFile,{contentType:mediaFile.type});
    if(uploaded.error)throw uploaded.error;
   }
