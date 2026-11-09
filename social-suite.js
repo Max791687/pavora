@@ -189,6 +189,17 @@ const showStory=async story=>{
  if(media.tagName==='VIDEO'){media.controls=false;media.onended=()=>{if(!viewerOwnsStory)travel(1)};media.play().catch(()=>{media.controls=true})}
  pvStopStoryWatcher=stopPlayback;
  if(story.author_id!==viewer.id){
+  // Archived Highlights remain viewable, but their 24-hour Story view window
+  // is over. Do not attempt an INSERT the database must reject.
+  if(new Date(story.expires_at).getTime()<=Date.now()){
+   const label=el('p','pvStoryViewReceipt','★ Highlight');
+   label.style.cssText='text-align:center;color:#d9b5fc;font-size:12px';
+   body.append(label);
+   const report=el('button','pvSuiteSave','⚑ Report Highlight');
+   report.type='button';report.onclick=()=>{pvStopStoryWatcher();modal.hidden=true;media.pause?.();window.PAVORAReport?.('story',story.id)};
+   body.append(report);
+   return;
+  }
   // Each signed-in account counts once. Keep a visible result so failures
   // aren't silently hidden in DevTools and mistaken for a recorded view.
   const indicator=el('p','pvStoryViewReceipt','Recording your view…');
