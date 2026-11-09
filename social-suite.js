@@ -144,6 +144,9 @@ const showStory=async story=>{
    indicator.style.color='#ff9caf';
    console.warn('Story view could not be recorded:',err);
   }
+  const report=el('button','pvSuiteSave','⚑ Report Story');report.type='button';
+  report.onclick=()=>{modal.hidden=true;window.PAVORAReport?.('story',story.id)};
+  body.append(report);
   return;
  }
  const panel=el('section','pvLiveViews'),top=el('div','pvLiveViewsTop');
