@@ -157,6 +157,84 @@ document.head.append(extraStyle);
 const editor=document.createElement('section');editor.id='profileEditor';editor.className='panel';editor.style.marginTop='14px';
 editor.innerHTML='<h3>Edit profile</h3><form id="editProfileForm"><label>Username<input id="editUsername" maxlength="24" minlength="3" pattern="[A-Za-z0-9_]{3,24}" required></label><label>Display name<input id="editName" maxlength="60"></label><label>Bio<textarea id="editBio" maxlength="160"></textarea></label><label>Profile photo (JPG, PNG, WebP under 5MB)<input id="editAvatar" type="file" accept="image/jpeg,image/png,image/webp"></label><button class="primary" type="submit">Save profile</button><p id="editFeedback" class="hint" role="status"></p></form>';
 document.getElementById('profile').append(editor);
+
+/* Owner-controlled privacy and follow-request inbox (requires account-privacy.sql). */
+const pvPrivacyCss=document.createElement('style');
+pvPrivacyCss.textContent=`
+#pvPrivacySettings{margin:15px 0;padding:17px;border:1px solid #3e3150;border-radius:14px;background:#171421}
+#pvPrivacySettings h3{margin:0 0 7px;font-size:16px}
+#pvPrivacySettings p{margin:6px 0 13px;color:#bcb3cc;font-size:12px;line-height:1.5}
+#pvPrivacySettings .pvPrivacyOptions{display:flex;gap:9px;flex-wrap:wrap}
+#pvPrivacySettings .pvPrivacyOptions button{border:1px solid #51405e;border-radius:10px;padding:11px 15px;background:#272135;color:#e4d7f4;cursor:pointer;font-weight:800}
+#pvPrivacySettings .pvPrivacyOptions button.active{background:#6c41b2;border-color:#b999ef;color:white}
+#pvPrivacyStatus{font-size:12px;color:#c8b7e8;margin-top:10px}
+#pvRequestsBox{margin:13px 0;border-top:1px solid #373044;padding-top:13px}
+.pvRequestRow{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid #30283a}
+.pvRequestRow button{border:0;border-radius:7px;padding:8px 10px;background:#6440a3;color:white;font-size:12px;font-weight:700}
+.pvRequestRow button.decline{background:#373040}
+.pvRequestName{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:13px}
+.pvPrivateLock{margin:20px 0;border:1px solid #423752;border-radius:15px;padding:34px 16px;text-align:center;color:#d4cbdb;background:#181422}
+.pvPrivateLock strong{font-size:17px;color:white;display:block;margin:8px 0}
+.pvProfilePrivacyTag{display:inline-block;margin:7px 0;color:#d6b2ff;font-size:12px;font-weight:750}
+`;
+document.head.append(pvPrivacyCss);
+const pvPrivacyBox=node('section');pvPrivacyBox.id='pvPrivacySettings';
+pvPrivacyBox.innerHTML='<h3>Account privacy</h3><p>Choose who can see your posts and reels. Private accounts approve followers before they can view content.</p><div class="pvPrivacyOptions"><button type="button" id="pvSetPublic">🌐 Public</button><button type="button" id="pvSetPrivate">🔒 Private</button></div><div id="pvPrivacyStatus" role="status"></div><div id="pvRequestsBox" hidden><h3>Follow requests <span id="pvRequestsCount"></span></h3><div id="pvRequestsList"></div></div>';
+document.getElementById('profile').append(pvPrivacyBox);
+let pvPrivacyBusy=false;
+function pvUpdatePrivacyControl(){
+ const ready=profile&&typeof profile.is_private==='boolean';
+ const privateMode=ready&&profile.is_private;
+ document.getElementById('pvSetPublic').classList.toggle('active',ready&&!privateMode);
+ document.getElementById('pvSetPrivate').classList.toggle('active',ready&&privateMode);
+ document.getElementById('pvSetPublic').disabled=!ready||pvPrivacyBusy;
+ document.getElementById('pvSetPrivate').disabled=!ready||pvPrivacyBusy;
+ document.getElementById('pvPrivacyStatus').textContent=!ready?'Privacy setup required: run supabase/account-privacy.sql.':privateMode?'🔒 Private — new followers need your approval.':'🌐 Public — everyone can view your content.';
+ document.getElementById('pvRequestsBox').hidden=!privateMode;
+}
+async function pvSetPrivacy(value){
+ if(!user||pvPrivacyBusy||typeof profile?.is_private!=='boolean')return;
+ if(profile.is_private===value)return;
+ pvPrivacyBusy=true;pvUpdatePrivacyControl();
+ const {data,error}=await db.from('profiles').update({is_private:value}).eq('id',user.id).select().single();
+ pvPrivacyBusy=false;
+ if(error){alert('Could not change account privacy: '+error.message);pvUpdatePrivacyControl();return}
+ profile=data;pvUpdatePrivacyControl();await pvLoadFollowRequests();
+}
+document.getElementById('pvSetPublic').onclick=()=>pvSetPrivacy(false);
+document.getElementById('pvSetPrivate').onclick=()=>pvSetPrivacy(true);
+async function pvLoadFollowRequests(){
+ if(!user||!profile?.is_private){document.getElementById('pvRequestsBox').hidden=true;return}
+ const box=document.getElementById('pvRequestsBox'),list=document.getElementById('pvRequestsList');
+ box.hidden=false;list.replaceChildren(node('p','muted','Loading requests…'));
+ const {data:requests,error}=await db.from('follow_requests').select('follower_id,created_at').eq('following_id',user.id).order('created_at',{ascending:false}).limit(50);
+ if(error){list.replaceChildren(node('p','muted','Run supabase/account-privacy.sql to enable follow requests.'));return}
+ const ids=(requests||[]).map(x=>x.follower_id);
+ const profiles=ids.length?await db.from('profiles').select('id,username,display_name').in('id',ids):{data:[]};
+ const people=new Map((profiles.data||[]).map(p=>[p.id,p]));
+ document.getElementById('pvRequestsCount').textContent=ids.length?'('+ids.length+(ids.length===50?'+':'')+')':'';
+ list.replaceChildren();
+ if(!ids.length){list.append(node('p','muted','No pending requests.'));return}
+ for(const request of requests){
+  const person=people.get(request.follower_id);
+  const row=node('div','pvRequestRow'),name=node('span','pvRequestName','@'+(person?.username||'creator'));
+  const accept=node('button','','Accept'),decline=node('button','decline','Decline');
+  accept.onclick=async()=>{
+   accept.disabled=decline.disabled=true;
+   const {error}=await db.rpc('pv_accept_follow_request',{requester:request.follower_id});
+   if(error)alert(error.message);
+   await pvLoadFollowRequests();await updateSocialProfile();
+  };
+  decline.onclick=async()=>{
+   accept.disabled=decline.disabled=true;
+   const {error}=await db.from('follow_requests').delete().eq('following_id',user.id).eq('follower_id',request.follower_id);
+   if(error)alert(error.message);
+   await pvLoadFollowRequests();
+  };
+  row.append(name,accept,decline);list.append(row);
+ }
+}
+
 const explore=document.getElementById('explore');explore.replaceChildren();
 const pvExploreSearchWrap=node('div','pvExploreSearchWrap'),pvExploreSearch=node('input','pvExploreSearch'),pvExploreGrid=node('div','pvExploreGrid'),pvExploreResults=node('div','pvExploreResults hide');
 pvExploreSearch.type='search';pvExploreSearch.placeholder='Search creators, posts and reels';pvExploreSearch.setAttribute('aria-label','Search PAVORA');pvExploreSearch.autocomplete='off';pvExploreSearchWrap.append(node('span','pvExploreMagnify','⌕'),pvExploreSearch);explore.append(pvExploreSearchWrap,pvExploreResults,pvExploreGrid);
@@ -392,6 +470,7 @@ const sidebarDesc=document.querySelector('aside.left .intro .muted');
 if(sidebarDesc)sidebarDesc.textContent=profile.is_official?'Official PAVORA Account':'Creator account';
 document.getElementById('pvDisplayName').textContent=profile.display_name||'';
 document.getElementById('pvBio').textContent=profile.bio||'';
+pvUpdatePrivacyControl();if(profile.is_private)pvLoadFollowRequests();
 const sidebarAvatar=document.querySelector('aside.left .intro .profilepic');
 if(sidebarAvatar){sidebarAvatar.replaceChildren();if(profile.avatar_url){const sideImg=node('img');sideImg.src=profile.avatar_url;sideImg.alt='Your profile photo';sideImg.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:50%;display:block';sidebarAvatar.append(sideImg)}else sidebarAvatar.textContent=(profile.display_name||profile.username||'P')[0].toUpperCase()}
 const photo=document.getElementById('pvAvatar');photo.replaceChildren();
@@ -820,6 +899,13 @@ pvConnectionsDialog.onclick=e=>{if(e.target===pvConnectionsDialog)pvCloseConnect
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pvConnectionsDialog.hidden)pvCloseConnections()});
 async function pvShowConnections(ownerId,kind){
  if(!user||!ownerId||!['followers','following'].includes(kind))return;
+ if(ownerId!==user.id){
+  const {data:owner}=await db.from('profiles').select('is_private').eq('id',ownerId).maybeSingle();
+  if(owner?.is_private){
+   const {data:follow}=await db.from('follows').select('follower_id').eq('follower_id',user.id).eq('following_id',ownerId).maybeSingle();
+   if(!follow){alert('This account is private. Follow to see their followers and following.');return}
+  }
+ }
  const request=++pvConnectionsRequest,heading=kind==='followers'?'Followers':'Following';
  const card=node('div','pvConnectionsCard'),head=node('div','pvConnectionsHeader');
  const close=node('button','pvConnectionsClose','×');close.type='button';close.setAttribute('aria-label','Close '+heading);close.onclick=pvCloseConnections;
@@ -884,19 +970,21 @@ for(const [id,kind] of [['pvFollowers','followers'],['pvFollowing','following']]
 }
 function pvProfileButton(person){const b=node('button','pvPersonButton','@'+(person.username||'creator'));b.type='button';b.onclick=()=>openCreator(person.id);return b}
 async function openCreator(id){if(!user||!id)return;pvRememberView('creator',id);if(id===user.id){pvNavigate('profile');await updateSocialProfile();return}pvNavigate('creator');pvRememberView('creator',id);publicView.replaceChildren(node('p','muted','Loading profile…'));
-const [{data:person,error},{data:posts,count:postCount,error:postError},{count:reelCount,error:reelCountError},{count:followerCount,error:followerCountError},{count:followingCount,error:followingCountError},{data:myFollow}]=await Promise.all([
-db.from('profiles').select('id,username,display_name,bio,avatar_url,is_official').eq('id',id).maybeSingle(),
+const [{data:person,error},{data:posts,count:postCount,error:postError},{count:reelCount,error:reelCountError},{count:followerCount,error:followerCountError},{count:followingCount,error:followingCountError},{data:myFollow},{data:pendingRequest}]=await Promise.all([
+db.from('profiles').select('id,username,display_name,bio,avatar_url,is_official,is_private').eq('id',id).maybeSingle(),
 db.from('posts').select('id,caption,image_path,created_at',{count:'exact'}).eq('author_id',id).order('created_at',{ascending:false}).limit(90),
 db.from('reels').select('id',{count:'exact',head:true}).eq('author_id',id),
 db.from('follows').select('follower_id',{count:'exact',head:true}).eq('following_id',id),
 db.from('follows').select('following_id',{count:'exact',head:true}).eq('follower_id',id),
-db.from('follows').select('following_id').eq('follower_id',user.id).eq('following_id',id).maybeSingle()
+db.from('follows').select('following_id').eq('follower_id',user.id).eq('following_id',id).maybeSingle(),
+db.from('follow_requests').select('follower_id').eq('follower_id',user.id).eq('following_id',id).maybeSingle()
 ]);publicView.replaceChildren();if(error||!person){publicView.append(node('p','muted',error?.message||'Profile unavailable'));return}
 const back=node('button','secondary','← Explore creators');back.onclick=()=>pvNavigate('explore');publicView.append(back);
 const top=node('div','pvPublicTop'),avatar=node('div','pvPublicAvatar');if(person.avatar_url){const img=node('img');img.src=person.avatar_url;img.alt='Creator profile photo';img.style.cssText='width:100%;height:100%;object-fit:cover';avatar.append(img)}else avatar.textContent=(person.display_name||person.username||'P')[0].toUpperCase();
 const details=node('div'),publicName=node('h2','pvPublicName');publicName.append(document.createTextNode(person.username));
 if(person.is_official){publicName.append(pvOfficialBadge());details.append(publicName,node('div','pvPublicOfficialType','Official PAVORA Account'));}
 else details.append(publicName);
+if(person.is_private)details.append(node('div','pvProfilePrivacyTag','🔒 Private account'));
 const pvCountText=(value,failed)=>failed?'—':String(value??0);
 const publicStats=node('div','pvPublicStats');
 for(const [amount,label,failed] of [
@@ -907,9 +995,16 @@ for(const [amount,label,failed] of [
 ]){const stat=label==='followers'||label==='following'?pvConnectionCountButton(amount,label,id,failed):node('span','pvPublicStat');if(label!=='followers'&&label!=='following')stat.append(node('strong','',amount),document.createTextNode(' '+label));publicStats.append(stat)}
 details.append(node('strong','',person.display_name||person.username),publicStats,node('p','',person.bio||''));
 top.append(avatar,details);publicView.append(top);
-const actions=node('div','pvPublicActions'),follow=node('button','secondary',myFollow?'Following ✓':'Follow'),message=node('button','primary','✉ Message');
-follow.onclick=async()=>{follow.disabled=true;const result=myFollow?await db.from('follows').delete().eq('follower_id',user.id).eq('following_id',id):await db.from('follows').insert({follower_id:user.id,following_id:id});if(result.error)alert(result.error.message);await openCreator(id)};
+const privateLocked=!!person.is_private&&!myFollow;
+const actions=node('div','pvPublicActions'),follow=node('button','secondary',myFollow?'Following ✓':pendingRequest?'Requested ✓':person.is_private?'Request follow':'Follow'),message=node('button','primary','✉ Message');
+follow.onclick=async()=>{follow.disabled=true;let result;
+ if(myFollow)result=await db.from('follows').delete().eq('follower_id',user.id).eq('following_id',id);
+ else if(pendingRequest)result=await db.from('follow_requests').delete().eq('follower_id',user.id).eq('following_id',id);
+ else if(person.is_private)result=await db.from('follow_requests').insert({follower_id:user.id,following_id:id});
+ else result=await db.from('follows').insert({follower_id:user.id,following_id:id});
+ if(result.error)alert(result.error.message);await openCreator(id)};
 message.onclick=()=>openChat(id);actions.append(follow,message);publicView.append(actions);
+if(privateLocked){const locked=node('div','pvPrivateLock');locked.append(node('div','','🔒'),node('strong','','This account is private'),node('p','','Follow this account to see its posts and reels.'));publicView.append(locked);return}
 publicView.append(node('h3','','Posts'));const grid=node('div','pvPublicGrid');publicView.append(grid);
 if(postError){grid.append(node('p','muted',postError.message));return}if(!posts?.length){grid.append(node('p','muted','No posts yet.'));return}
 for(const post of posts){const tile=node('button');tile.type='button';if(post.image_path){const img=node('img');img.loading='lazy';img.src=db.storage.from('post-images').getPublicUrl(post.image_path).data.publicUrl;img.alt=post.caption||'Post';tile.append(img)}else tile.textContent=post.caption||'Post';tile.onclick=()=>openProfilePost({...post,author_name:person.username});grid.append(tile)}
