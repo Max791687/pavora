@@ -21,6 +21,7 @@ assert.ok(cloud.includes('pvStartPostChanges()'), 'Live new-post subscription mi
 assert.ok(cloud.includes('pvStartComments()'), 'Live comment subscription missing');
 assert.ok(cloud.includes('pvStartLikesRealtime()'), 'Live likes subscription missing');
 assert.ok(cloud.includes("key:'blocked'"), 'Account blocking settings missing');
+assert.ok(cloud.includes('pvCommentReplyComposer')&&cloud.includes('parent_id'), 'Threaded comment replies missing');
 assert.ok(suite.includes('story_views'), 'Story viewer tracking missing');
 assert.ok(sw.includes("event.respondWith"), 'PWA offline fallback missing');
 console.log('PAVORA static smoke checks passed. Browser integration tests are still required.');
