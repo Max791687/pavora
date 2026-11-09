@@ -74,7 +74,7 @@ const launch=async()=>{
  input.type='file';input.accept='image/jpeg,image/png,image/webp,video/mp4,video/webm';
  const picker=el('div','pvStoryUploadDrop'),glyph=el('span','pvStoryUploadGlyph','▧');
  picker.tabIndex=0;picker.setAttribute('role','button');picker.setAttribute('aria-label','Choose photo or video');
- picker.append(glyph,el('strong','','Choose photo or video'),el('small','','Share your moment · Photos and videos up to 50 MB'));
+ picker.append(glyph,el('strong','','Choose photo or video'),el('small','','Share your moment · Large videos automatically optimized'));
  const change=el('div','pvStoryReplace','Tap preview to choose another file');change.hidden=true;
  const caption=el('textarea','pvStoryCaption');caption.placeholder='Add a caption (optional)…';caption.maxLength=500;
  const footer=el('div','pvStoryFooter'),counter=el('span','','0 / 500');
@@ -99,7 +99,6 @@ const launch=async()=>{
  input.onchange=()=>{
   const file=input.files?.[0];if(!file)return;
   if(!['image/jpeg','image/png','image/webp','video/mp4','video/webm'].includes(file.type)){feedback.textContent='Choose a JPG, PNG, WebP, MP4 or WebM file.';return}
-  if(file.size>50*1024*1024){feedback.textContent='Maximum story size is 50 MB.';return}
   if(objectUrl)URL.revokeObjectURL(objectUrl);
   objectUrl=URL.createObjectURL(file);selected=file;
   const preview=el(file.type.startsWith('video/')?'video':'img','pvStoryPreview');
@@ -116,7 +115,10 @@ const launch=async()=>{
   if(!selected||busy||!owner())return;
   busy=true;submit.disabled=true;submit.textContent='Sharing…';feedback.textContent='Uploading your story…';
   try{
-   const path=owner().id+'/'+crypto.randomUUID()+'/'+selected.name.replace(/[^a-zA-Z0-9.-]/g,'_');
+   const uploadFile=selected.type.startsWith('video/')?await window.PAVORA_VIDEO.prepare(selected,status=>{feedback.textContent=status}):selected;
+   if(uploadFile.size>50*1024*1024)throw Error('File exceeds the 50 MB upload limit.');
+   feedback.textContent='Uploading your story ('+(uploadFile.size/1048576).toFixed(1)+' MB)…';
+   const path=owner().id+'/'+crypto.randomUUID()+'/'+uploadFile.name.replace(/[^a-zA-Z0-9.-]/g,'_');
    const audienceValue=audience.value;
    if(audienceValue==='close_friends'){
     const {count,error:friendError}=await db.from('close_friends').select('friend_id',{count:'exact',head:true}).eq('owner_id',owner().id);
@@ -124,7 +126,7 @@ const launch=async()=>{
     if(!count)throw Error('Add at least one Close Friend in Settings first.');
    }
    const bucket=audienceValue==='close_friends'?'pv-close-stories':'story-media';
-   const result=await db.storage.from(bucket).upload(path,selected,{contentType:selected.type});
+   const result=await db.storage.from(bucket).upload(path,uploadFile,{contentType:uploadFile.type});
    if(result.error)throw result.error;
    const saved=await db.from('stories').insert({author_id:owner().id,media_path:path,media_type:selected.type.startsWith('video/')?'video':'image',caption:caption.value.trim(),audience:audienceValue});
    if(saved.error){await db.storage.from(bucket).remove([path]);throw saved.error}
