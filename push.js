@@ -7,8 +7,13 @@ const isIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platfor
 const installed=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 const supported=()=>('Notification' in window)&&('serviceWorker' in navigator)&&('PushManager' in window)&&window.isSecureContext;
 const toBytes=base64=>{const padded=base64.replace(/-/g,'+').replace(/_/g,'/');const bytes=atob(padded+'='.repeat((4-padded.length%4)%4));return Uint8Array.from(bytes,c=>c.charCodeAt(0))};
-const toBase64=buffer=>{let out='';for(const v of new Uint8Array(buffer))out+=String.fromCharCode(v);return btoa(out)};
 let busy=false,lastUid=null;
+async function registered(db,uid,endpoint){
+ const {data,error}=await db.from('push_subscriptions').select('id').eq('user_id',uid).eq('endpoint',endpoint).maybeSingle();
+ if(error)throw error;
+ return !!data;
+}
+
 const button=document.createElement('button');
 button.type='button';button.className='pvPushToggle';button.textContent='🔔 Enable alerts';button.hidden=true;
 button.title='Enable lock-screen notifications for messages, likes, comments and stories';
@@ -40,8 +45,8 @@ async function sync(){
  lastUid=uid;
  try{
   const {subscription}=await getSubscription();
-  button.textContent=subscription?'🔔 Alerts on':'🔔 Enable alerts';
- }catch(e){console.warn('Push status:',e);button.textContent='🔔 Enable alerts'}
+  button.textContent=subscription?(await registered(context.db,uid,subscription.endpoint)?'🔔 Alerts on':'🔔 Finish alerts setup'):'🔔 Enable alerts';
+ }catch(e){console.warn('Push status:',e);button.textContent='🔔 Check alerts'}
 }
 button.onclick=async()=>{
  const context=await current();if(!context||busy)return;
@@ -54,29 +59,33 @@ button.onclick=async()=>{
  busy=true;button.disabled=true;button.textContent='Setting up…';
  try{
   const {registration,subscription}=await getSubscription();
-  if(subscription){
-   // Explicit disable action: remove this subscription from the user's DB first.
+  if(subscription&&await registered(context.db,context.user.id,subscription.endpoint)){
+   // This is a verified registration. Tapping "Alerts on" explicitly disables it.
    const {error}=await context.db.from('push_subscriptions').delete().eq('user_id',context.user.id).eq('endpoint',subscription.endpoint);
    if(error)throw error;
    await subscription.unsubscribe();
    button.textContent='🔔 Enable alerts';
    return;
   }
-  const response=await fetch(project+'/functions/v1/send-push',{method:'GET',cache:'no-store'});
-  if(!response.ok)throw Error('Push backend not yet deployed ('+response.status+').');
-  const {publicKey}=await response.json();
-  if(!publicKey)throw Error('Push public key missing. Set VAPID secrets in Supabase.');
-  const fresh=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:toBytes(publicKey)});
+  let fresh=subscription;
+  if(!fresh){
+   const response=await fetch(project+'/functions/v1/send-push',{method:'GET',cache:'no-store'});
+   if(!response.ok)throw Error('Push backend unavailable ('+response.status+'). Check Edge Function deployment and Verify JWT OFF.');
+   const {publicKey}=await response.json();
+   if(!publicKey)throw Error('Push public key missing. Check Edge Function VAPID secrets.');
+   fresh=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:toBytes(publicKey)});
+  }
   const json=fresh.toJSON();
+  if(!json.keys?.p256dh||!json.keys?.auth)throw Error('Push subscription keys unavailable.');
   const {error}=await context.db.from('push_subscriptions').upsert({
    user_id:context.user.id,endpoint:fresh.endpoint,p256dh:json.keys.p256dh,auth:json.keys.auth,
    updated_at:new Date().toISOString()
   },{onConflict:'endpoint'});
-  if(error){await fresh.unsubscribe();throw error}
+  if(error){if(!subscription)await fresh.unsubscribe();throw error}
   button.textContent='🔔 Alerts on';
   alert('PAVORA phone notifications enabled. Sound depends on your phone notification settings.');
  }catch(e){console.error('Push setup:',e);button.textContent='🔔 Enable alerts';alert('Could not enable push: '+(e?.message||e))}
- finally{busy=false;button.disabled=false}
+ finally{busy=false;button.disabled=false;lastUid=null}
 };
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){lastUid=null;sync()}});
 window.addEventListener('focus',()=>{lastUid=null;sync()});
