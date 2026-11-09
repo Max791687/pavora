@@ -178,6 +178,7 @@ const pvVirtualCreators=pvVirtualNames.flatMap((name,i)=>pvVirtualThemes.map((th
  display_name:name+' · '+theme.label,initial:name[0],bio:theme.bio,
  theme:theme.label,posts:theme.posts,shade:(i*2+j)%8
 })));
+
 const pvVirtualCss=document.createElement('style');
 pvVirtualCss.textContent=`
 #pvVirtualDiscovery{margin:16px 0 26px;padding:18px;background:#14121c;border:1px solid #302638;border-radius:17px}
@@ -186,7 +187,7 @@ pvVirtualCss.textContent=`
 .pvVirtualGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .pvVirtualCard{display:flex;align-items:center;gap:10px;min-width:0;background:#201a2a;border:1px solid #382d48;border-radius:12px;padding:11px 9px;color:#fff;text-align:left;cursor:pointer}
 .pvVirtualCard:hover{background:#2b2137}
-.pvVirtualAvatar{width:43px;height:43px;flex:none;display:grid;place-items:center;border-radius:50%;font-size:19px;font-weight:800;color:white;background:linear-gradient(130deg,#884ee3,#d45e99)}
+.pvVirtualAvatar{width:48px;height:48px;flex:none;display:grid;place-items:center;border-radius:50%;font-size:20px;font-weight:800;color:white;background:linear-gradient(130deg,#884ee3,#d45e99)}
 .pvVirtualAvatar[data-shade="1"]{background:linear-gradient(135deg,#375dbb,#66bae9)}
 .pvVirtualAvatar[data-shade="2"]{background:linear-gradient(135deg,#cf704f,#eec06c)}
 .pvVirtualAvatar[data-shade="3"]{background:linear-gradient(135deg,#2e9f90,#6dbd8e)}
@@ -197,16 +198,35 @@ pvVirtualCss.textContent=`
 .pvVirtualCardText{min-width:0;display:flex;flex-direction:column;gap:3px}
 .pvVirtualCardText strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pvVirtualCardText small{font-size:10px;color:#b9afc8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#pvVirtualDetail{position:fixed;inset:0;z-index:110;background:#000b;display:flex;align-items:center;justify-content:center;padding:18px}
-#pvVirtualDetail[hidden]{display:none!important}
-.pvVirtualDetailCard{width:min(560px,100%);max-height:85dvh;overflow:auto;background:#16131f;border:1px solid #443053;border-radius:18px;padding:23px}
-.pvVirtualDetailHead{display:flex;align-items:center;gap:14px}.pvVirtualDetailHead h2{margin:0;font-size:21px}
-.pvVirtualTag{display:inline-block;margin-top:5px;color:#a7a2b8;font-size:11px}
-.pvVirtualDetailBio{color:#d5cadc;margin:15px 0;line-height:1.5;font-size:14px}
-.pvVirtualSample{margin-top:9px;padding:15px;background:#231d2e;border-radius:11px;font-size:13px;color:#ddd2e8;line-height:1.5}
-.pvVirtualDetailClose{float:right;border:1px solid #554168;border-radius:9px;background:#30243e;color:#fff;padding:7px 11px;cursor:pointer}
+#pvVirtualView{padding:20px 16px 100px;max-width:880px;margin:auto;color:#f9f6ff}
+#pvVirtualView.hide{display:none!important}
+.pvVirtualBack{border:0;background:transparent;color:#d5bedf;font-weight:750;padding:9px 0;cursor:pointer}
+.pvVirtualProfileHead{display:grid;grid-template-columns:140px minmax(0,1fr);gap:26px;align-items:center;padding:22px 6px}
+.pvVirtualProfileHead .pvVirtualAvatar{height:128px;width:128px;font-size:48px;border:3px solid #6d49a1}
+.pvVirtualProfileHead h2{margin:0 0 4px;font-size:25px}
+.pvVirtualTag{color:#a7a2b8;font-size:11px;font-weight:700}
+.pvVirtualMeta{display:flex;flex-wrap:wrap;gap:18px;font-size:13px;color:#b9b4c8;margin:14px 0}
+.pvVirtualMeta strong{color:#fff}
+.pvVirtualActions{display:flex;gap:10px;margin:14px 0}
+.pvVirtualActions button,.pvVirtualChatForm button{background:#6844b3;color:white;border:0;border-radius:10px;padding:11px 17px;font-weight:800;cursor:pointer}
+.pvVirtualActions button.secondary{background:#32263f}
+.pvVirtualProfileBio{font-size:14px;color:#d7cfdf;line-height:1.6;margin:6px 0}
+.pvVirtualPostGrid{border-top:1px solid #382c44;margin-top:24px;padding-top:20px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.pvVirtualPost{aspect-ratio:1;border:0;border-radius:12px;background:linear-gradient(145deg,#34234e,#1a2039);color:#fff;text-align:left;padding:16px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;overflow:hidden}
+.pvVirtualPost span{font-size:12px;line-height:1.5}.pvVirtualPost small{opacity:.7;font-weight:750}
+#pvVirtualChat{position:fixed;inset:0;z-index:105;background:#0d0b12;display:flex;justify-content:center;padding:18px}
+#pvVirtualChat[hidden]{display:none!important}
+.pvVirtualChatCard{display:flex;flex-direction:column;width:min(600px,100%);min-height:0;background:#171320;border:1px solid #41314d;border-radius:17px;overflow:hidden}
+.pvVirtualChatHeader{padding:14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #34283e}
+.pvVirtualChatHeader strong{flex:1}.pvVirtualChatHeader button{background:transparent;border:0;color:#fff;font-size:23px;cursor:pointer}
+.pvVirtualChatNote{font-size:11px;color:#aca2b9;padding:9px 14px;border-bottom:1px solid #292331}
+.pvVirtualMessages{flex:1;overflow:auto;min-height:100px;padding:18px 13px;display:flex;flex-direction:column;gap:10px}
+.pvVirtualBubble{max-width:78%;padding:11px 14px;border-radius:15px;background:#30243d;color:#eee7f4;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;align-self:flex-start}
+.pvVirtualBubble.mine{align-self:flex-end;background:#6945b1;color:white}
+.pvVirtualChatForm{display:flex;gap:8px;padding:13px;border-top:1px solid #34283e}
+.pvVirtualChatForm input{flex:1;min-width:0;border:1px solid #4c405d;background:#201b29;color:white;border-radius:9px;padding:12px;font-size:14px}
 @media(max-width:1100px){.pvVirtualGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:600px){#pvVirtualDiscovery{margin:12px 8px;padding:12px}.pvVirtualGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.pvVirtualCard{padding:8px 6px;gap:6px}.pvVirtualAvatar{width:34px;height:34px;font-size:15px}.pvVirtualCardText strong{font-size:11px}}
+@media(max-width:600px){#pvVirtualDiscovery{margin:12px 8px;padding:12px}.pvVirtualGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.pvVirtualCard{padding:9px 6px;gap:7px}.pvVirtualAvatar{width:38px;height:38px;font-size:16px}.pvVirtualCardText strong{font-size:11px}#pvVirtualView{padding:10px 10px 90px}.pvVirtualProfileHead{grid-template-columns:88px minmax(0,1fr);gap:12px;padding:18px 0}.pvVirtualProfileHead .pvVirtualAvatar{height:82px;width:82px;font-size:33px}.pvVirtualProfileHead h2{font-size:18px}.pvVirtualMeta{gap:7px 13px;margin:9px 0;font-size:12px}.pvVirtualPost{padding:9px}.pvVirtualPost span{font-size:10px}#pvVirtualChat{padding:0}.pvVirtualChatCard{border-radius:0;border:0}.pvVirtualMessages{padding-bottom:80px}}
 `;
 document.head.append(pvVirtualCss);
 const pvVirtualSection=node('section');pvVirtualSection.id='pvVirtualDiscovery';
@@ -215,22 +235,94 @@ const pvVirtualIntro=node('p','pvVirtualIntro','Explore original creative concep
 const pvVirtualGrid=node('div','pvVirtualGrid');
 pvVirtualSection.append(pvVirtualHeading,pvVirtualIntro,pvVirtualGrid);
 explore.append(pvVirtualSection);
-const pvVirtualDetail=node('div');pvVirtualDetail.id='pvVirtualDetail';pvVirtualDetail.hidden=true;
-pvVirtualDetail.setAttribute('role','dialog');pvVirtualDetail.setAttribute('aria-modal','true');
-pvVirtualDetail.setAttribute('aria-label','Virtual creator profile');
-document.body.append(pvVirtualDetail);
-function pvCloseVirtual(){pvVirtualDetail.hidden=true;pvVirtualDetail.replaceChildren()}
-pvVirtualDetail.onclick=e=>{if(e.target===pvVirtualDetail)pvCloseVirtual()};
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pvVirtualDetail.hidden)pvCloseVirtual()});
+const pvVirtualView=node('section');pvVirtualView.id='pvVirtualView';pvVirtualView.classList.add('hide');
+document.querySelector('.feed').append(pvVirtualView);
+const pvVirtualChat=node('div');pvVirtualChat.id='pvVirtualChat';pvVirtualChat.hidden=true;
+pvVirtualChat.setAttribute('role','dialog');pvVirtualChat.setAttribute('aria-modal','true');pvVirtualChat.setAttribute('aria-label','Virtual creator chat');
+document.body.append(pvVirtualChat);
+let pvActiveVirtual=null,pvActiveVirtualChat=null;
+const pvVirtualById=new Map(pvVirtualCreators.map(p=>[p.id,p]));
+function pvVirtualKey(person){return 'pavora-virtual-chat-v1-'+user.id+'-'+person.id}
+function pvReadVirtualMessages(person){
+ try{const value=JSON.parse(localStorage.getItem(pvVirtualKey(person))||'[]');return Array.isArray(value)?value.slice(-80).filter(m=>m&&typeof m.body==='string'&&['me','virtual'].includes(m.from)):[]}
+ catch{return []}
+}
+function pvWriteVirtualMessages(person,messages){
+ try{localStorage.setItem(pvVirtualKey(person),JSON.stringify(messages.slice(-80)))}catch(e){console.warn('Could not save virtual chat locally',e)}
+}
+function pvCloseVirtualChat(){pvVirtualChat.hidden=true;pvActiveVirtualChat=null;pvVirtualChat.replaceChildren()}
+function pvRenderVirtualMessages(person,root){
+ root.replaceChildren();
+ const messages=pvReadVirtualMessages(person);
+ if(!messages.length)root.append(node('div','pvVirtualChatNote','Say hello or ask about '+person.theme.toLowerCase()+'.'));
+ for(const message of messages)root.append(node('div','pvVirtualBubble'+(message.from==='me'?' mine':''),message.body));
+ root.scrollTop=root.scrollHeight;
+}
+function pvOpenVirtualChat(person){
+ if(!user)return;
+ pvActiveVirtualChat=person;
+ const card=node('div','pvVirtualChatCard'),head=node('div','pvVirtualChatHeader');
+ const avatar=node('span','pvVirtualAvatar',person.initial);avatar.dataset.shade=String(person.shade);
+ const who=node('strong','',person.display_name),close=node('button','','×');
+ close.type='button';close.setAttribute('aria-label','Close conversation');close.onclick=pvCloseVirtualChat;
+ head.append(avatar,who,close);
+ const note=node('div','pvVirtualChatNote','Virtual character · Automated sample replies · Messages saved only in this browser');
+ const messages=node('div','pvVirtualMessages'),form=node('form','pvVirtualChatForm');
+ const input=node('input');input.type='text';input.maxLength=500;input.placeholder='Message '+person.display_name;
+ input.setAttribute('aria-label','Message text');
+ const send=node('button','','Send');send.type='submit';form.append(input,send);
+ form.onsubmit=e=>{
+  e.preventDefault();
+  const body=input.value.trim();if(!body||!user)return;
+  const log=pvReadVirtualMessages(person);
+  log.push({from:'me',body,at:Date.now()});
+  const lower=body.toLowerCase();
+  const response=/^(hi|hello|hey|namaste|hii)\b/.test(lower)?
+   'Hey! Welcome to my virtual '+person.theme.toLowerCase()+' space. What would you like to explore?':
+   /tool|app|pavora|feature/.test(lower)?
+   'I am a virtual creative profile in PAVORA. For official feature updates, check @PAVORA.':
+   /thank|thanks/.test(lower)?
+   'You are welcome! Have fun exploring creative ideas.':
+   person.posts[(log.filter(m=>m.from==='me').length-1)%person.posts.length];
+  log.push({from:'virtual',body:response,at:Date.now()});
+  pvWriteVirtualMessages(person,log);input.value='';
+  pvRenderVirtualMessages(person,messages);input.focus();
+ };
+ card.append(head,note,messages,form);pvVirtualChat.replaceChildren(card);pvVirtualChat.hidden=false;
+ pvRenderVirtualMessages(person,messages);input.focus();
+}
 function pvOpenVirtual(person){
- const card=node('div','pvVirtualDetailCard'),close=node('button','pvVirtualDetailClose','Close');
- close.type='button';close.onclick=pvCloseVirtual;card.append(close);
- const head=node('div','pvVirtualDetailHead'),avatar=node('div','pvVirtualAvatar',person.initial);
+ if(!user)return;
+ pvActiveVirtual=person;
+ // Use the same central feed area as real public profiles, not a popup preview.
+ for(const id of ['home','reels','explore','profile','messages']){
+  const view=document.getElementById(id);if(view)view.classList.add('hide');
+ }
+ document.getElementById('pvPublicView')?.classList.add('hide');
+ document.getElementById('pvInboxView')?.classList.add('hide');
+ pvVirtualView.classList.remove('hide');
+ const back=node('button','pvVirtualBack','← Back to Explore');
+ back.onclick=()=>{pvVirtualView.classList.add('hide');pvActiveVirtual=null;pvNavigate('explore')};
+ const head=node('div','pvVirtualProfileHead'),avatar=node('div','pvVirtualAvatar',person.initial);
  avatar.dataset.shade=String(person.shade);
- const title=node('div');title.append(node('h2','',person.display_name),node('div','', '@'+person.username),node('small','pvVirtualTag','Virtual · Creative concept profile'));
- head.append(avatar,title);card.append(head,node('p','pvVirtualDetailBio',person.bio),node('h3','','Creative posts'));
- for(const content of person.posts)card.append(node('div','pvVirtualSample',content));
- pvVirtualDetail.replaceChildren(card);pvVirtualDetail.hidden=false;close.focus();
+ const details=node('div');
+ details.append(node('h2','',person.username),node('strong','',person.display_name),node('div','pvVirtualTag','Virtual · Creative concept profile'),node('p','pvVirtualProfileBio',person.bio));
+ const meta=node('div','pvVirtualMeta');meta.append(node('span','','3 posts'),node('span','','Creative concepts'));
+ details.append(meta);
+ const actions=node('div','pvVirtualActions'),message=node('button','','Message'),exploreBtn=node('button','secondary','Explore creators');
+ message.onclick=()=>pvOpenVirtualChat(person);
+ exploreBtn.onclick=back.onclick;
+ actions.append(message,exploreBtn);details.append(actions);head.append(avatar,details);
+ const grid=node('div','pvVirtualPostGrid');
+ person.posts.forEach((content,i)=>{
+  const post=node('button','pvVirtualPost');post.type='button';
+  post.style.background=['linear-gradient(135deg,#3a275c,#18213a)','linear-gradient(135deg,#1e4f63,#25203f)','linear-gradient(135deg,#5b2b50,#292039)'][(i+person.shade)%3];
+  post.append(node('small','','PAVORA · '+person.theme),node('span','',content));
+  post.onclick=()=>{const preview=node('div','pvVirtualChatNote',content);preview.style.cssText='padding:18px;margin:10px 0;background:#241c30;border-radius:12px';post.after(preview);post.disabled=true};
+  grid.append(post);
+ });
+ pvVirtualView.replaceChildren(back,head,node('h3','','Posts'),grid);
+ window.scrollTo({top:0,behavior:'instant'});
 }
 function pvRenderVirtual(){
  const query=pvExploreSearch.value.trim().toLowerCase();
@@ -247,6 +339,10 @@ function pvRenderVirtual(){
  pvVirtualSection.hidden=!list.length;
 }
 pvExploreSearch.addEventListener('input',pvRenderVirtual);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pvVirtualChat.hidden)pvCloseVirtualChat()});
+document.querySelectorAll('[data-view],.pvIconRail [data-rail-view]').forEach(btn=>btn.addEventListener('click',()=>{
+ pvVirtualView.classList.add('hide');pvActiveVirtual=null;pvCloseVirtualChat();
+}));
 pvRenderVirtual();
 
 let pvExploreBusy=false,pvExploreTiles=[],pvExplorePeople=[],pvExploreLoadedAt=0;
