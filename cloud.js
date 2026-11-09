@@ -2203,19 +2203,30 @@ if(selectedPeer)await renderChat(selectedPeer);await pvCheckUnread();
 async function openChat(id,navigate=true){if(!user||id===user.id)return;if(pvHiddenChats.has(id)){const {error}=await db.from('hidden_conversations').delete().eq('owner_id',user.id).eq('peer_id',id);if(!error)pvHiddenChats.delete(id)}if(selectedPeer&&selectedPeer!==id)pvClearTyping(selectedPeer);pvDmTypingLastSeen=0;selectedPeer=id;if(navigate){const {data:req}=await db.from('message_requests').select('sender_id').eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null).maybeSingle();const {data:following}=req?await db.from('follows').select('follower_id').eq('follower_id',id).eq('following_id',user.id).maybeSingle():{data:null};pvInboxTab=req&&!following?'Requests':pvConversationSetting(id).folder==='general'?'General':'Primary';pvNavigate('messages')}else{inboxView.classList.add('pvChatSelected');inboxView.querySelectorAll('.pvThreadPerson').forEach(b=>b.classList.toggle('active',b.dataset.peerId===id));await renderChat(id)}pvRememberInboxPosition();if(!chatPoll)chatPoll=setInterval(()=>{if(!inboxView.classList.contains('hide')&&selectedPeer&&!pvChatPollBusy){pvChatPollBusy=true;renderChat(selectedPeer,true).catch(e=>console.warn('Chat poll:',e)).finally(()=>{pvChatPollBusy=false})}},pvDmRealtimeStatus==='live'?12000:4000)}
 async function renderChat(id,silent=false){const area=document.getElementById('pvChatArea');if(!area||!user||selectedPeer!==id)return;
 const pollingExisting=!!(silent&&area.querySelector('.pvMessageForm'));
-const [{data:person,error:personError},{data:messages,error}]=await Promise.all([
+const uid=user.id;
+const [{data:person,error:personError},{data:messages,error},{data:hiddenRows,error:hiddenError},{data:pinData,error:pinError}]=await Promise.all([
 pollingExisting?Promise.resolve({data:{id},error:null}):db.from('profiles').select('id,username,display_name,avatar_url,bio').eq('id',id).maybeSingle(),
-db.from('direct_messages').select('id,sender_id,recipient_id,body,created_at,read_at,reply_to,media_path,media_type').or('and(sender_id.eq.'+user.id+',recipient_id.eq.'+id+'),and(sender_id.eq.'+id+',recipient_id.eq.'+user.id+')').order('created_at',{ascending:true}).limit(pollingExisting?100:200)
-]);if(selectedPeer!==id)return;if(error||personError){if(!silent)area.replaceChildren(node('p','muted',(error||personError).message));return}
+db.from('direct_messages').select('id,sender_id,recipient_id,body,created_at,read_at,reply_to,media_path,media_type').or('and(sender_id.eq.'+user.id+',recipient_id.eq.'+id+'),and(sender_id.eq.'+id+',recipient_id.eq.'+user.id+')').order('created_at',{ascending:true}).limit(pollingExisting?100:200),
+db.from('dm_hidden_messages').select('message_id').eq('user_id',uid),
+db.from('dm_pinned_messages').select('message_id').eq('user_id',uid).eq('peer_id',id).maybeSingle()
+]);if(selectedPeer!==id||user?.id!==uid)return;
+const hiddenSet=new Set((hiddenRows||[]).map(x=>x.message_id));
+const visibleMessages=hiddenError?messages||[]:(messages||[]).filter(m=>!hiddenSet.has(m.id));
+if(!pinError){
+ if(pinData&& !hiddenSet.has(pinData.message_id))pvDmPinnedByPeer.set(id,{message_id:pinData.message_id});
+ else pvDmPinnedByPeer.delete(id);
+}
+pvDmRenderPinBanner(id,visibleMessages);if(error||personError){if(!silent)area.replaceChildren(node('p','muted',(error||personError).message));return}
 if(!person){area.replaceChildren(node('p','muted','User unavailable'));return}
-if(!document.hidden&&messages?.some(m=>m.recipient_id===user.id&&!m.read_at))pvMarkRead(id);
+if(!document.hidden&&visibleMessages.some(m=>m.recipient_id===user.id&&!m.read_at))pvMarkRead(id);
 // Never replace the message composer during background polling: iOS/Android
 // will dismiss the software keyboard if its focused input is detached.
 if(silent&&area.querySelector('.pvMessageForm')){
  const list=area.querySelector('.pvMessages');
  if(list){
   const known=new Set([...list.querySelectorAll('.pvMessageRow[data-message-id]')].map(row=>row.dataset.messageId));
-  const received=(messages||[]).filter(m=>!known.has(String(m.id)));
+  const received=visibleMessages.filter(m=>!known.has(String(m.id)));
+  for(const row of [...list.querySelectorAll('.pvMessageRow[data-message-id]')])if(hiddenSet.has(row.dataset.messageId))row.remove();
   const dayMarkers=list.querySelectorAll('.pvChatDayDivider');
   let lastDay=dayMarkers.length?dayMarkers[dayMarkers.length-1].dataset.dayKey||'':'';
   for(const m of received){
@@ -2227,8 +2238,8 @@ if(silent&&area.querySelector('.pvMessageForm')){
    if(mine){const del=node('button','pvDeleteMessage','Delete');del.type='button';del.title='Delete this message for everyone';del.onclick=async()=>{if(!confirm('Delete this message for everyone?'))return;const {error}=await db.from('direct_messages').delete().eq('id',m.id).eq('sender_id',user.id);if(error)return alert(error.message);row.remove();await pvCheckUnread()};row.append(del)}
    list.append(row);
   }
-  pvDmUpdateReceipt(list,messages);
-  pvDmDecorateRows(list);pvDmDecorateContent(list,messages,id);pvScheduleDmReactionRefresh(70);
+  pvDmUpdateReceipt(list,visibleMessages);
+  pvDmDecorateRows(list);pvDmDecorateContent(list,visibleMessages,id);pvScheduleDmReactionRefresh(70);
   if(received.length)list.scrollTop=list.scrollHeight;
  }
  return;
@@ -2257,15 +2268,17 @@ const galleryButton=node('button','pvChatInfoButton','▧');galleryButton.type='
 galleryButton.title='Shared photos & videos';galleryButton.setAttribute('aria-label','Shared photos and videos');galleryButton.onclick=()=>pvShowDmMediaGallery(id);
 chatTop.append(galleryButton);
 const infoButton=node('button','pvChatInfoButton');infoButton.type='button';infoButton.title='View profile';infoButton.setAttribute('aria-label','View profile');infoButton.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>';infoButton.onclick=()=>openCreator(id);chatTop.append(infoButton);
+const pinnedBar=node('div','pvDmPinnedBar');pinnedBar.hidden=true;
+area.append(pinnedBar);pvDmRenderPinBanner(id,visibleMessages);
 const intro=node('div','pvChatIntro'),introAvatar=node('div','pvChatIntroAvatar');pvChatAvatar(introAvatar);
 intro.append(introAvatar,node('strong','',person.display_name||person.username),node('span','pvChatIntroHandle','@'+person.username+' · PAVORA'));
 const viewProfile=node('button','pvChatViewProfile','View profile');viewProfile.type='button';viewProfile.onclick=()=>openCreator(id);intro.append(viewProfile);
 list.append(intro);
 let pvLastMessageDay='';
-for(const m of messages||[]){
+for(const m of visibleMessages){
 const stamp=new Date(m.created_at),dayKey=stamp.toDateString();if(dayKey!==pvLastMessageDay){pvLastMessageDay=dayKey;const marker=node('div','pvChatDayDivider',stamp.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}));marker.dataset.dayKey=dayKey;list.append(marker)}
 const mine=m.sender_id===user.id,row=node('div','pvMessageRow'+(mine?' mine':'')),bubble=node('div','pvBubble'+(mine?' mine':''),m.body);
-row.dataset.messageId=String(m.id);bubble.title=new Date(m.created_at).toLocaleString();row.append(bubble);if(mine){const del=node('button','pvDeleteMessage','Delete');del.type='button';del.title='Delete this message for everyone';del.setAttribute('aria-label','Delete message for everyone');del.onclick=async()=>{if(!confirm('Delete this message for everyone? This cannot be undone.'))return;del.disabled=true;const {error}=await db.from('direct_messages').delete().eq('id',m.id).eq('sender_id',user.id);if(error){alert('Could not delete message: '+error.message);del.disabled=false;return}await renderChat(id);await pvCheckUnread()};row.append(del)}list.append(row)}if(!messages?.length)list.append(node('p','pvChatEmptyMessage','Say hello! 👋'));const form=node('form','pvMessageForm'),input=node('input');input.placeholder='Message…';input.maxLength=2000;input.required=true;input.setAttribute('aria-label','Message');
+row.dataset.messageId=String(m.id);bubble.title=new Date(m.created_at).toLocaleString();row.append(bubble);if(mine){const del=node('button','pvDeleteMessage','Delete');del.type='button';del.title='Delete this message for everyone';del.setAttribute('aria-label','Delete message for everyone');del.onclick=async()=>{if(!confirm('Delete this message for everyone? This cannot be undone.'))return;del.disabled=true;const {error}=await db.from('direct_messages').delete().eq('id',m.id).eq('sender_id',user.id);if(error){alert('Could not delete message: '+error.message);del.disabled=false;return}await renderChat(id);await pvCheckUnread()};row.append(del)}list.append(row)}if(!visibleMessages.length)list.append(node('p','pvChatEmptyMessage','Say hello! 👋'));const form=node('form','pvMessageForm'),input=node('input');input.placeholder='Message…';input.maxLength=2000;input.required=true;input.setAttribute('aria-label','Message');
 const emojiButton=node('button','pvChatEmojiButton');emojiButton.type='button';emojiButton.title='Add emoji';emojiButton.setAttribute('aria-label','Add emoji');emojiButton.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 14c2 3 6 3 8 0"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/></svg>';
 const emojiTray=node('div','pvChatEmojiTray');emojiTray.hidden=true;for(const emoji of ['❤️','😂','😍','🥰','🔥','👏','🙌','😊','👍','💜','✨','👋']){const item=node('button','',emoji);item.type='button';item.onclick=()=>{input.value+=emoji;emojiTray.hidden=true;input.focus();input.dispatchEvent(new Event('input'))};emojiTray.append(item)}
 emojiButton.onclick=()=>{emojiTray.hidden=!emojiTray.hidden};
@@ -2376,7 +2389,7 @@ async function pvSendMessage(){
 if(pendingIncoming){const banner=node('div','pvRequestBanner'),description=node('p','','Message request from someone who does not follow you.'),accept=node('button','pvAcceptRequest','Accept'),remove=node('button','pvDeclineRequest','Remove');accept.type=remove.type='button';accept.onclick=async()=>{accept.disabled=true;const {error}=await db.from('message_requests').update({accepted_at:new Date().toISOString()}).eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null);if(error){alert('Could not accept request: '+error.message);accept.disabled=false;return}pvInboxTab='Primary';await loadInbox();await pvCheckUnread()};remove.onclick=()=>pvRemoveChat(id);banner.append(description,accept,remove);area.append(banner)}
 if(pendingOutgoing){area.append(node('p','pvPendingRequestNote',alreadySent?'Request sent. Wait for acceptance, or follow this account to continue.':'You can send one message request. Follow this account to message freely.'))}
 const typingLabel=node('div','pvDmTypingLabel','● typing…');typingLabel.hidden=true;
-area.append(list,typingLabel,composerWrap);emojiButton.disabled=input.disabled;pvDmUpdateReceipt(list,messages);pvDmDecorateRows(list);pvDmDecorateContent(list,messages,id);pvScheduleDmReactionRefresh(90);pvCheckTyping();list.scrollTop=list.scrollHeight}
+area.append(list,typingLabel,composerWrap);emojiButton.disabled=input.disabled;pvDmUpdateReceipt(list,visibleMessages);pvDmDecorateRows(list);pvDmDecorateContent(list,visibleMessages,id);pvScheduleDmReactionRefresh(90);pvCheckTyping();list.scrollTop=list.scrollHeight}
 
 
 // Slide-out navigation and separate Create Post dialog; retain existing publish handlers.
