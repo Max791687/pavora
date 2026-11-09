@@ -471,8 +471,49 @@ async function refresh(){if(!user)return;
 }
 if(!status.textContent.startsWith('Cloud posts loaded'))status.textContent='☁ Cloud feed · '+feed.length+' posts';if(!hasRenderedFeed)draw();else pvUpdateRenderedFeedStats();pvRememberFeed();pvNewPostsNotice.hidden=true}finally{document.body.classList.remove('pvFeedLoading')}}
 function node(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e}
+function pvShowDoubleLikeHeart(target){
+ if(!target)return;
+ target.classList.add('pvDoubleLikeSurface');
+ const existing=target.querySelector('.pvDoubleLikeHeart');
+ existing?.remove();
+ const heart=node('span','pvDoubleLikeHeart','♥');
+ heart.setAttribute('aria-hidden','true');
+ target.append(heart);
+ setTimeout(()=>heart.remove(),750);
+}
+function pvBindDoubleTap(element,onDouble,{single=null}={}){
+ let last=0,timer=null,wasTouch=false;
+ element.addEventListener('click',event=>{
+  if(event.target.closest?.('button,a,input,textarea'))return;
+  const now=Date.now();
+  if(now-last<360){
+   clearTimeout(timer);timer=null;last=0;
+   event.preventDefault();onDouble();
+  }else{
+   last=now;
+   if(single){clearTimeout(timer);timer=setTimeout(()=>{timer=null;last=0;single()},365)}
+  }
+ });
+ element.addEventListener('dblclick',e=>e.preventDefault());
+}
+function pvPauseAllReels(){
+ document.querySelectorAll('#reelList video').forEach(video=>{
+  if(!video.paused)video.pause();
+ });
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pvPauseAllReels()});
+window.addEventListener('pagehide',pvPauseAllReels,{passive:true});
 function draw(){const root=document.getElementById('posts');root.replaceChildren();feed.forEach((p,postIndex)=>{const card=node('article','post'),head=node('div','posthead');card.id='pv-post-'+p.id;const authorAvatar=node('div','profilepic');const authorName=p.profiles?.display_name||p.profiles?.username||'P';if(p.profiles?.avatar_url){const avatarImg=node('img');avatarImg.src=p.profiles.avatar_url;avatarImg.alt=authorName+' profile photo';avatarImg.loading='lazy';avatarImg.onerror=()=>{authorAvatar.replaceChildren();authorAvatar.textContent=authorName[0].toUpperCase()};authorAvatar.append(avatarImg)}else authorAvatar.textContent=authorName[0].toUpperCase();head.append(authorAvatar);const who=node('div');who.append(pvProfileButton({id:p.author_id,username:p.profiles?.username||'creator'}),node('div','muted',new Date(p.created_at).toLocaleString()));if(p.author_id===pvOfficialId)who.querySelector('.pvPersonButton')?.after(pvOfficialBadge());head.append(who);card.append(head);if(p.caption)card.append(node('div','postbody',p.caption));if(p.image_path){const image=node('img');image.src=db.storage.from('post-images').getPublicUrl(p.image_path).data.publicUrl;image.alt='Post photo';image.loading=postIndex<2?'eager':'lazy';image.decoding='async';if(postIndex===0)image.fetchPriority='high';card.append(image)}const foot=node('div','postfoot');const like=node('button','',((p.likes||[]).some(l=>l.user_id===user.id)?'♥':'♡')+' '+(p.likes||[]).length+' Likes');
 like.dataset.pvLikePost=p.id;
+function pvPostDoubleLike(){
+ if(!user||like.disabled||(p.likes||[]).some(x=>x.user_id===user.id))return;
+ like.click();
+ pvShowDoubleLikeHeart(card);
+}
+const postPhoto=card.querySelector('img:not(.profilepic img)');
+if(postPhoto){
+ pvBindDoubleTap(postPhoto,pvPostDoubleLike,{single:null});
+}
 like.onclick=async()=>{
  if(like.disabled||!user)return;
  // Derive the state at click time, never from a stale closure: realtime may
@@ -1460,7 +1501,14 @@ video.addEventListener('playing',()=>{loading.hidden=true;loading.classList.remo
 video.addEventListener('canplay',()=>{if(!video.paused)loading.hidden=true});
 video.addEventListener('error',()=>{if(!video.hasAttribute('src'))return;loading.textContent='Could not load Reel · Tap to retry';loading.disabled=false;loading.classList.add('error');loading.hidden=false});
 screen.append(video,meta,loading);
-const togglePlay=()=>{if(!video.hasAttribute('src')&&video.dataset.pvSrc)video.src=video.dataset.pvSrc;if(video.paused){video.muted=!pvReelsSoundOn;video.play().catch(pvHandleReelAutoplayError)}else video.pause()};video.addEventListener('click',togglePlay);
+const togglePlay=()=>{if(!video.hasAttribute('src')&&video.dataset.pvSrc)video.src=video.dataset.pvSrc;if(video.paused){video.muted=!pvReelsSoundOn;video.play().catch(pvHandleReelAutoplayError)}else video.pause()};
+pvBindDoubleTap(video,()=>{
+ const reelLike=actions.querySelector('.pvSuiteReelActions .pvSuiteIconAction');
+ if(reelLike&&!reelLike.disabled){
+  if(!reelLike.classList.contains('pvSuiteIsLiked'))reelLike.click();
+  pvShowDoubleLikeHeart(screen);
+ }
+},{single:togglePlay});
 const play=reelAction('Play or pause','<path d="m9 6 10 6-10 6z"/>',togglePlay);play.classList.add('pvReelPlay');screen.append(play);video.addEventListener('play',()=>play.classList.add('hide'));video.addEventListener('pause',()=>play.classList.remove('hide'));
 const sound=reelAction('Mute or unmute','<path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15 9a4 4 0 0 1 0 6"/>',()=>pvSetReelsSound(!pvReelsSoundOn));sound.classList.add('pvReelSound');sound.classList.toggle('pvMuted',!pvReelsSoundOn);sound.title=pvReelsSoundOn?'Mute Reel':'Turn on Reel sound';sound.setAttribute('aria-label',sound.title);screen.append(sound);
 actions.append(reelAction('Share reel','<path d="m21 3-8.5 18-3.5-7.5L2 10z"/><path d="M21 3 9 13.5"/>',async()=>{const link=location.href.split('#')[0]+'#reel-'+reel.id;try{if(navigator.share)await navigator.share({title:'PAVORA Reel',url:link});else if(navigator.clipboard){await navigator.clipboard.writeText(link);alert('Reel link copied!')}else prompt('Copy reel link:',link)}catch(e){if(e.name!=='AbortError')alert('Unable to share reel')}}));
@@ -2186,7 +2234,7 @@ window.addEventListener('resize',pvScheduleMobileDmViewport,{passive:true});
 document.addEventListener('focusin',e=>{if(e.target.matches?.('#pvInboxView .pvMessageForm input'))pvScheduleMobileDmViewport()});
 document.addEventListener('focusout',e=>{if(e.target.matches?.('#pvInboxView .pvMessageForm input'))pvScheduleMobileDmViewport()});
 pvSyncMobileDmViewport();
-function pvNavigate(view){pvVirtualView.classList.add('hide');pvActiveVirtual=null;pvCloseVirtualChat();pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');document.body.classList.toggle('pvExploreMode',view==='explore');document.body.classList.toggle('pvReelsMode',view==='reels');try{window.PVKit?.onNavigate?.(view)}catch(e){console.warn('Feature navigation:',e)}if(view==='messages'){loadInbox();requestAnimationFrame(pvSyncDesktopChatHeight)}else{pvDmTypingLastSeen=0;pvClearTyping(selectedPeer)}if(view==='reels'){requestAnimationFrame(pvFitReelsViewport);loadReels()}if(view==='explore')pvLoadExplore();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
+function pvNavigate(view){if(view!=='reels')pvPauseAllReels();pvVirtualView.classList.add('hide');pvActiveVirtual=null;pvCloseVirtualChat();pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');document.body.classList.toggle('pvExploreMode',view==='explore');document.body.classList.toggle('pvReelsMode',view==='reels');try{window.PVKit?.onNavigate?.(view)}catch(e){console.warn('Feature navigation:',e)}if(view==='messages'){loadInbox();requestAnimationFrame(pvSyncDesktopChatHeight)}else{pvDmTypingLastSeen=0;pvClearTyping(selectedPeer)}if(view==='reels'){requestAnimationFrame(pvFitReelsViewport);loadReels()}if(view==='explore')pvLoadExplore();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
 // Legacy demo's button.onclick only hides/shows HTML. Connect each section
 // to the real cloud navigation so desktop rail opens Reels Mode + autoplay.
 document.querySelectorAll('aside.left [data-view="home"],aside.left [data-view="reels"],aside.left [data-view="profile"]').forEach(button=>{
