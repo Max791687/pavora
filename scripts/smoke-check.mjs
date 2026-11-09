@@ -3,8 +3,8 @@
 import { readFileSync, existsSync } from 'node:fs';
 import assert from 'node:assert/strict';
 const read = file => { assert.ok(existsSync(file), `Missing file: ${file}`); return readFileSync(file, 'utf8') };
-const html=read('index.html'),cloud=read('cloud.js'),suite=read('social-suite.js'),sw=read('sw.js'),compress=read('video-compress.js'),reliable=read('upload-reliable.js');
-for(const file of ['cloud.js','social-suite.js','calls.js','app-install.js','push.js','sw.js','video-compress.js','upload-reliable.js']){
+const html=read('index.html'),cloud=read('cloud.js'),suite=read('social-suite.js'),sw=read('sw.js'),compress=read('video-compress.js'),reliable=read('upload-reliable.js'),themes=read('chat-themes.js');
+for(const file of ['cloud.js','social-suite.js','calls.js','app-install.js','push.js','sw.js','video-compress.js','upload-reliable.js','chat-themes.js']){
  const code=read(file);
  try {new Function(code)}catch(err){throw Error(`${file} syntax failure: ${err.message}`)}
 }
@@ -49,7 +49,12 @@ assert.ok(sw.includes('upload-reliable.js'), 'Upload helper missing from offline
 assert.ok(cloud.includes('pvReadableAuthError')&&cloud.includes('pvNotifyAuth')&&cloud.includes('pvAuthBusy'), 'Visible login status logic missing');
 assert.ok(cloud.includes("insertAdjacentElement('afterend',document.getElementById('authMsg'))"), 'Login feedback must be near submit button');
 assert.ok(cloud.includes("pvNotifyAuth('✓ Login successful!")&&cloud.includes('Login failed. Email or password is incorrect.'), 'Login success/error messaging missing');
-assert.ok(html.includes('auth-feedback-v31')&&sw.includes('auth-feedback-v31'), 'PWA auth cache version mismatch');
+assert.ok(html.includes('20261110-themes-v32')&&sw.includes('pavora-shell-2026-11-10-themes-v32'), 'PWA chat themes cache version mismatch');
+assert.ok(html.indexOf('chat-themes.js')<html.indexOf('cloud.js?v='), 'Chat themes engine must load before cloud.js');
+assert.ok(sw.includes('chat-themes.js')&&themes.includes('PAVORA_CHAT_THEMES'), 'Chat themes shell integration missing');
+assert.ok(cloud.includes('pvChatThemeTrigger')&&cloud.includes('PAVORA_CHAT_THEMES?.apply')&&cloud.includes('PAVORA_CHAT_THEMES?.open'), 'Chat theme picker hookup missing');
+assert.ok(themes.includes("id:'anime'")&&themes.includes("id:'sakura'")&&themes.includes("id:'galaxy'"), 'Anime and companion themes missing');
+assert.ok(themes.includes('pavora-chat-theme-v1:')&&themes.includes('localStorage.setItem'), 'Personal conversation theme persistence missing');
 assert.ok(suite.includes('story_views'), 'Story viewer tracking missing');
 assert.ok(sw.includes("event.respondWith"), 'PWA offline fallback missing');
 console.log('PAVORA static smoke checks passed. Browser integration tests are still required.');
