@@ -30,6 +30,9 @@ assert.ok(cloud.includes('pvDmOpenHoldMenu')&&cloud.includes('pvDmAttachHoldGest
 assert.ok(cloud.includes('pvDmPinMessage')&&cloud.includes('dm_pinned_messages')&&cloud.includes('pvDmPinnedBar'), 'DM Pin flow missing');
 assert.ok(cloud.includes('pvDmHideForMe')&&cloud.includes('dm_hidden_messages'), 'DM Delete-for-You flow missing');
 assert.ok(cloud.includes('pv_edit_own_dm'), 'Secure sent-message Edit action missing');
+assert.ok(cloud.includes('pvDmPickerTabs')&&cloud.includes('pvStickerSet')&&cloud.includes('pvSelectPickerTab'), 'DM sticker picker missing');
+assert.ok(cloud.includes("'image/gif'")&&cloud.includes("mediaFile.type==='image/gif'?'.gif'"), 'GIF attachment support missing');
+assert.ok(html.includes('dm-stickers-gif-v28')&&sw.includes('dm-stickers-gif-v28'), 'PWA version mismatch');
 assert.ok(suite.includes('story_views'), 'Story viewer tracking missing');
 assert.ok(sw.includes("event.respondWith"), 'PWA offline fallback missing');
 console.log('PAVORA static smoke checks passed. Browser integration tests are still required.');
