@@ -1,6 +1,7 @@
 -- PAVORA official account identity (run in Supabase SQL Editor).
 -- This does NOT create an Auth login. Sign up normally with the owner email,
 -- verify the email, and run this migration to protect @pavora.
+-- Existing legacy @pavora profiles are not automatically transferred or deleted.
 alter table public.profiles add column if not exists is_official boolean not null default false;
 
 create or replace function public.pv_guard_official_profile()
@@ -15,8 +16,18 @@ begin
      and u.email_confirmed_at is not null
  ) into owner_verified;
 
- if lower(new.username) = 'pavora' and not owner_verified then
-   raise exception 'The @pavora username is reserved for the verified official account';
+ -- Reserve new claims of @pavora. Existing legacy handles can be backfilled
+ -- safely (without getting an official badge) during this migration.
+ if tg_op = 'INSERT' then
+   if lower(new.username) = 'pavora' and not owner_verified then
+     raise exception 'The @pavora username is reserved for the verified official account';
+   end if;
+ elsif tg_op = 'UPDATE' then
+   if lower(new.username) = 'pavora'
+      and lower(old.username) is distinct from 'pavora'
+      and not owner_verified then
+     raise exception 'The @pavora username is reserved for the verified official account';
+   end if;
  end if;
  if tg_op = 'UPDATE' and old.is_official and not owner_verified then
    raise exception 'Official account identity cannot be transferred';
