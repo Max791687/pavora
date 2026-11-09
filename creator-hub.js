@@ -51,8 +51,8 @@ const panel=n('div','pvHubPanel'),head=n('div','pvHubHead'),headInfo=n('div'),ti
 close.type='button';close.setAttribute('aria-label','Close Creator Hub');headInfo.append(title,subtitle);head.append(headInfo,close);
 const tabs=n('nav','pvHubTabs'),body=n('div','pvHubContent');panel.append(head,tabs,body);overlay.append(panel);document.body.append(overlay);
 const launcher=n('button','pvHubLauncher','✦ Creator Hub');launcher.type='button';launcher.title='Creator Analytics, Growth and tools';
-const header=document.querySelector('header .top')||document.querySelector('header');
-header?.append(launcher);
+const profilePanel=document.querySelector('#profile > .panel');
+profilePanel?.prepend(launcher);
 let selected='analytics',isAdmin=false,sessionId=null,requested=0;
 function clear(){body.replaceChildren()}
 function text(tag,cls,t,parent=body){const node=n(tag,cls,t);parent.append(node);return node}
