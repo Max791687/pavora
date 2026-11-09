@@ -1963,7 +1963,7 @@ async function renderChat(id,silent=false){const area=document.getElementById('p
 const pollingExisting=!!(silent&&area.querySelector('.pvMessageForm'));
 const [{data:person,error:personError},{data:messages,error}]=await Promise.all([
 pollingExisting?Promise.resolve({data:{id},error:null}):db.from('profiles').select('id,username,display_name,avatar_url,bio').eq('id',id).maybeSingle(),
-db.from('direct_messages').select('id,sender_id,recipient_id,body,created_at,read_at').or('and(sender_id.eq.'+user.id+',recipient_id.eq.'+id+'),and(sender_id.eq.'+id+',recipient_id.eq.'+user.id+')').order('created_at',{ascending:true}).limit(pollingExisting?100:200)
+db.from('direct_messages').select('id,sender_id,recipient_id,body,created_at,read_at,reply_to,media_path,media_type').or('and(sender_id.eq.'+user.id+',recipient_id.eq.'+id+'),and(sender_id.eq.'+id+',recipient_id.eq.'+user.id+')').order('created_at',{ascending:true}).limit(pollingExisting?100:200)
 ]);if(selectedPeer!==id)return;if(error||personError){if(!silent)area.replaceChildren(node('p','muted',(error||personError).message));return}
 if(!person){area.replaceChildren(node('p','muted','User unavailable'));return}
 if(!document.hidden&&messages?.some(m=>m.recipient_id===user.id&&!m.read_at))pvMarkRead(id);
