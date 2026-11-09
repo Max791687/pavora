@@ -2382,6 +2382,10 @@ chatTop.append(liveLabel);
 const galleryButton=node('button','pvChatInfoButton','▧');galleryButton.type='button';
 galleryButton.title='Shared photos & videos';galleryButton.setAttribute('aria-label','Shared photos and videos');galleryButton.onclick=()=>pvShowDmMediaGallery(id);
 chatTop.append(galleryButton);
+const themeButton=node('button','pvChatThemeTrigger','🎨');
+themeButton.type='button';themeButton.title='Change chat theme';themeButton.setAttribute('aria-label','Choose chat theme');
+themeButton.onclick=()=>window.PAVORA_CHAT_THEMES?.open(area,user?.id,id);
+chatTop.append(themeButton);
 const infoButton=node('button','pvChatInfoButton');infoButton.type='button';infoButton.title='View profile';infoButton.setAttribute('aria-label','View profile');infoButton.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>';infoButton.onclick=()=>openCreator(id);chatTop.append(infoButton);
 const pinnedBar=node('div','pvDmPinnedBar');pinnedBar.hidden=true;
 pinnedBar.dataset.peer=id;
@@ -2531,7 +2535,7 @@ async function pvSendMessage(){
    if(document.activeElement!==input)input.focus({preventScroll:true});
  }
  pvCheckUnread().catch(err=>console.warn('Unread update:',err));
-}area.append(chatTop,pinnedBar);pvDmRenderPinBanner(id,visibleMessages);
+}area.append(chatTop,pinnedBar);window.PAVORA_CHAT_THEMES?.apply(area,uid,id);pvDmRenderPinBanner(id,visibleMessages);
 if(pendingIncoming){const banner=node('div','pvRequestBanner'),description=node('p','','Message request from someone who does not follow you.'),accept=node('button','pvAcceptRequest','Accept'),remove=node('button','pvDeclineRequest','Remove');accept.type=remove.type='button';accept.onclick=async()=>{accept.disabled=true;const {error}=await db.from('message_requests').update({accepted_at:new Date().toISOString()}).eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null);if(error){alert('Could not accept request: '+error.message);accept.disabled=false;return}pvInboxTab='Primary';await loadInbox();await pvCheckUnread()};remove.onclick=()=>pvRemoveChat(id);banner.append(description,accept,remove);area.append(banner)}
 if(pendingOutgoing){area.append(node('p','pvPendingRequestNote',alreadySent?'Request sent. Wait for acceptance, or follow this account to continue.':'You can send one message request. Follow this account to message freely.'))}
 const typingLabel=node('div','pvDmTypingLabel','● typing…');typingLabel.hidden=true;
