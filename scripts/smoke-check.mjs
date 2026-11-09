@@ -3,8 +3,8 @@
 import { readFileSync, existsSync } from 'node:fs';
 import assert from 'node:assert/strict';
 const read = file => { assert.ok(existsSync(file), `Missing file: ${file}`); return readFileSync(file, 'utf8') };
-const html=read('index.html'),cloud=read('cloud.js'),suite=read('social-suite.js'),sw=read('sw.js'),compress=read('video-compress.js'),reliable=read('upload-reliable.js'),themes=read('chat-themes.js'),presence=read('presence.js'),presenceSql=read('supabase/user-presence.sql'),chatSearch=read('chat-search.js');
-for(const file of ['cloud.js','social-suite.js','calls.js','app-install.js','push.js','sw.js','video-compress.js','upload-reliable.js','chat-themes.js','presence.js','chat-search.js']){
+const html=read('index.html'),cloud=read('cloud.js'),suite=read('social-suite.js'),sw=read('sw.js'),compress=read('video-compress.js'),reliable=read('upload-reliable.js'),themes=read('chat-themes.js'),presence=read('presence.js'),presenceSql=read('supabase/user-presence.sql'),chatSearch=read('chat-search.js'),smart=read('smart-reels.js'),smartSql=read('supabase/smart-reels.sql'),smartWatchSql=read('supabase/smart-reels-watch.sql');
+for(const file of ['cloud.js','social-suite.js','calls.js','app-install.js','push.js','sw.js','video-compress.js','upload-reliable.js','chat-themes.js','presence.js','chat-search.js','smart-reels.js']){
  const code=read(file);
  try {new Function(code)}catch(err){throw Error(`${file} syntax failure: ${err.message}`)}
 }
@@ -49,7 +49,7 @@ assert.ok(sw.includes('upload-reliable.js'), 'Upload helper missing from offline
 assert.ok(cloud.includes('pvReadableAuthError')&&cloud.includes('pvNotifyAuth')&&cloud.includes('pvAuthBusy'), 'Visible login status logic missing');
 assert.ok(cloud.includes("insertAdjacentElement('afterend',document.getElementById('authMsg'))"), 'Login feedback must be near submit button');
 assert.ok(cloud.includes("pvNotifyAuth('✓ Login successful!")&&cloud.includes('Login failed. Email or password is incorrect.'), 'Login success/error messaging missing');
-assert.ok(html.includes('20261110-dm-search-v38')&&sw.includes('pavora-shell-2026-11-10-dm-search-v38'), 'PWA latest version mismatch');
+assert.ok(html.includes('20261110-smart-reels-v39')&&sw.includes('pavora-shell-2026-11-10-smart-reels-v39'), 'PWA latest version mismatch');
 assert.ok(html.indexOf('chat-themes.js')<html.indexOf('cloud.js?v='), 'Chat themes engine must load before cloud.js');
 assert.ok(sw.includes('chat-themes.js')&&themes.includes('PAVORA_CHAT_THEMES'), 'Chat themes shell integration missing');
 assert.ok(cloud.includes('pvChatThemeTrigger')&&cloud.includes('PAVORA_CHAT_THEMES?.apply')&&cloud.includes('PAVORA_CHAT_THEMES?.open'), 'Chat theme picker hookup missing');
@@ -77,6 +77,13 @@ assert.ok(html.indexOf('chat-search.js?v=')<html.indexOf('cloud.js?v=')&&sw.incl
 assert.ok(cloud.includes('pvDmSearchButton')&&cloud.includes('PAVORA_CHAT_SEARCH?.open(area)'), 'Message search action missing');
 assert.ok(chatSearch.includes('pvDmSearchPanel')&&chatSearch.includes('pvDmSearchResult')&&chatSearch.includes('scrollIntoView')&&chatSearch.includes('pvDmSearchHit'), 'Chat search navigation missing');
 assert.ok(html.includes('.pvChatTop .pvDmRealtimeLabel{display:none!important}'), 'Mobile chat header overflow prevention missing');
+assert.ok(html.indexOf('smart-reels.js?v=')<html.indexOf('cloud.js?v=')&&sw.includes('smart-reels.js'), 'Smart Reels engine must load before feed');
+assert.ok(smart.includes('function rank(')&&smart.includes("getMode(uid)")&&smart.includes("selected==='following'"), 'For You and Following ranking missing');
+assert.ok(smart.includes('myLikes')&&smart.includes('mySaves')&&smart.includes('myViews')&&smart.includes('watchSignals')&&smart.includes('ageDays'), 'Personal ranking signals missing');
+assert.ok(smart.includes('async function notInterested(')&&cloud.includes('pvSmartNotInterested'), 'Not interested preference flow missing');
+assert.ok(cloud.includes('PAVORA_SMART_REELS?.rank')&&cloud.includes('PAVORA_SMART_REELS?.createTabs'), 'Smart Reels not connected to feed');
+assert.ok(suite.includes('pvCommitWatchProgress')&&suite.includes('PAVORA_SMART_REELS?.recordWatch'), 'Playback metrics not connected');
+assert.ok(smartSql.includes('enable row level security')&&smartSql.includes('auth.uid()')&&smartWatchSql.includes('enable row level security')&&smartWatchSql.includes('auth.uid()'), 'Smart Reels per-user RLS missing');
 assert.ok(suite.includes('story_views'), 'Story viewer tracking missing');
 assert.ok(sw.includes("event.respondWith"), 'PWA offline fallback missing');
 console.log('PAVORA static smoke checks passed. Browser integration tests are still required.');
