@@ -325,26 +325,12 @@ function pvOpenVirtual(person){
  pvVirtualView.replaceChildren(back,head,node('h3','','Posts'),grid);
  window.scrollTo({top:0,behavior:'instant'});
 }
-function pvRenderVirtual(){
- const query=pvExploreSearch.value.trim().toLowerCase();
- const list=pvVirtualCreators.filter(p=>!query||[p.username,p.display_name,p.bio,p.theme,...p.posts].join(' ').toLowerCase().includes(query));
- pvVirtualGrid.replaceChildren();
- pvVirtualHeading.textContent=query?'Virtual creators matching your search':'Discover virtual creators';
- pvVirtualIntro.textContent=query?list.length+' creative profiles found':'100 creative concept profiles · Open any profile to browse original posts';
- for(const person of list){
-  const card=node('button','pvVirtualCard');card.type='button';
-  const avatar=node('span','pvVirtualAvatar',person.initial);avatar.dataset.shade=String(person.shade);
-  const desc=node('span','pvVirtualCardText');desc.append(node('strong','',person.display_name),node('small','','@'+person.username));
-  card.append(avatar,desc);card.onclick=()=>pvOpenVirtual(person);pvVirtualGrid.append(card);
- }
- pvVirtualSection.hidden=!list.length;
-}
-pvExploreSearch.addEventListener('input',pvRenderVirtual);
+// Virtual profiles are searchable in regular People search, not a 100-card Explore grid.
+pvVirtualSection.hidden=true;
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pvVirtualChat.hidden)pvCloseVirtualChat()});
 document.querySelectorAll('[data-view],.pvIconRail [data-rail-view]').forEach(btn=>btn.addEventListener('click',()=>{
  pvVirtualView.classList.add('hide');pvActiveVirtual=null;pvCloseVirtualChat();
 }));
-pvRenderVirtual();
 
 let pvExploreBusy=false,pvExploreTiles=[],pvExplorePeople=[],pvExploreLoadedAt=0;
 async function pvLoadExplore(){if(!user||pvExploreBusy)return;if(pvExploreLoadedAt&&Date.now()-pvExploreLoadedAt<90000&&pvExploreTiles.length)return;pvExploreBusy=true;try{
@@ -363,11 +349,25 @@ function pvRenderExplore(){
 const query=pvExploreSearch.value.trim().toLowerCase();
 pvExploreGrid.replaceChildren();pvExploreResults.replaceChildren();
 const creators=query?pvExplorePeople.filter(p=>(p.username||'').toLowerCase().includes(query)||(p.display_name||'').toLowerCase().includes(query)): [];
+const virtualMatches=query?pvVirtualCreators.filter(p=>(p.username||'').toLowerCase().includes(query)||(p.display_name||'').toLowerCase().includes(query)): [];
 pvExploreResults.classList.toggle('hide',!query);
-if(query){if(creators.length){pvExploreResults.append(node('h3','','People'));for(const person of creators.slice(0,12)){const row=node('button','pvExplorePerson'),avatar=node('div','pvExplorePersonAvatar'),details=node('span');if(person.avatar_url){const image=node('img');image.src=person.avatar_url;image.alt='';avatar.append(image)}else avatar.textContent=(person.display_name||person.username||'P')[0].toUpperCase();details.append(node('strong','','@'+person.username),node('small','',person.display_name||''));row.append(avatar,details);row.onclick=()=>openCreator(person.id);pvExploreResults.append(row)}}}
+if(query&&(creators.length||virtualMatches.length)){
+ pvExploreResults.append(node('h3','','People'));
+ const results=[...creators.map(p=>({...p,virtual:false})),...virtualMatches.map(p=>({...p,virtual:true}))].slice(0,24);
+ for(const person of results){
+  const row=node('button','pvExplorePerson'),avatar=node('div','pvExplorePersonAvatar'),details=node('span');
+  if(person.avatar_url){const image=node('img');image.src=person.avatar_url;image.alt='';avatar.append(image)}
+  else avatar.textContent=(person.display_name||person.username||'P')[0].toUpperCase();
+  const name=node('strong','','@'+person.username),subtitle=node('small','',person.display_name||'');
+  if(person.virtual)subtitle.append(document.createTextNode(' · Virtual'));
+  details.append(name,subtitle);row.append(avatar,details);
+  row.onclick=()=>person.virtual?pvOpenVirtual(person):openCreator(person.id);
+  pvExploreResults.append(row);
+ }
+}
 const authorMatches=new Set(creators.map(p=>p.id));
 const matches=pvExploreTiles.filter(p=>!query||(p.caption||'').toLowerCase().includes(query)||authorMatches.has(p.author_id));
-if(!matches.length){pvExploreGrid.append(node('div','pvExploreEmpty',query?'No matching posts or reels found.':'No photos or reels uploaded yet.'));return}
+if(!matches.length){if(!query||(!creators.length&&!virtualMatches.length))pvExploreGrid.append(node('div','pvExploreEmpty',query?'No matching people, posts or reels found.':'No photos or reels uploaded yet.'));return}
 for(const item of matches){
 const tile=node('button','pvExploreTile '+(item.kind==='reel'?'pvExploreReel':'pvExplorePhoto'));tile.type='button';tile.title=item.caption||'Open '+item.kind;
 if(item.kind==='post'){const img=node('img');img.src=db.storage.from('post-images').getPublicUrl(item.image_path).data.publicUrl;img.alt=item.caption||'Photo';img.loading='lazy';tile.append(img);tile.onclick=()=>{const person=pvExplorePeople.find(x=>x.id===item.author_id);openProfilePost({...item,author_name:person?.username||'creator'})}}
