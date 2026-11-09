@@ -1704,6 +1704,63 @@ document.addEventListener('click',e=>{if(!e.target.closest('.pvDmInlineMenu,.pvD
 
 const pvDmLongPressStyle=document.createElement('style');pvDmLongPressStyle.textContent="\n/* Mobile DM interactions: messages remain visually uncluttered until held. */\n#pvInboxView .pvDmMoreButton,#pvInboxView .pvMsgReactButton,#pvInboxView .pvMsgReactionPalette{display:none!important}\n#pvInboxView .pvMsgReactionWrap{padding:0!important;margin:0!important;min-height:0!important;gap:0!important}\n#pvInboxView .pvMsgReactionBadge[hidden]{display:none!important}\n#pvInboxView .pvMessageRow .pvBubble{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:pan-y}\n.pvDmHoldBackdrop{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.58);display:block;touch-action:pan-y}\n.pvDmHoldPanel{position:fixed;z-index:601;width:min(340px,calc(100vw - 28px));max-height:min(72dvh,590px);overflow:auto;box-sizing:border-box;border:1px solid #34333a;border-radius:20px;background:#232428;box-shadow:0 20px 70px #000a;overscroll-behavior:contain}\n.pvDmHoldReact{display:flex;justify-content:space-around;align-items:center;gap:1px;padding:13px 9px;border-bottom:1px solid #39383e}\n.pvDmHoldReact button{flex:1;border:0;background:transparent;color:white;min-width:0;font-size:24px;cursor:pointer;border-radius:10px;padding:7px 2px;line-height:1.2}\n.pvDmHoldReact button:hover,.pvDmHoldReact button:focus-visible{background:#3d3b42}\n.pvDmHoldHint{text-align:center;font-size:10px;letter-spacing:.03em;color:#a9a7b0;margin:9px 4px 0}\n.pvDmHoldMenu{display:flex;flex-direction:column;padding:8px}\n.pvDmHoldMenu button{border:0;background:transparent;color:#f6f5f7;text-align:left;display:flex;align-items:center;gap:13px;font-size:15px;font-weight:520;padding:14px 15px;border-radius:12px;cursor:pointer}\n.pvDmHoldMenu button:hover,.pvDmHoldMenu button:focus-visible{background:#37373d}\n.pvDmHoldMenu button.pvDanger{color:#ff889f}\n.pvDmHoldMenu .pvDmActionSymbol{font-size:21px;line-height:1;width:25px;text-align:center}\n@media (max-width:700px){#pvInboxView .pvMessageRow{gap:0!important}#pvInboxView .pvMessageRow .pvBubble{max-width:min(78vw,400px)}.pvDmHoldPanel{border-radius:19px}}\n";document.head.append(pvDmLongPressStyle);
 let pvDmHoldCleanup=()=>{};
+
+const pvDmPinCss=document.createElement('style');pvDmPinCss.textContent="#pvInboxView .pvDmPinnedBar{display:flex;flex:none;align-items:center;gap:10px;padding:10px 14px;background:#1c1924;border-bottom:1px solid #332c3c;color:#e8d8f8;min-height:43px;box-sizing:border-box}\n#pvInboxView .pvDmPinnedBar[hidden]{display:none!important}\n#pvInboxView .pvDmPinnedLink{border:0;background:transparent;color:inherit;flex:1;text-align:left;display:flex;flex-direction:column;gap:3px;min-width:0;cursor:pointer;padding:0}\n#pvInboxView .pvDmPinnedLink strong{font-size:11px;color:#cda1f7}\n#pvInboxView .pvDmPinnedLink span{font-size:12px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;max-width:100%}\n#pvInboxView .pvDmPinnedUnpin{flex:none;border:0;border-radius:50%;background:#32283c;color:#fff;width:27px;height:27px;cursor:pointer}\n#pvInboxView .pvDmPinnedRow>.pvBubble{box-shadow:0 0 0 2px #ac7add!important}\n";document.head.append(pvDmPinCss);
+const pvDmPinnedByPeer=new Map();
+async function pvDmUnpin(peer){
+ if(!user||!peer)return;
+ const {error}=await db.from('dm_pinned_messages').delete().eq('user_id',user.id).eq('peer_id',peer);
+ if(error){alert('Unable to unpin: '+error.message);return}
+ pvDmPinnedByPeer.delete(peer);
+ pvDmRenderPinBanner(peer);
+}
+function pvDmRenderPinBanner(peer,messages){
+ const area=document.getElementById('pvChatArea');
+ if(!area||selectedPeer!==peer)return;
+ const bar=area.querySelector('.pvDmPinnedBar');
+ if(!bar)return;
+ const pinned=pvDmPinnedByPeer.get(peer);
+ if(!pinned){bar.hidden=true;bar.replaceChildren();return}
+ const list=area.querySelector('.pvMessages');
+ const msg=(messages||[]).find(m=>m.id===pinned.message_id);
+ const label=msg?pvDmMessageSummary(msg):pinned.summary||'Pinned message';
+ bar.replaceChildren();
+ const link=node('button','pvDmPinnedLink');
+ link.type='button';link.append(node('strong','','📌 Pinned for you'),node('span','',label));
+ link.onclick=()=>{
+  const row=[...(list?.querySelectorAll('.pvMessageRow[data-message-id]')||[])].find(x=>x.dataset.messageId===pinned.message_id);
+  if(row){row.scrollIntoView({behavior:'smooth',block:'center'});row.classList.add('pvDmPinnedRow');setTimeout(()=>row.classList.remove('pvDmPinnedRow'),1400)}
+  else alert('This pinned message is older than the currently loaded messages.');
+ };
+ const unpin=node('button','pvDmPinnedUnpin','×');
+ unpin.type='button';unpin.title='Unpin';unpin.setAttribute('aria-label','Unpin message');
+ unpin.onclick=()=>pvDmUnpin(peer);
+ bar.append(link,unpin);bar.hidden=false;
+}
+async function pvDmPinMessage(message,peer){
+ if(!user||selectedPeer!==peer)return;
+ const {error}=await db.from('dm_pinned_messages').upsert(
+ {user_id:user.id,peer_id:peer,message_id:message.id,pinned_at:new Date().toISOString()},
+ {onConflict:'user_id,peer_id'});
+ if(error){alert('Could not pin message: '+error.message);return}
+ pvDmPinnedByPeer.set(peer,{message_id:message.id,summary:pvDmMessageSummary(message)});
+ pvDmRenderPinBanner(peer);
+}
+async function pvDmHideForMe(message,peer,row){
+ if(!user||selectedPeer!==peer)return;
+ const uid=user.id;
+ const {error}=await db.from('dm_hidden_messages').insert({user_id:uid,message_id:message.id});
+ if(error&&error.code!=='23505'){alert('Unable to hide message: '+error.message);return}
+ row?.remove();
+ if(pvDmPinnedByPeer.get(peer)?.message_id===message.id){await pvDmUnpin(peer)}
+ pvDmScheduleHiddenRefresh(peer);
+}
+function pvDmScheduleHiddenRefresh(peer){
+ if(selectedPeer!==peer)return;
+ // Refresh only when user has explicitly changed hidden/pinned state.
+ renderChat(peer,true).catch(e=>console.warn('Hidden message refresh:',e));
+}
+
 function pvDmOpenHoldMenu(message,peer,row){
  if(!user||selectedPeer!==peer||!row?.isConnected)return;
  pvDmHoldCleanup();
@@ -1755,6 +1812,11 @@ function pvDmOpenHoldMenu(message,peer,row){
   if(navigator.clipboard?.writeText)navigator.clipboard.writeText(message.body).catch(()=>prompt('Copy message',message.body));
   else prompt('Copy message',message.body);
  });
+ action('📌',pvDmPinnedByPeer.get(peer)?.message_id===message.id?'Unpin':'Pin for me',()=>{
+  if(pvDmPinnedByPeer.get(peer)?.message_id===message.id)pvDmUnpin(peer);
+  else pvDmPinMessage(message,peer);
+ });
+ action('⌫','Delete for you',()=>pvDmHideForMe(message,peer,row));
  if(mine)action('↶','Unsend',async()=>{
   if(!confirm('Unsend this message for everyone?'))return;
   const {error}=await db.from('direct_messages').delete().eq('id',message.id).eq('sender_id',uid);
@@ -1762,8 +1824,6 @@ function pvDmOpenHoldMenu(message,peer,row){
   if(message.media_path)db.storage.from('pv-dm-media').remove([message.media_path]).catch(()=>{});
   row.remove();pvScheduleLiveDmRefresh();
  },true);
- // 'Delete for you' and 'Pin' need durable per-user database state; don't
- // advertise controls that cannot work across devices.
  panel.append(hint,reactions,choices);
  document.body.append(backdrop,panel);
  const bounds=row.querySelector('.pvBubble')?.getBoundingClientRect()||row.getBoundingClientRect();
