@@ -49,7 +49,7 @@ assert.ok(sw.includes('upload-reliable.js'), 'Upload helper missing from offline
 assert.ok(cloud.includes('pvReadableAuthError')&&cloud.includes('pvNotifyAuth')&&cloud.includes('pvAuthBusy'), 'Visible login status logic missing');
 assert.ok(cloud.includes("insertAdjacentElement('afterend',document.getElementById('authMsg'))"), 'Login feedback must be near submit button');
 assert.ok(cloud.includes("pvNotifyAuth('✓ Login successful!")&&cloud.includes('Login failed. Email or password is incorrect.'), 'Login success/error messaging missing');
-assert.ok(html.includes('20261110-reels-mobile-v34')&&sw.includes('pavora-shell-2026-11-10-reels-mobile-v34'), 'PWA latest version mismatch');
+assert.ok(html.includes('20261110-profile-reel-views-v35')&&sw.includes('pavora-shell-2026-11-10-profile-reel-views-v35'), 'PWA latest version mismatch');
 assert.ok(html.indexOf('chat-themes.js')<html.indexOf('cloud.js?v='), 'Chat themes engine must load before cloud.js');
 assert.ok(sw.includes('chat-themes.js')&&themes.includes('PAVORA_CHAT_THEMES'), 'Chat themes shell integration missing');
 assert.ok(cloud.includes('pvChatThemeTrigger')&&cloud.includes('PAVORA_CHAT_THEMES?.apply')&&cloud.includes('PAVORA_CHAT_THEMES?.open'), 'Chat theme picker hookup missing');
@@ -61,6 +61,11 @@ assert.ok(html.includes('.pvReelDiscovery')&&html.includes('.pvReelEmpty'), 'Ree
 assert.ok(cloud.includes('pvFitReelsViewport')&&cloud.includes('--pvReelsTop')&&cloud.includes('--pvReelsBottom'), 'Mobile Reels viewport sizing missing');
 assert.ok(html.includes('body.pvReelsMode .pvReelDiscovery,')&&html.includes('body.pvReelsMode .pvReelUploadToggle{display:none!important}'), 'Mobile Reels must hide toolbar clutter');
 assert.ok(html.includes('bottom:var(--pvReelsBottom,63px)!important')&&html.includes('body.pvReelsMode .pvReelMeta'), 'Mobile Reel caption/nav overlap fix missing');
+assert.ok(cloud.includes('pvLoadOwnReelViewCounts')&&cloud.includes("db.from('reel_views').select('reel_id')")&&cloud.includes('pvProfileReelViews'), 'Profile Reel view counters missing');
+assert.ok(cloud.includes('pvDeleteOwnReel')&&cloud.includes(".eq('author_id',uid).select('id')")&&cloud.includes("pvProfileReelDelete"), 'Owner-verified Reel delete controls missing');
+assert.ok(cloud.includes('pvOpenProfileReel')&&cloud.includes('stack.pvResume(index)'), 'Profile tile should open the selected Reel');
+assert.ok(suite.includes("video.addEventListener('timeupdate'")&&suite.includes('watchSeconds<2'), 'Watch-time validated Reel view counting missing');
+assert.ok(html.includes('pvProfileReelDelete')&&html.includes('pvProfileReelViews'), 'Profile reel action styles missing');
 assert.ok(suite.includes('story_views'), 'Story viewer tracking missing');
 assert.ok(sw.includes("event.respondWith"), 'PWA offline fallback missing');
 console.log('PAVORA static smoke checks passed. Browser integration tests are still required.');
