@@ -179,7 +179,7 @@ pvPrivacyCss.textContent=`
 `;
 document.head.append(pvPrivacyCss);
 const pvPrivacyBox=node('section');pvPrivacyBox.id='pvPrivacySettings';
-pvPrivacyBox.innerHTML='<h3>Account privacy</h3><p>Choose who can see your posts and reels. Private accounts approve followers before they can view content.</p><div class="pvPrivacyOptions"><button type="button" id="pvSetPublic">🌐 Public</button><button type="button" id="pvSetPrivate">🔒 Private</button></div><div id="pvPrivacyStatus" role="status"></div><div id="pvRequestsBox" hidden><h3>Follow requests <span id="pvRequestsCount"></span></h3><div id="pvRequestsList"></div></div>';
+pvPrivacyBox.innerHTML='<h3>Account privacy</h3><p>Choose who can see your posts and reels inside PAVORA. Private accounts approve followers before they can view content. Note: media uploaded to the old public storage buckets may still be accessible through a previously shared direct URL.</p><div class="pvPrivacyOptions"><button type="button" id="pvSetPublic">🌐 Public</button><button type="button" id="pvSetPrivate">🔒 Private</button></div><div id="pvPrivacyStatus" role="status"></div><div id="pvRequestsBox" hidden><h3>Follow requests <span id="pvRequestsCount"></span></h3><div id="pvRequestsList"></div></div>';
 document.getElementById('profile').append(pvPrivacyBox);
 let pvPrivacyBusy=false;
 function pvUpdatePrivacyControl(){
@@ -971,7 +971,7 @@ for(const [id,kind] of [['pvFollowers','followers'],['pvFollowing','following']]
 function pvProfileButton(person){const b=node('button','pvPersonButton','@'+(person.username||'creator'));b.type='button';b.onclick=()=>openCreator(person.id);return b}
 async function openCreator(id){if(!user||!id)return;pvRememberView('creator',id);if(id===user.id){pvNavigate('profile');await updateSocialProfile();return}pvNavigate('creator');pvRememberView('creator',id);publicView.replaceChildren(node('p','muted','Loading profile…'));
 const [{data:person,error},{data:posts,count:postCount,error:postError},{count:reelCount,error:reelCountError},{count:followerCount,error:followerCountError},{count:followingCount,error:followingCountError},{data:myFollow},{data:pendingRequest}]=await Promise.all([
-db.from('profiles').select('id,username,display_name,bio,avatar_url,is_official,is_private').eq('id',id).maybeSingle(),
+db.from('profiles').select('*').eq('id',id).maybeSingle(),
 db.from('posts').select('id,caption,image_path,created_at',{count:'exact'}).eq('author_id',id).order('created_at',{ascending:false}).limit(90),
 db.from('reels').select('id',{count:'exact',head:true}).eq('author_id',id),
 db.from('follows').select('follower_id',{count:'exact',head:true}).eq('following_id',id),
