@@ -2643,14 +2643,15 @@ const pvScrim=node('div','pvDrawerScrim');pvScrim.setAttribute('aria-hidden','tr
  pvDrop.addEventListener('dragleave',()=>pvDrop.classList.remove('pvDragOver'));
  pvDrop.addEventListener('drop',e=>{e.preventDefault();pvDrop.classList.remove('pvDragOver');const f=e.dataTransfer.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);pvInput.files=dt.files;pvSelectMedia(f)}});
  pvShare.onclick=async()=>{const file=pvInput.files[0];if(!file||pvUploading||!user)return;pvUploading=true;pvShare.disabled=true;pvShare.textContent='Uploading…';
-const kind=file.type.startsWith('video/')?'reel':'post';pvFeedback.textContent='Uploading your '+(kind==='reel'?'video':'photo')+'…';
+const kind=file.type.startsWith('video/')?'reel':'post';pvFeedback.textContent='Preparing your '+(kind==='reel'?'video':'photo')+'…';
 let path=null,saved=false;
 try{
 if(kind==='reel'){
 if(!['video/mp4','video/webm'].includes(file.type))throw Error('Choose MP4 or WebM video.');
-if(file.size>50*1024*1024)throw Error('Video must be under 50 MB.');
-path=user.id+'/'+crypto.randomUUID()+(file.type==='video/mp4'?'.mp4':'.webm');
-const upload=await db.storage.from('reel-videos').upload(path,file,{contentType:file.type});if(upload.error)throw upload.error;
+const ready=await window.PAVORA_VIDEO.prepare(file,status=>{pvFeedback.textContent=status});
+pvFeedback.textContent='Uploading optimized video ('+(ready.size/1048576).toFixed(1)+' MB)…';
+path=user.id+'/'+crypto.randomUUID()+(ready.type==='video/mp4'?'.mp4':'.webm');
+const upload=await db.storage.from('reel-videos').upload(path,ready,{contentType:ready.type});if(upload.error)throw upload.error;
 const {data,error}=await db.from('reels').insert({author_id:user.id,caption:pvCaption.value.trim(),video_path:path}).select('id').single();
 if(error)throw error;saved=true;
 pvCloseComposeAfterUpload();pvNavigate('reels');
@@ -2667,7 +2668,7 @@ pvCloseComposeAfterUpload();pvNavigate('home');
 try{await refresh();await loadOwnPosts()}catch(e){console.warn('Feed refresh failed after publish:',e)}
 pvShowUploadToast('post',()=>pvFocusPublished('post',data.id));pvFocusPublished('post',data.id);
 }
-}catch(e){pvFeedback.textContent=e.message;if(path&&!saved){try{await db.storage.from(kind==='reel'?'reel-videos':'post-images').remove([path])}catch(err){console.warn('Could not clean up unsuccessful upload:',err)}}}
+}catch(e){pvFeedback.textContent=e.message||'Upload failed. Please try again.';if(path&&!saved){try{await db.storage.from(kind==='reel'?'reel-videos':'post-images').remove([path])}catch(err){console.warn('Could not clean up unsuccessful upload:',err)}}}
 finally{pvUploading=false;pvShare.disabled=false;pvShare.textContent='Share'}};
 
  function pvCloseComposeAfterUpload(){document.body.classList.remove('pvComposeOpen');pvResetMedia()}
