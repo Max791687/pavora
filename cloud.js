@@ -1393,8 +1393,8 @@ function pvActivateReel(index){
  cards.forEach((card,i)=>{
   const v=card.querySelector('video');if(!v)return;
   const distance=Math.abs(i-index);
-  if(distance<=1){
-   // Only active and adjacent videos hold media connections/decoders.
+  if(distance===0||(!window.PAVORA_CREATOR_HUB?.dataSaver()&&distance===1)){
+   // Data Saver skips adjacent-video decoder and network preloading.
    if(!v.hasAttribute('src')&&v.dataset.pvSrc)v.src=v.dataset.pvSrc;
    v.preload=distance===0?'auto':'metadata';
    if(i===index){
