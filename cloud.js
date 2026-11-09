@@ -1710,6 +1710,11 @@ function pvDmDecorateContent(list,messages,peer){
    btn.onclick=()=>pvDmSetReply(peer,msg);
    row.append(btn);
   }
+  if(!row.querySelector('.pvDmForwardButton')){
+   const btn=node('button','pvDmMenuAction pvDmForwardButton','↗ Forward');btn.type='button';
+   btn.onclick=()=>pvForwardDmMessage(msg,peer);
+   row.append(btn);
+  }
   if(msg.reply_to&&!row.querySelector('.pvDmReplyPreview')){
    const preview=node('div','pvDmReplyPreview',pvDmMessageSummary(byId.get(String(msg.reply_to))));
    preview.title='Reply to original message';
@@ -2104,6 +2109,9 @@ try{window.PVKit?.addCallActions?.(id,chatTop)}catch(e){console.warn('Call butto
 const liveLabel=node('span','pvDmRealtimeLabel',pvDmRealtimeStatus==='live'?'Live':'Syncing');
 liveLabel.title=pvDmRealtimeStatus==='live'?'Real-time messages enabled':'Using background message checks';
 chatTop.append(liveLabel);
+const galleryButton=node('button','pvChatInfoButton','▧');galleryButton.type='button';
+galleryButton.title='Shared photos & videos';galleryButton.setAttribute('aria-label','Shared photos and videos');galleryButton.onclick=()=>pvShowDmMediaGallery(id);
+chatTop.append(galleryButton);
 const infoButton=node('button','pvChatInfoButton');infoButton.type='button';infoButton.title='View profile';infoButton.setAttribute('aria-label','View profile');infoButton.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>';infoButton.onclick=()=>openCreator(id);chatTop.append(infoButton);
 const intro=node('div','pvChatIntro'),introAvatar=node('div','pvChatIntroAvatar');pvChatAvatar(introAvatar);
 intro.append(introAvatar,node('strong','',person.display_name||person.username),node('span','pvChatIntroHandle','@'+person.username+' · PAVORA'));
