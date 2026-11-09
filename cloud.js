@@ -10,6 +10,19 @@ function pvRevealApp(){if(window.__pvLaunchVisualTimer)clearTimeout(window.__pvL
 function pvAuthTimeout(promise,ms=15000){return Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Login is taking too long. Check your internet connection, then try again.')),ms))])}
 
 let user=null,feed=[],profile=null;
+// Official status comes only from the database-controlled verification flag.
+let pvOfficialId=null;
+async function pvLoadOfficialIdentity(){
+ try{
+  const {data,error}=await db.from('profiles').select('id').eq('is_official',true).limit(1).maybeSingle();
+  if(error)return; // Migration may not have been applied yet.
+  pvOfficialId=data?.id||null;
+  if(user&&feed.length)draw();
+ }catch(e){console.warn('Official identity lookup:',e)}
+}
+function pvOfficialBadge(){const b=document.createElement('span');b.className='pvOfficialBadge';b.textContent='✓ Official';b.title='Verified PAVORA official account';return b}
+const officialStyle=document.createElement('style');officialStyle.textContent='.pvOfficialBadge{display:inline-flex;align-items:center;margin-left:7px;padding:2px 7px;border-radius:99px;background:#5932a8;color:#fff;font-size:10px;font-weight:800;vertical-align:middle;white-space:nowrap}';document.head.append(officialStyle);
+pvLoadOfficialIdentity();
 window.PVKit={db,getUser:()=>user,notify:message=>alert(message)};
 let pvSessionInitializing=null,pvSessionInitUser=null,pvSessionReadyForUser=null;
 let pvAuthBootstrapped=false,pvExplicitSignout=false;
@@ -95,7 +108,7 @@ function pvRememberFeed(){
 }
 async function refresh(){if(!user)return;try{status.textContent='Loading cloud posts…';const {data,error}=await db.from('posts').select('id,author_id,caption,image_path,created_at').order('created_at',{ascending:false}).limit(50);if(error){status.textContent='Cloud feed error: '+error.message;return}feed=data||[];const ids=feed.map(p=>p.id);if(ids.length){const [profiles,likes,comments]=await Promise.all([db.from('profiles').select('id,username,display_name,avatar_url').in('id',[...new Set(feed.map(p=>p.author_id))]),db.from('likes').select('post_id,user_id').in('post_id',ids),db.from('comments').select('id,post_id,user_id,body').in('post_id',ids)]);if(profiles.error||likes.error||comments.error){status.textContent='Cloud posts loaded; some social details unavailable: '+[profiles.error,likes.error,comments.error].filter(Boolean).map(e=>e.message).join('; ')}const names=new Map((profiles.data||[]).map(p=>[p.id,p]));feed.forEach(p=>{p.profiles=names.get(p.author_id)||null;p.likes=(likes.data||[]).filter(x=>x.post_id===p.id);p.comments=(comments.data||[]).filter(x=>x.post_id===p.id)})}if(!status.textContent.startsWith('Cloud posts loaded'))status.textContent='☁ Cloud feed · '+feed.length+' posts';draw();pvRememberFeed()}finally{document.body.classList.remove('pvFeedLoading')}}
 function node(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e}
-function draw(){const root=document.getElementById('posts');root.replaceChildren();feed.forEach((p,postIndex)=>{const card=node('article','post'),head=node('div','posthead');card.id='pv-post-'+p.id;const authorAvatar=node('div','profilepic');const authorName=p.profiles?.display_name||p.profiles?.username||'P';if(p.profiles?.avatar_url){const avatarImg=node('img');avatarImg.src=p.profiles.avatar_url;avatarImg.alt=authorName+' profile photo';avatarImg.loading='lazy';avatarImg.onerror=()=>{authorAvatar.replaceChildren();authorAvatar.textContent=authorName[0].toUpperCase()};authorAvatar.append(avatarImg)}else authorAvatar.textContent=authorName[0].toUpperCase();head.append(authorAvatar);const who=node('div');who.append(pvProfileButton({id:p.author_id,username:p.profiles?.username||'creator'}),node('div','muted',new Date(p.created_at).toLocaleString()));head.append(who);card.append(head);if(p.caption)card.append(node('div','postbody',p.caption));if(p.image_path){const image=node('img');image.src=db.storage.from('post-images').getPublicUrl(p.image_path).data.publicUrl;image.alt='Post photo';image.loading=postIndex<2?'eager':'lazy';image.decoding='async';if(postIndex===0)image.fetchPriority='high';card.append(image)}const foot=node('div','postfoot');let liked=(p.likes||[]).some(l=>l.user_id===user.id);
+function draw(){const root=document.getElementById('posts');root.replaceChildren();feed.forEach((p,postIndex)=>{const card=node('article','post'),head=node('div','posthead');card.id='pv-post-'+p.id;const authorAvatar=node('div','profilepic');const authorName=p.profiles?.display_name||p.profiles?.username||'P';if(p.profiles?.avatar_url){const avatarImg=node('img');avatarImg.src=p.profiles.avatar_url;avatarImg.alt=authorName+' profile photo';avatarImg.loading='lazy';avatarImg.onerror=()=>{authorAvatar.replaceChildren();authorAvatar.textContent=authorName[0].toUpperCase()};authorAvatar.append(avatarImg)}else authorAvatar.textContent=authorName[0].toUpperCase();head.append(authorAvatar);const who=node('div');who.append(pvProfileButton({id:p.author_id,username:p.profiles?.username||'creator'}),node('div','muted',new Date(p.created_at).toLocaleString()));if(p.author_id===pvOfficialId)who.querySelector('.pvPersonButton')?.after(pvOfficialBadge());head.append(who);card.append(head);if(p.caption)card.append(node('div','postbody',p.caption));if(p.image_path){const image=node('img');image.src=db.storage.from('post-images').getPublicUrl(p.image_path).data.publicUrl;image.alt='Post photo';image.loading=postIndex<2?'eager':'lazy';image.decoding='async';if(postIndex===0)image.fetchPriority='high';card.append(image)}const foot=node('div','postfoot');let liked=(p.likes||[]).some(l=>l.user_id===user.id);
 const like=node('button','',(liked?'♥':'♡')+' '+(p.likes||[]).length+' Likes');
 like.onclick=async()=>{
  if(like.disabled)return;
@@ -163,6 +176,7 @@ document.getElementById('editBio').value=profile.bio||'';
 const head=document.getElementById('pvProfileHead');
 if(head){
 document.getElementById('pvUsername').textContent=profile.username||'creator';
+if(profile.is_official){document.getElementById('pvUsername').append(pvOfficialBadge())}
 document.getElementById('pvDisplayName').textContent=profile.display_name||'';
 document.getElementById('pvBio').textContent=profile.bio||'';
 const sidebarAvatar=document.querySelector('aside.left .intro .profilepic');
