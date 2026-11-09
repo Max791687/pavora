@@ -2006,6 +2006,16 @@ function pvSyncDesktopChatHeight(){
  document.body.style.setProperty('--pvMsgViewTop',viewTop+'px');
 }
 window.addEventListener('resize',()=>{if(document.body.classList.contains('pvMessagesMode'))requestAnimationFrame(pvSyncDesktopChatHeight)},{passive:true});
+/* Keep the installed Android PWA DM within the visible viewport when the keyboard opens. */
+function pvSyncMobileDmViewport(){
+ if(window.innerWidth>700){document.documentElement.style.removeProperty('--pvDmViewportHeight');return}
+ const viewport=window.visualViewport;
+ const height=viewport?viewport.height:window.innerHeight;
+ if(Number.isFinite(height)&&height>200)document.documentElement.style.setProperty('--pvDmViewportHeight',Math.round(height)+'px');
+}
+window.visualViewport?.addEventListener('resize',pvSyncMobileDmViewport,{passive:true});
+window.addEventListener('resize',pvSyncMobileDmViewport,{passive:true});
+pvSyncMobileDmViewport();
 function pvNavigate(view){pvVirtualView.classList.add('hide');pvActiveVirtual=null;pvCloseVirtualChat();pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');document.body.classList.toggle('pvExploreMode',view==='explore');document.body.classList.toggle('pvReelsMode',view==='reels');try{window.PVKit?.onNavigate?.(view)}catch(e){console.warn('Feature navigation:',e)}if(view==='messages'){loadInbox();requestAnimationFrame(pvSyncDesktopChatHeight)}else{pvDmTypingLastSeen=0;pvClearTyping(selectedPeer)}if(view==='reels')loadReels();if(view==='explore')pvLoadExplore();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
 // Legacy demo's button.onclick only hides/shows HTML. Connect each section
 // to the real cloud navigation so desktop rail opens Reels Mode + autoplay.
@@ -2214,7 +2224,19 @@ if(pvInboxTab!=='Requests')menuItem(setting.folder==='primary'?'Move to General'
 if(pvInboxTab!=='Requests')menuItem(setting.pinned?'Unpin conversation':'Pin conversation',async()=>{if(await pvSaveConversationSetting(id,{pinned:!setting.pinned}))await loadInbox()});
 menuItem(setting.muted?'Unmute notifications':'Mute notifications',async()=>{if(await pvSaveConversationSetting(id,{muted:!setting.muted}))await loadInbox()});
 menuItem('Remove chat',async()=>pvRemoveChat(id));
-menuButton.setAttribute('aria-expanded','false');menuButton.onclick=e=>{e.stopPropagation();const opening=menu.classList.contains('hide');inboxView.querySelectorAll('.pvChatContextMenu').forEach(m=>m.classList.add('hide'));inboxView.querySelectorAll('.pvChatMore').forEach(m=>m.setAttribute('aria-expanded','false'));menu.classList.toggle('hide',!opening);menuButton.setAttribute('aria-expanded',String(opening))};
+menuButton.setAttribute('aria-expanded','false');menuButton.onclick=e=>{
+ e.stopPropagation();
+ const opening=menu.classList.contains('hide');
+ inboxView.querySelectorAll('.pvChatContextMenu').forEach(m=>m.classList.add('hide'));
+ inboxView.querySelectorAll('.pvChatMore').forEach(m=>m.setAttribute('aria-expanded','false'));
+ menu.classList.toggle('hide',!opening);menuButton.setAttribute('aria-expanded',String(opening));
+ if(opening&&window.innerWidth<=700){
+  const rect=menuButton.getBoundingClientRect();
+  const visibleHeight=window.visualViewport?.height||window.innerHeight;
+  menu.style.position='fixed';menu.style.right=Math.max(12,window.innerWidth-rect.right)+'px';
+  menu.style.left='auto';menu.style.top=Math.max(12,Math.min(rect.bottom+6,visibleHeight-menu.offsetHeight-12))+'px';
+ }
+};
 const controls=node('div','pvChatMenuWrap');controls.append(menuButton,menu);
 entry.append(b,controls);threads.append(entry);rows.push({entry,p})}
 const filter=()=>{const q=pvInboxSearch.toLowerCase();for(const {entry,p} of rows)entry.classList.toggle('hide',!(p.display_name||'').toLowerCase().includes(q)&&!(p.username||'').toLowerCase().includes(q))};
