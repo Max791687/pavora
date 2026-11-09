@@ -41,17 +41,30 @@ like.onclick=async()=>{like.disabled=true;try{const existing=await db.from('reel
 comments.onclick=async()=>{const body=open('Reel comments'),list=el('div','pvSuiteCommentList'),form=el('form','pvSuiteCommentForm'),input=el('input'),send=el('button','','Post');input.required=true;input.maxLength=500;input.placeholder='Write a comment';form.append(input,send);body.append(list,form);const draw=async()=>{const result=await refresh();if(!result){list.textContent='Run supabase/social-suite.sql to enable comments.';return}list.replaceChildren();for(const comment of result.comments)list.append(el('div','pvSuiteComment',comment.body));if(!result.comments.length)list.append(el('p','','No comments yet.'))};form.onsubmit=async e=>{e.preventDefault();send.disabled=true;const result=await db.from('reel_comments').insert({reel_id:reel.id,user_id:user.id,body:input.value.trim()});send.disabled=false;if(result.error)return info(result.error);input.value='';draw()};draw()};
 // Only the currently playing Reel requests its statistics and saved status.
 // A feed of 40 reels previously triggered 160+ requests before playback.
-let seen=false,lastStatsRefresh=0;
+let viewed=false,statsLoaded=false,lastStatsRefresh=0,watchSeconds=0,lastWatchTime=0;
 video.addEventListener('play',()=>{
- // Re-check Reel engagement when a user returns, without polling every
- // off-screen Reel or making network requests for all loaded cards.
- const now=Date.now();
- if(seen){if(now-lastStatsRefresh>10000){lastStatsRefresh=now;refresh().catch(e=>console.warn('Reel stats:',e))}return}
- seen=true;lastStatsRefresh=now;
- db.from('saved_media').select('reel_id').eq('user_id',user.id).eq('reel_id',reel.id).maybeSingle().then(({data})=>setSaved(!!data)).catch(()=>{});
- db.from('reel_views').upsert({user_id:user.id,reel_id:reel.id,last_viewed_at:new Date().toISOString()},{onConflict:'user_id,reel_id'})
- .then(()=>refresh()).catch(e=>console.warn('Reel statistics:',e));
+ const now=Date.now();lastWatchTime=video.currentTime||0;
+ if(now-lastStatsRefresh>10000){
+  lastStatsRefresh=now;refresh().catch(e=>console.warn('Reel stats:',e));
+ }
+ if(!statsLoaded){
+  statsLoaded=true;
+  db.from('saved_media').select('reel_id').eq('user_id',user.id).eq('reel_id',reel.id).maybeSingle().then(({data})=>setSaved(!!data)).catch(()=>{});
+ }
 });
+video.addEventListener('timeupdate',()=>{
+ if(viewed||video.paused||document.hidden||!video.isConnected)return;
+ const current=video.currentTime||0;
+ const delta=current-lastWatchTime;lastWatchTime=current;
+ if(delta>0&&delta<1.5)watchSeconds+=delta;
+ // Require meaningful playback rather than counting a failed autoplay attempt.
+ if(watchSeconds<2&&!(video.duration>0&&video.duration<2&&watchSeconds>=video.duration*.75))return;
+ viewed=true;
+ db.from('reel_views').upsert({user_id:user.id,reel_id:reel.id,last_viewed_at:new Date().toISOString()},{onConflict:'user_id,reel_id'})
+ .then(({error})=>{if(error){console.warn('Reel view recording:',error.message);viewed=false;return}return refresh()})
+ .catch(e=>{viewed=false;console.warn('Reel statistics:',e)});
+});
+video.addEventListener('seeked',()=>{lastWatchTime=video.currentTime||0});
 
 };
 kit.addSavedTab=panel=>{if(!panel)return;const tabs=panel.querySelector('.pvTabs');if(!tabs||tabs.querySelector('.pvSavedTab'))return;const b=el('button','pvSavedTab','☆ SAVED');b.type='button';tabs.append(b);b.onclick=async()=>{tabs.querySelectorAll('button').forEach(x=>x.classList.remove('active'));b.classList.add('active');const grid=document.getElementById('pvPostGrid');grid.replaceChildren(el('p','','Loading saved items…'));const user=owner();if(!user)return;const {data,error}=await db.from('saved_media').select('post_id,reel_id').eq('user_id',user.id).order('created_at',{ascending:false}).limit(100);if(error){grid.textContent='Run supabase/social-suite.sql first: '+error.message;return}const ids=(data||[]).filter(x=>x.post_id).map(x=>x.post_id),rids=(data||[]).filter(x=>x.reel_id).map(x=>x.reel_id);const [p,r]=await Promise.all([ids.length?db.from('posts').select('id,caption,image_path').in('id',ids):{data:[]},rids.length?db.from('reels').select('id,caption,video_path').in('id',rids):{data:[]}]);grid.replaceChildren();for(const x of p.data||[]){const tile=el('button','pvTile'),img=el('img');img.src=imageUrl('post-images',x.image_path);tile.append(img);tile.onclick=()=>{const body=open('Saved post'),photo=el('img','pvSuiteMedia');photo.src=img.src;body.append(photo,el('p','',x.caption||''),saveButton('post',x.id))};grid.append(tile)}for(const x of r.data||[]){const tile=el('button','pvTile'),vid=el('video');vid.src=imageUrl('reel-videos',x.video_path);vid.preload='metadata';vid.muted=true;tile.append(vid,el('span','pvSuiteVideoBadge','▶'));tile.onclick=()=>{const body=open('Saved Reel'),video=el('video','pvSuiteMedia');video.src=vid.src;video.controls=true;video.autoplay=true;body.append(video,el('p','',x.caption||''),saveButton('reel',x.id))};grid.append(tile)}if(!grid.children.length)grid.append(el('p','pvNoPosts','Nothing saved yet.'))};
