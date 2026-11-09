@@ -3,8 +3,8 @@
 import { readFileSync, existsSync } from 'node:fs';
 import assert from 'node:assert/strict';
 const read = file => { assert.ok(existsSync(file), `Missing file: ${file}`); return readFileSync(file, 'utf8') };
-const html=read('index.html'),cloud=read('cloud.js'),suite=read('social-suite.js'),sw=read('sw.js');
-for(const file of ['cloud.js','social-suite.js','calls.js','app-install.js','push.js','sw.js']){
+const html=read('index.html'),cloud=read('cloud.js'),suite=read('social-suite.js'),sw=read('sw.js'),compress=read('video-compress.js');
+for(const file of ['cloud.js','social-suite.js','calls.js','app-install.js','push.js','sw.js','video-compress.js']){
  const code=read(file);
  try {new Function(code)}catch(err){throw Error(`${file} syntax failure: ${err.message}`)}
 }
@@ -37,6 +37,10 @@ assert.ok(html.includes('pvChatSelected .pvChatArea')&&html.includes('--pvDmView
 assert.ok(cloud.includes('pvSyncMobileDmViewport')&&cloud.includes("menu.style.position='fixed'"), 'Keyboard/menu positioning fix missing');
 assert.ok(cloud.includes('--pvDmViewportTop')&&cloud.includes("visualViewport?.addEventListener('scroll'")&&html.includes('top:var(--pvDmViewportTop,0px)'), 'Mobile visual viewport offset tracking missing');
 assert.ok(html.includes('pvDmKeyboardOpen .pvIconRail')&&html.includes('pvChatSelected) .pvIconRail'), 'Chat must hide mobile bottom nav');
+assert.ok(html.includes('video-compress.js')&&html.indexOf('video-compress.js')<html.indexOf('cloud.js?v='), 'Video compressor must load before cloud.js');
+assert.ok(compress.includes('MediaRecorder')&&compress.includes('captureStream')&&compress.includes('audioCtx'), 'Local video compression or audio preservation missing');
+assert.ok(cloud.includes('window.PAVORA_VIDEO.prepare')&&suite.includes('window.PAVORA_VIDEO.prepare'), 'Reel/story uploader must prepare large videos');
+assert.ok(sw.includes('video-compress.js')&&sw.includes('video-opt-v29'), 'PWA must cache video optimizer');
 assert.ok(suite.includes('story_views'), 'Story viewer tracking missing');
 assert.ok(sw.includes("event.respondWith"), 'PWA offline fallback missing');
 console.log('PAVORA static smoke checks passed. Browser integration tests are still required.');
