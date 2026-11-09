@@ -1513,6 +1513,7 @@ video.addEventListener('playing',()=>{loading.hidden=true;loading.classList.remo
 video.addEventListener('canplay',()=>{if(!video.paused)loading.hidden=true});
 video.addEventListener('error',()=>{if(!video.hasAttribute('src'))return;loading.textContent='Could not load Reel · Tap to retry';loading.disabled=false;loading.classList.add('error');loading.hidden=false});
 screen.append(video,meta,loading);
+window.PAVORA_REEL_SEEK?.attach(screen,video);
 const togglePlay=()=>{if(!video.hasAttribute('src')&&video.dataset.pvSrc)video.src=video.dataset.pvSrc;if(video.paused){video.muted=!pvReelsSoundOn;video.play().catch(pvHandleReelAutoplayError)}else video.pause()};
 pvBindDoubleTap(video,()=>{
  const reelLike=actions.querySelector('.pvSuiteReelActions .pvSuiteIconAction');
