@@ -287,22 +287,31 @@ pvSettingsCSS.textContent=`
 .pvSettingsOpenProfile{padding:12px 19px;border:0;background:#7048bc;color:white;border-radius:10px;font-weight:750;cursor:pointer}
 @media(max-width:680px){#pvSettingsScreen{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.pvSettingsSidebar{border-right:0;border-bottom:1px solid #2a2632;padding:8px 11px}.pvSettingsSidebar h2{font-size:18px;margin:5px 10px 9px}.pvSettingsSectionLabel{display:none}.pvSettingsLinks{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}.pvSettingsNav{width:auto;flex:none;padding:10px;font-size:12px}.pvSettingsNav .pvSettingsIcon{font-size:16px;width:17px}.pvSettingsBack{padding:7px 9px}.pvSettingsMain{padding:23px 14px 90px}.pvSettingsPage h2{font-size:20px}.pvSettingsAccount{padding:12px}#pvSettingsScreen #pvPrivacySettings{padding:15px}}
 `;
-document.head.append(pvSettingsCSS);
+document.head.append(pvSettingsCSS);const pvSettingsEnhanceCSS=document.createElement('style');pvSettingsEnhanceCSS.textContent="\n#pvSettingsScreen{grid-template-columns:295px minmax(0,1fr);background:#0c0d11}\n.pvSettingsSidebar{background:#111217;border-color:#292b32;scrollbar-width:thin}\n.pvSettingsSidebar h2{letter-spacing:-.5px;margin-bottom:16px}\n.pvSettingsSearch{width:calc(100% - 20px);margin:0 10px 10px;padding:11px 13px;background:#23242b;color:white;border:1px solid #34353e;border-radius:11px;outline:none;font:inherit;font-size:13px}\n.pvSettingsSearch:focus{border-color:#9465dc}\n.pvSettingsSectionLabel{margin:22px 13px 10px;color:#aaa8b4;text-transform:none;font-size:11px}\n.pvSettingsNav{padding:12px 13px;gap:11px;font-size:13.5px;transition:background .14s}\n.pvSettingsNav.active{background:#292535}.pvSettingsNav:hover{background:#282630}\n.pvSettingsMain{background:#0d0e12}.pvSettingsPage{width:min(720px,100%)}.pvSettingsPage h2{font-size:25px}\n.pvSettingsCard{padding:21px;background:#18191f;border:1px solid #31313b;border-radius:14px;margin:15px 0 20px}\n.pvSettingsCard h3{font-size:16px;margin:0 0 10px}\n.pvSettingsCard>p{font-size:13px;line-height:1.65;color:#b0aebc;margin:0 0 13px}\n.pvSettingsRow{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:17px 0;border-top:1px solid #30303b}\n.pvSettingsRow strong{display:block;color:#f3f1f7;font-size:14px;margin-bottom:5px}\n.pvSettingsRow small{display:block;color:#a9a6b6;font-size:12px;line-height:1.6}\n.pvSettingsAction{border:1px solid #585069;border-radius:10px;padding:10px 14px;background:#332842;color:#f3e6ff;font-weight:750;white-space:nowrap;cursor:pointer}\n.pvSettingsAction:hover{background:#503a68}\n.pvSettingsSwitch{width:46px;height:27px;border:0;border-radius:30px;background:#4d4e57;position:relative;flex:none;cursor:pointer}\n.pvSettingsSwitch::after{content:'';position:absolute;top:4px;left:4px;width:19px;height:19px;background:white;border-radius:50%;transition:transform .2s}\n.pvSettingsSwitch.on{background:#8752e6}.pvSettingsSwitch.on::after{transform:translateX(19px)}\n#pvSettingsScreen #pvPrivacySettings{background:transparent;border:0;padding:0;margin:0}\n#pvSettingsScreen #pvPrivacySettings h3{display:none}\n#pvSettingsScreen #pvPrivacySettings>p{font-size:12px;color:#b4adbb;line-height:1.65}\n#pvSettingsScreen #pvPrivacySettings .pvPrivacyOptions{display:flex;flex-direction:column;gap:0;background:#202027;border:1px solid #383441;border-radius:12px;padding:0 15px;margin:15px 0}\n#pvSettingsScreen #pvPrivacySettings .pvPrivacyOptions button{background:transparent!important;text-align:left;border:0!important;border-radius:0;min-height:57px;color:#f4f0fa}\n#pvSettingsScreen #pvPrivacySettings .pvPrivacyOptions button:first-child{border-bottom:1px solid #35333f!important}\n#pvSettingsScreen #pvPrivacySettings .pvPrivacyOptions button.active{color:#cdb5ff}\n#pvSettingsScreen #pvPrivacySettings .pvPrivacyOptions button.active::after{content:'✓';float:right;color:#b69bff}\n#pvSettingsScreen #pvRequestsBox{background:#202027;border:1px solid #383441;padding:15px;border-radius:12px}\n#pvSettingsScreen #pvRequestsBox h3{display:block}\n.pvSettingsSearchEmpty{font-size:12px;color:#aaa;padding:10px}\n@media(max-width:680px){#pvSettingsScreen{grid-template-columns:1fr}.pvSettingsSidebar{padding:9px 12px}.pvSettingsSidebar h2{font-size:18px;margin:5px 10px}.pvSettingsSearch{margin:6px 9px;width:calc(100% - 18px)}.pvSettingsLinks{max-height:90px;overflow-x:auto;gap:6px}.pvSettingsNav{font-size:12px}.pvSettingsSectionLabel{display:none}.pvSettingsMain{padding:22px 15px}.pvSettingsPage h2{font-size:22px}}\n";document.head.append(pvSettingsEnhanceCSS);
 const pvSettingsScreen=node('section');pvSettingsScreen.id='pvSettingsScreen';pvSettingsScreen.hidden=true;
 pvSettingsScreen.setAttribute('aria-label','PAVORA settings');
 const pvSettingsSidebar=node('nav','pvSettingsSidebar');
 const pvSettingsBack=node('button','pvSettingsBack','← Back to PAVORA');pvSettingsBack.type='button';
 const pvSettingsHeading=node('h2','','Settings and activity');
 pvSettingsSidebar.append(pvSettingsBack,pvSettingsHeading);
+const pvSettingsSearch=node('input','pvSettingsSearch');
+pvSettingsSearch.type='search';pvSettingsSearch.placeholder='Search settings';pvSettingsSearch.setAttribute('aria-label','Search settings');
+pvSettingsSidebar.append(pvSettingsSearch);
 const pvSettingsLinks=node('div','pvSettingsLinks');pvSettingsSidebar.append(pvSettingsLinks);
 const pvSettingsMain=node('div','pvSettingsMain');
 const pvSettingsPage=node('div','pvSettingsPage');pvSettingsMain.append(pvSettingsPage);
 pvSettingsScreen.append(pvSettingsSidebar,pvSettingsMain);document.body.append(pvSettingsScreen);
 const pvSettingsItems=[
- {key:'overview',icon:'⚙',title:'Settings overview',category:'Your account'},
- {key:'edit',icon:'♙',title:'Edit profile',category:'Your account'},
- {key:'privacy',icon:'♙',title:'Account privacy',category:'Who can see your content'},
- {key:'requests',icon:'✉',title:'Follow requests',category:'Who can see your content'}
+ {key:'overview',icon:'◎',title:'Accounts Center',category:'Your account'},
+ {key:'edit',icon:'♙',title:'Edit profile',category:'How you use PAVORA'},
+ {key:'notifications',icon:'♧',title:'Notifications',category:'How you use PAVORA'},
+ {key:'privacy',icon:'◈',title:'Account privacy',category:'Who can see your content'},
+ {key:'requests',icon:'✉',title:'Follow requests',category:'Who can see your content'},
+ {key:'interactions',icon:'♡',title:'Interactions',category:'How others can interact with you'},
+ {key:'accessibility',icon:'◐',title:'Accessibility',category:'Your app and media'},
+ {key:'language',icon:'文',title:'Language',category:'Your app and media'},
+ {key:'help',icon:'?',title:'Help',category:'More info and support'},
+ {key:'about',icon:'ⓘ',title:'About PAVORA',category:'More info and support'}
 ];
 let pvSettingsActive='privacy';
 function pvCloseSettings(){
@@ -321,50 +330,90 @@ function pvOpenSettings(page='overview'){
 function pvShowSettingsPage(page){
  pvSettingsActive=page;
  pvSettingsLinks.replaceChildren();
- let lastCategory='';
+ const query=pvSettingsSearch.value.trim().toLowerCase();
+ let category='',total=0;
  for(const item of pvSettingsItems){
-  if(item.category!==lastCategory){
-   pvSettingsLinks.append(node('div','pvSettingsSectionLabel',item.category));lastCategory=item.category;
-  }
-  const b=node('button','pvSettingsNav'+(page===item.key?' active':''));b.type='button';
-  b.append(node('span','pvSettingsIcon',item.icon),node('span','',item.title));
-  b.onclick=()=>pvShowSettingsPage(item.key);pvSettingsLinks.append(b);
+  if(query&&!(item.title+' '+item.category).toLowerCase().includes(query))continue;
+  if(category!==item.category){category=item.category;pvSettingsLinks.append(node('div','pvSettingsSectionLabel',category))}
+  const btn=node('button','pvSettingsNav'+(page===item.key?' active':''));btn.type='button';
+  btn.setAttribute('aria-current',page===item.key?'page':'false');
+  btn.append(node('span','pvSettingsIcon',item.icon),node('span','',item.title));
+  btn.onclick=()=>pvShowSettingsPage(item.key);pvSettingsLinks.append(btn);total++;
  }
+ if(!total)pvSettingsLinks.append(node('p','pvSettingsSearchEmpty','No matching settings.'));
  pvSettingsPage.replaceChildren();
- const title=node('h2','',pvSettingsItems.find(i=>i.key===page)?.title||'Settings');
- pvSettingsPage.append(title);
- if(page==='privacy'||page==='requests'){
-  pvSettingsPage.append(pvPrivacyBox);
-  pvPrivacyBox.hidden=false;
+ pvSettingsPage.append(node('h2','',pvSettingsItems.find(i=>i.key===page)?.title||'Settings'));
+ const card=(heading,detail)=>{
+  const box=node('section','pvSettingsCard');if(heading)box.append(node('h3','',heading));
+  if(detail)box.append(node('p','',detail));pvSettingsPage.append(box);return box;
+ };
+ const action=(caption,callback)=>{const btn=node('button','pvSettingsAction',caption);btn.type='button';btn.onclick=callback;return btn};
+ const row=(box,heading,detail,control)=>{
+  const line=node('div','pvSettingsRow'),left=node('div');
+  left.append(node('strong','',heading),node('small','',detail));line.append(left);
+  if(control)line.append(control);box.append(line);
+ };
+ if(page==='privacy'){
+  const box=card('Your account visibility','Choose who can view your posts and reels inside PAVORA.');
+  box.append(pvPrivacyBox);pvPrivacyBox.hidden=false;
   pvUpdatePrivacyControl();
-  if(page==='requests'){
-   const intro=node('p','pvSettingsInfo','Approve or decline follow requests from people who want to follow your private account.');
-   pvSettingsPage.insertBefore(intro,pvPrivacyBox);
-   pvLoadFollowRequests();
-  }
-  if(page==='privacy'){
-   const info=node('p','pvSettingsInfo','Public profiles can be discovered and followed immediately. Private profiles require approval from you before new followers can see posts or reels.');
-   pvSettingsPage.append(info);
-   const note=node('div','pvSettingsHint','Privacy protection for content requires the Supabase migration. Older public media URLs may remain accessible until storage is migrated to private buckets.');
-   pvSettingsPage.append(note);
-  }
+  document.getElementById('pvRequestsBox').hidden=true;
+  pvSettingsPage.append(node('div','pvSettingsHint','Private accounts require your approval before new followers can see your posts. Previously shared direct links to media in old public storage may still work.'));
+ }else if(page==='requests'){
+  const box=card('Pending follow requests','Approve or decline people who request access to your private profile.');
+  box.append(pvPrivacyBox);pvPrivacyBox.hidden=false;
+  pvUpdatePrivacyControl();pvLoadFollowRequests();
  }else if(page==='edit'){
-  pvSettingsPage.append(node('p','pvSettingsInfo','Manage your username, profile photo, display name and bio.'));
-  const edit=node('button','pvSettingsOpenProfile','Open profile editor');
-  edit.onclick=()=>{pvCloseSettings();pvNavigate('profile');editor.hidden=false;editor.scrollIntoView({behavior:'smooth',block:'start'})};
-  pvSettingsPage.append(edit);
+  const box=card('Profile details','Change your username, profile picture, display name and bio.');
+  row(box,'Edit your profile','These details are visible to people viewing your profile.',action('Edit profile',()=>{pvCloseSettings();pvNavigate('profile');editor.hidden=false;editor.scrollIntoView({behavior:'smooth',block:'start'})}));
+ }else if(page==='notifications'){
+  const box=card('Notifications','Manage your device notifications and open recent activity.');
+  const state=typeof Notification==='undefined'?'Not supported':Notification.permission==='granted'?'Allowed':Notification.permission==='denied'?'Blocked in browser':'Permission not requested';
+  row(box,'Browser notifications',state,action('Check permission',async()=>{if(!('Notification' in window))return alert('Your browser does not support notifications.');if(Notification.permission==='default')await Notification.requestPermission();pvShowSettingsPage('notifications')}));
+  row(box,'Notifications inbox','See follows, likes and other activity.',action('View',()=>{pvCloseSettings();const link=document.querySelector('[data-view="notifications"]');if(link)link.click();else alert('Open Notifications from the PAVORA sidebar.')}));
+ }else if(page==='interactions'){
+  const box=card('Interactions','Manage account visibility and incoming followers.');
+  row(box,'Account privacy','Choose a public or private account.',action('Manage',()=>pvShowSettingsPage('privacy')));
+  row(box,'Follow requests','Review requests from other people.',action('Open',()=>pvShowSettingsPage('requests')));
+ }else if(page==='accessibility'){
+  const box=card('Accessibility','Make the app easier and more comfortable to use.');
+  const enabled=localStorage.getItem('pvReduceMotion')==='true';
+  const toggle=node('button','pvSettingsSwitch'+(enabled?' on':''));toggle.type='button';toggle.setAttribute('role','switch');toggle.setAttribute('aria-checked',String(enabled));toggle.setAttribute('aria-label','Reduce animations');
+  toggle.onclick=()=>{const value=localStorage.getItem('pvReduceMotion')!=='true';localStorage.setItem('pvReduceMotion',String(value));document.documentElement.classList.toggle('pvReduceMotion',value);pvShowSettingsPage('accessibility')};
+  row(box,'Reduce animations','Minimize transitions and moving elements on this device.',toggle);
+ }else if(page==='language'){
+  const box=card('Language','PAVORA currently displays its settings in English.');
+  row(box,'English','Full Hindi translation is not available yet.',null);
+ }else if(page==='help'){
+  const box=card('Account help','Quick answers to common questions.');
+  row(box,'Make account private','Go to Account privacy, then choose Private.',action('Privacy',()=>pvShowSettingsPage('privacy')));
+  row(box,'Approve followers','Open Follow requests to accept or decline.',action('Requests',()=>pvShowSettingsPage('requests')));
+  row(box,'Forgot password','Use Forgot password on the email sign-in page.',null);
+ }else if(page==='about'){
+  const box=card('PAVORA','Share posts, reels, messages and connections.');
+  row(box,'Account protection','Never share passwords or verification codes.',null);
+  row(box,'Privacy control','Switch between a public and private account.',action('Open',()=>pvShowSettingsPage('privacy')));
  }else{
-  const card=node('div','pvSettingsAccount'),avatar=node('div','pvSettingsAccountAvatar');
+  const summary=node('div','pvSettingsAccount'),avatar=node('div','pvSettingsAccountAvatar');
   if(profile?.avatar_url){const img=node('img');img.src=profile.avatar_url;img.alt='';avatar.append(img)}
   else avatar.textContent=(profile?.username||'P')[0].toUpperCase();
   const info=node('div');info.append(node('strong','',profile?.display_name||profile?.username||'Your account'),node('small','','@'+(profile?.username||'creator')));
-  card.append(avatar,info);pvSettingsPage.append(card);
-  const desc=node('p','pvSettingsInfo','Control your account privacy and manage follow requests in one place.');
-  pvSettingsPage.append(desc);
-  const privacyButton=node('button','pvSettingsOpenProfile','Manage account privacy');
-  privacyButton.onclick=()=>pvShowSettingsPage('privacy');pvSettingsPage.append(privacyButton);
+  summary.append(avatar,info);pvSettingsPage.append(summary);
+  const box=card('Account details','Manage your PAVORA account and privacy.');
+  row(box,'Signed in as',user?.email||user?.phone||'Signed in',null);
+  row(box,'Account visibility',profile?.is_private?'Private account':'Public account',action('Change',()=>pvShowSettingsPage('privacy')));
+  row(box,'Profile','Change your public details.',action('Edit',()=>pvShowSettingsPage('edit')));
+  const more=card('Quick access','Frequently used settings.');
+  row(more,'Follow requests','Requests from people who want to follow you.',action('Open',()=>pvShowSettingsPage('requests')));
+  row(more,'Notifications','Manage browser notification permissions.',action('Open',()=>pvShowSettingsPage('notifications')));
  }
 }
+pvSettingsSearch.addEventListener('input',()=>pvShowSettingsPage(pvSettingsActive));
+const pvReduceMotionCSS=document.createElement('style');
+pvReduceMotionCSS.textContent='.pvReduceMotion *, .pvReduceMotion *::before, .pvReduceMotion *::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}';
+document.head.append(pvReduceMotionCSS);
+document.documentElement.classList.toggle('pvReduceMotion',localStorage.getItem('pvReduceMotion')==='true');
+
 pvSettingsBack.onclick=pvCloseSettings;
 document.getElementById('signout')?.addEventListener('click',pvCloseSettings);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pvSettingsScreen.hidden)pvCloseSettings()});
