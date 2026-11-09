@@ -32,9 +32,11 @@ assert.ok(cloud.includes('pvDmHideForMe')&&cloud.includes('dm_hidden_messages'),
 assert.ok(cloud.includes('pv_edit_own_dm'), 'Secure sent-message Edit action missing');
 assert.ok(cloud.includes('pvDmPickerTabs')&&cloud.includes('pvStickerSet')&&cloud.includes('pvSelectPickerTab'), 'DM sticker picker missing');
 assert.ok(cloud.includes("'image/gif'")&&cloud.includes("mediaFile.type==='image/gif'?'.gif'"), 'GIF attachment support missing');
-assert.ok(html.includes('dm-mobile-layout-v28-1')&&sw.includes('dm-mobile-layout-v28-1'), 'PWA version mismatch');
+assert.ok(html.includes('dm-mobile-keyboard-v28-2')&&sw.includes('dm-mobile-keyboard-v28-2'), 'PWA version mismatch');
 assert.ok(html.includes('pvChatSelected .pvChatArea')&&html.includes('--pvDmViewportHeight'), 'Mobile DM pane fix missing');
 assert.ok(cloud.includes('pvSyncMobileDmViewport')&&cloud.includes("menu.style.position='fixed'"), 'Keyboard/menu positioning fix missing');
+assert.ok(cloud.includes('--pvDmViewportTop')&&cloud.includes("visualViewport?.addEventListener('scroll'")&&html.includes('top:var(--pvDmViewportTop,0px)'), 'Mobile visual viewport offset tracking missing');
+assert.ok(html.includes('pvDmKeyboardOpen .pvIconRail')&&html.includes('pvChatSelected) .pvIconRail'), 'Chat must hide mobile bottom nav');
 assert.ok(suite.includes('story_views'), 'Story viewer tracking missing');
 assert.ok(sw.includes("event.respondWith"), 'PWA offline fallback missing');
 console.log('PAVORA static smoke checks passed. Browser integration tests are still required.');
