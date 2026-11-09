@@ -1134,6 +1134,50 @@ await loadCreators();
 window.PVKit?.renderHighlights?.(document.querySelector('#profile > .panel'),user.id);
 }
 let pvProfileMediaTab='posts',pvOwnPosts=[],pvOwnReels=[];
+let pvOwnReelViews=new Map(),pvOwnReelDeleting=new Set();
+async function pvLoadOwnReelViewCounts(ids){
+ const counts=new Map();
+ if(!ids.length)return counts;
+ // reel_views is unique per (user_id, reel_id): these are unique viewers.
+ for(let start=0;start<ids.length;start+=70){
+  const {data,error}=await db.from('reel_views').select('reel_id').in('reel_id',ids.slice(start,start+70)).limit(5000);
+  if(error){console.warn('Profile reel view totals:',error.message);throw error}
+  for(const row of data||[])counts.set(row.reel_id,(counts.get(row.reel_id)||0)+1);
+ }
+ return counts;
+}
+async function pvDeleteOwnReel(reel){
+ if(!user||pvOwnReelDeleting.has(reel.id))return;
+ if(!confirm('Permanently delete this Reel? All its likes, comments and views will be removed. This cannot be undone.'))return;
+ const uid=user.id;
+ pvOwnReelDeleting.add(reel.id);pvDrawOwnMedia();
+ try{
+  const {data,error}=await db.from('reels').delete().eq('id',reel.id).eq('author_id',uid).select('id');
+  if(error)throw error;
+  if(!data?.length)throw Error('Reel was not deleted. Check account permissions.');
+  pvOwnReels=pvOwnReels.filter(r=>r.id!==reel.id);
+  pvOwnReelViews.delete(reel.id);
+  const counter=document.getElementById('pvReelCount');
+  if(counter)counter.textContent=String(Math.max(0,Number(counter.textContent||pvOwnReels.length+1)-1));
+  pvReelsLoadedAt=0;pvReelsLoadedFor=null;
+  try{const cleanup=await db.storage.from('reel-videos').remove([reel.video_path]);if(cleanup.error)console.warn('Reel media cleanup:',cleanup.error.message)}catch(e){console.warn('Reel media cleanup:',e)}
+  pvDrawOwnMedia();
+  pvNotifyAuth('✓ Reel deleted permanently.');
+ }catch(e){alert('Could not delete Reel: '+(e.message||e))}
+ finally{pvOwnReelDeleting.delete(reel.id);pvDrawOwnMedia()}
+}
+async function pvOpenProfileReel(reelId){
+ pvNavigate('reels');
+ await loadReels();
+ const target=document.getElementById('reel-'+reelId);
+ if(!target){await loadReels(true)}
+ const card=document.getElementById('reel-'+reelId);
+ const stack=card?.closest('.pvReelStack');
+ if(card&&stack&&typeof stack.pvResume==='function'){
+  const index=[...stack.querySelectorAll('.pvReelCard')].indexOf(card);
+  if(index>=0)stack.pvResume(index);
+ }
+}
 function pvDrawOwnMedia(){const grid=document.getElementById('pvPostGrid');if(!grid)return;grid.replaceChildren();
 document.getElementById('pvAllMediaTab')?.classList.toggle('active',pvProfileMediaTab==='posts');
 document.getElementById('pvReelsMediaTab')?.classList.toggle('active',pvProfileMediaTab==='reels');
@@ -1142,7 +1186,19 @@ const shown=all.filter(x=>x.kind===(pvProfileMediaTab==='reels'?'reel':'post'));
 if(!shown.length){grid.append(node('div','pvNoPosts',pvProfileMediaTab==='reels'?'No Reels uploaded yet.':'No posts yet. Share your first update!'));return}
 for(const item of shown){const tile=node('button','pvTile'+(item.kind==='reel'?' pvProfileReelTile':''));tile.type='button';tile.title=item.caption||'View '+item.kind;
 if(item.kind==='post'){if(item.image_path){const img=node('img');img.loading='lazy';img.alt=item.caption||'Your post';img.src=db.storage.from('post-images').getPublicUrl(item.image_path).data.publicUrl;tile.append(img)}else{tile.classList.add('pvTextTile');tile.append(node('span','',item.caption||'Text post'))}tile.onclick=()=>openProfilePost(item)}
-else{const video=node('video');video.muted=true;video.playsInline=true;video.preload='metadata';video.src=db.storage.from('reel-videos').getPublicUrl(item.video_path).data.publicUrl;tile.append(video,node('span','pvProfileReelBadge','▶'));tile.onclick=()=>{pvNavigate('reels');loadReels().then(()=>document.getElementById('reel-'+item.id)?.scrollIntoView({behavior:'smooth',block:'center'}))}}
+else{
+ const video=node('video');video.muted=true;video.playsInline=true;video.preload='metadata';video.src=db.storage.from('reel-videos').getPublicUrl(item.video_path).data.publicUrl;
+ tile.append(video,node('span','pvProfileReelBadge','▶'));
+ const total=pvOwnReelViews.get(item.id);
+ const stats=node('span','pvProfileReelViews',total===undefined?'◉ —':'◉ '+total.toLocaleString()+' views');
+ stats.title='Unique people who watched this Reel';tile.append(stats);
+ const del=node('button','pvProfileReelDelete','🗑');
+ del.type='button';del.title='Delete Reel permanently';del.setAttribute('aria-label','Delete Reel permanently');
+ del.disabled=pvOwnReelDeleting.has(item.id);
+ del.onclick=event=>{event.stopPropagation();event.preventDefault();pvDeleteOwnReel(item)};
+ tile.append(del);
+ tile.onclick=()=>pvOpenProfileReel(item.id);
+}
 grid.append(tile)}
 }
 async function loadOwnPosts(){if(!user)return;const uid=user.id;const grid=document.getElementById('pvPostGrid');if(!grid)return;
@@ -1152,6 +1208,12 @@ db.from('reels').select('id,caption,video_path,created_at',{count:'exact'}).eq('
 ]);
 if(uid!==user?.id)return;
 pvOwnPosts=postsResult.data||[];pvOwnReels=reelsResult.data||[];
+pvOwnReelViews=new Map();
+if(pvOwnReels.length){
+ try{pvOwnReelViews=await pvLoadOwnReelViewCounts(pvOwnReels.map(r=>r.id))}
+ catch(e){console.warn('Reel view counts temporarily unavailable:',e)}
+}
+if(uid!==user?.id)return;
 {const postCount=document.getElementById('pvPostCount');if(postCount)postCount.textContent=postsResult.error?'—':postsResult.count??pvOwnPosts.length};
 {const reelCount=document.getElementById('pvReelCount');if(reelCount)reelCount.textContent=reelsResult.error?'—':reelsResult.count??pvOwnReels.length};
 if(postsResult.error||reelsResult.error){console.warn('Profile media query:',postsResult.error?.message||'',reelsResult.error?.message||'');if(postsResult.error&&reelsResult.error){grid.replaceChildren(node('p','pvNoPosts','Could not load your uploads: '+postsResult.error.message));return}}
