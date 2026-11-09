@@ -20,8 +20,23 @@ async function pvLoadOfficialIdentity(){
   if(user&&feed.length)draw();
  }catch(e){console.warn('Official identity lookup:',e)}
 }
-function pvOfficialBadge(){const b=document.createElement('span');b.className='pvOfficialBadge';b.textContent='✓ Official';b.title='Verified PAVORA official account';return b}
-const officialStyle=document.createElement('style');officialStyle.textContent='.pvOfficialBadge{display:inline-flex;align-items:center;margin-left:7px;padding:2px 7px;border-radius:99px;background:#5932a8;color:#fff;font-size:10px;font-weight:800;vertical-align:middle;white-space:nowrap}';document.head.append(officialStyle);
+function pvOfficialBadge(){const b=document.createElement('span');b.className='pvOfficialBadge';b.textContent='✓';b.setAttribute('aria-label','Verified official PAVORA account');b.title='Verified official PAVORA account';return b}
+const officialStyle=document.createElement('style');officialStyle.textContent=`
+.pvOfficialBadge{display:inline-grid;place-items:center;margin-left:7px;width:19px;height:19px;border-radius:50%;background:#2697f4;color:#fff;font-size:13px;font-weight:900;line-height:1;vertical-align:middle;box-shadow:0 0 0 2px #2697f420}
+#pvOfficialHub{margin:16px 0 8px;padding:19px 20px;background:linear-gradient(125deg,#191226,#11121a 75%);border:1px solid #352549;border-radius:17px}
+#pvOfficialHub[hidden]{display:none!important}
+#pvOfficialHub .pvOfficialEyebrow{font-size:10px;text-transform:uppercase;letter-spacing:1.8px;font-weight:800;color:#b59bd8}
+#pvOfficialHub h3{font-size:19px;margin:8px 0;color:#fff}
+#pvOfficialHub p{font-size:13px;color:#c6bdd5;line-height:1.65;margin:7px 0 14px}
+#pvOfficialHub .pvOfficialLinks{display:flex;gap:10px;flex-wrap:wrap}
+#pvOfficialHub button{border:1px solid #654a94;border-radius:10px;padding:10px 14px;background:#302044;color:#fff;font-weight:700;cursor:pointer}
+#pvOfficialHub button:hover{background:#442960}
+body.pvProfileMode .pvTopLine .pvOfficialBadge{width:23px;height:23px;font-size:16px}
+body.pvProfileMode #pvOfficialType{display:block;margin-top:5px;color:#a7b4c7;font-weight:650;font-size:12px}
+.pvTabs button{border:0;border-top:2px solid transparent;margin-top:-1px;padding:14px 30px;background:transparent;color:#a8a5b6;font-size:12px;font-weight:800;letter-spacing:1.5px;cursor:pointer}
+.pvTabs button.active{color:#fff;border-top-color:#bc8bff}
+@media(max-width:600px){#pvOfficialHub{padding:15px;margin:12px 8px}#pvOfficialHub h3{font-size:17px}.pvTabs button{padding:13px 12px;font-size:11px}}
+`;document.head.append(officialStyle);
 pvLoadOfficialIdentity();
 window.PVKit={db,getUser:()=>user,notify:message=>alert(message)};
 let pvSessionInitializing=null,pvSessionInitUser=null,pvSessionReadyForUser=null;
@@ -177,6 +192,12 @@ const head=document.getElementById('pvProfileHead');
 if(head){
 document.getElementById('pvUsername').textContent=profile.username||'creator';
 if(profile.is_official){document.getElementById('pvUsername').append(pvOfficialBadge())}
+const officialType=document.getElementById('pvOfficialType');
+if(officialType){officialType.hidden=!profile.is_official;officialType.textContent=profile.is_official?'Official PAVORA Account':''}
+const officialHub=document.getElementById('pvOfficialHub');
+if(officialHub)officialHub.hidden=!profile.is_official;
+const sidebarDesc=document.querySelector('aside.left .intro .muted');
+if(sidebarDesc)sidebarDesc.textContent=profile.is_official?'Official PAVORA Account':'Creator account';
 document.getElementById('pvDisplayName').textContent=profile.display_name||'';
 document.getElementById('pvBio').textContent=profile.bio||'';
 const sidebarAvatar=document.querySelector('aside.left .intro .profilepic');
@@ -192,13 +213,13 @@ db.from('follows').select('*',{count:'exact',head:true}).eq('follower_id',user.i
 await loadOwnPosts();
 await loadCreators();
 }
-let pvProfileMediaTab='all',pvOwnPosts=[],pvOwnReels=[];
+let pvProfileMediaTab='posts',pvOwnPosts=[],pvOwnReels=[];
 function pvDrawOwnMedia(){const grid=document.getElementById('pvPostGrid');if(!grid)return;grid.replaceChildren();
-document.getElementById('pvAllMediaTab')?.classList.toggle('active',pvProfileMediaTab==='all');
+document.getElementById('pvAllMediaTab')?.classList.toggle('active',pvProfileMediaTab==='posts');
 document.getElementById('pvReelsMediaTab')?.classList.toggle('active',pvProfileMediaTab==='reels');
 const all=[...pvOwnPosts.map(p=>({...p,kind:'post'})),...pvOwnReels.map(r=>({...r,kind:'reel'}))].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-const shown=pvProfileMediaTab==='reels'?all.filter(x=>x.kind==='reel'):all;
-if(!shown.length){grid.append(node('div','pvNoPosts',pvProfileMediaTab==='reels'?'No Reels uploaded yet.':'No posts or Reels yet. Share your first moment!'));return}
+const shown=all.filter(x=>x.kind===(pvProfileMediaTab==='reels'?'reel':'post'));
+if(!shown.length){grid.append(node('div','pvNoPosts',pvProfileMediaTab==='reels'?'No Reels uploaded yet.':'No posts yet. Share your first update!'));return}
 for(const item of shown){const tile=node('button','pvTile'+(item.kind==='reel'?' pvProfileReelTile':''));tile.type='button';tile.title=item.caption||'View '+item.kind;
 if(item.kind==='post'){if(item.image_path){const img=node('img');img.loading='lazy';img.alt=item.caption||'Your post';img.src=db.storage.from('post-images').getPublicUrl(item.image_path).data.publicUrl;tile.append(img)}else{tile.classList.add('pvTextTile');tile.append(node('span','',item.caption||'Text post'))}tile.onclick=()=>openProfilePost(item)}
 else{const video=node('video');video.muted=true;video.playsInline=true;video.preload='metadata';video.src=db.storage.from('reel-videos').getPublicUrl(item.video_path).data.publicUrl;tile.append(video,node('span','pvProfileReelBadge','▶'));tile.onclick=()=>{pvNavigate('reels');loadReels().then(()=>document.getElementById('reel-'+item.id)?.scrollIntoView({behavior:'smooth',block:'center'}))}}
@@ -409,9 +430,15 @@ document.querySelectorAll('[data-view]:not([data-view="messages"])').forEach(btn
 const pvCss=document.createElement('style');pvCss.textContent=`body.pvProfileMode main{max-width:1440px;grid-template-columns:190px minmax(0,1fr);gap:30px}body.pvProfileMode .feed{max-width:1050px;width:100%;margin:0 auto}body.pvProfileMode aside.right{display:none}body.pvProfileMode #cloudStatus{display:none}body.pvProfileMode #profile{padding:0 14px}body.pvProfileMode #pvProfileHead{grid-template-columns:180px minmax(0,1fr);gap:42px;padding:35px 12px}body.pvProfileMode .pvAvatar{width:160px;height:160px}body.pvProfileMode .pvEditButton{max-width:350px}body.pvProfileMode .pvGrid{gap:4px}@media(max-width:600px){body.pvProfileMode main{display:block}body.pvProfileMode #profile{padding:0}body.pvProfileMode #pvProfileHead{grid-template-columns:94px minmax(0,1fr);gap:12px;padding:18px 0}body.pvProfileMode .pvAvatar{width:88px;height:88px}body.pvProfileMode .pvEditButton{max-width:none}}
 #profile{width:100%;min-width:0}#profile .pvProfile{background:transparent;border:0;padding:0;overflow:visible}#pvProfileHead{display:grid;grid-template-columns:150px minmax(0,1fr);gap:28px;padding:25px 10px 22px;align-items:center}.pvAvatar{height:138px;width:138px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#895aff,#e86cb3);font-size:50px;font-weight:800;overflow:hidden;border:4px solid #27223a}.pvAvatar img{width:100%;height:100%;object-fit:cover}.pvTopLine{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.pvTopLine h2{margin:0;font-size:24px;overflow-wrap:anywhere}.pvCounts{display:flex;gap:22px;margin:20px 0;flex-wrap:wrap}.pvCounts span{white-space:nowrap}.pvCounts strong{font-size:16px}.pvBio{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0;color:#e7e3f2;font-size:14px;line-height:1.5}.pvDisplay{font-weight:700;margin-top:9px}.pvEditButton{width:100%;margin:16px 0 4px}.pvTabs{display:flex;justify-content:center;gap:8px;border-top:1px solid #353247;margin-top:24px}.pvTabs span{border-top:2px solid #bd91ff;margin-top:-1px;padding:14px 30px;font-weight:700;font-size:12px;letter-spacing:1.5px}.pvGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}.pvTile{border:0;padding:0;aspect-ratio:1;overflow:hidden;background:#242338;color:#f7f4ff;cursor:pointer}.pvTile img{width:100%;height:100%;object-fit:cover;transition:transform .2s}.pvTile:hover img{transform:scale(1.04)}.pvTextTile{display:grid;place-items:center;padding:12px;text-align:center;overflow-wrap:anywhere;font-size:13px}.pvNoPosts{grid-column:1/-1;text-align:center;padding:60px 10px;color:#bcb7cf}#profileEditor{margin-top:20px!important}#profileEditor[hidden]{display:none}@media(max-width:600px){#pvProfileHead{grid-template-columns:90px minmax(0,1fr);gap:12px;padding:16px 2px}.pvAvatar{width:86px;height:86px;font-size:34px}.pvTopLine h2{font-size:18px}.pvCounts{gap:12px;margin:10px 0;font-size:12px}.pvCounts strong{font-size:13px}.pvBio{font-size:13px}.pvGrid{gap:2px}}`;document.head.append(pvCss);
 const pvPanel=document.querySelector('#profile > .panel');pvPanel.classList.add('pvProfile');
-pvPanel.innerHTML='<div id="pvProfileHead"><div class="pvAvatar" id="pvAvatar">P</div><div><div class="pvTopLine"><h2 id="pvUsername">creator</h2><span style="color:#b48bff">✦</span></div><div class="pvCounts"><span><strong id="pvPostCount">0</strong> posts</span><span><strong id="pvReelCount">0</strong> reels</span><span><strong id="pvFollowers">0</strong> followers</span><span><strong id="pvFollowing">0</strong> following</span></div><div class="pvDisplay" id="pvDisplayName"></div><div class="pvBio" id="pvBio"></div></div></div><button class="secondary pvEditButton" id="pvEditToggle">Edit profile</button><div class="pvTabs"><button type="button" class="active" id="pvAllMediaTab">▦ POSTS</button><button type="button" id="pvReelsMediaTab">▣ REELS</button></div><div class="pvGrid" id="pvPostGrid"></div>';
+pvPanel.innerHTML='<div id="pvProfileHead"><div class="pvAvatar" id="pvAvatar">P</div><div><div class="pvTopLine"><h2 id="pvUsername">creator</h2><span style="color:#b48bff">✦</span></div><div class="pvCounts"><span><strong id="pvPostCount">0</strong> posts</span><span><strong id="pvReelCount">0</strong> reels</span><span><strong id="pvFollowers">0</strong> followers</span><span><strong id="pvFollowing">0</strong> following</span></div><div id="pvOfficialType" hidden></div><div class="pvDisplay" id="pvDisplayName"></div><div class="pvBio" id="pvBio"></div></div></div><button class="secondary pvEditButton" id="pvEditToggle">Edit profile</button><section id="pvOfficialHub" hidden><div class="pvOfficialEyebrow">PAVORA • OFFICIAL CHANNEL</div><h3>Product updates & announcements</h3><p>The verified source for PAVORA releases, features, tools and community news. Publish updates from this account to reach the Home feed.</p><div class="pvOfficialLinks"><button type="button" id="pvOfficialPublish">＋ Create announcement</button></div></section><div class="pvTabs"><button type="button" class="active" id="pvAllMediaTab">▦ POSTS</button><button type="button" id="pvReelsMediaTab">▣ REELS</button></div><div class="pvGrid" id="pvPostGrid"></div>';
 // These tabs are created by pvPanel.innerHTML above; bind only after they exist.
-document.getElementById('pvAllMediaTab').onclick=()=>{pvProfileMediaTab='all';pvDrawOwnMedia()};
+document.getElementById('pvAllMediaTab').onclick=()=>{pvProfileMediaTab='posts';pvDrawOwnMedia()};
+document.getElementById('pvOfficialPublish').onclick=()=>{
+ if(!user||!profile?.is_official)return;
+ const createButton=document.querySelector('.pvIconRail .pvRailButton[title="Create post"]');
+ if(createButton)createButton.click();
+ else document.querySelector('#home .composer textarea')?.focus();
+};
 document.getElementById('pvReelsMediaTab').onclick=()=>{pvProfileMediaTab='reels';pvDrawOwnMedia()};
 try{window.PVKit?.addSavedTab?.(pvPanel)}catch(e){console.warn('Saved tab:',e)}
 editor.hidden=true;
