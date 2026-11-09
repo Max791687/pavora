@@ -2369,6 +2369,7 @@ const details=node('div'),publicName=node('h2','pvPublicName');publicName.append
 if(person.is_official){publicName.append(pvOfficialBadge());details.append(publicName,node('div','pvPublicOfficialType','Official PAVORA Account'));}
 else details.append(publicName);
 if(person.is_private)details.append(node('div','pvProfilePrivacyTag','🔒 Private account'));
+else window.PAVORA_PRESENCE?.attach(details,id,'profile');
 const pvCountText=(value,failed)=>failed?'—':String(value??0);
 const publicStats=node('div','pvPublicStats');
 for(const [amount,label,failed] of [
@@ -2436,7 +2437,8 @@ const rows=[];
 for(const id of orderedIds){const p=names.get(id);if(!p)continue;const setting=pvConversationSetting(id),last=visible.find(m=>(m.sender_id===user.id?m.recipient_id:m.sender_id)===id);const entry=node('div','pvThreadEntry'),b=node('button','pvThreadPerson'),avatar=node('div','pvThreadAvatar'),details=node('div','pvThreadDetails');
 if(p.avatar_url){const img=node('img');img.src=p.avatar_url;img.alt='';avatar.append(img)}else avatar.textContent=(p.display_name||p.username||'?')[0].toUpperCase();
 const label=node('strong','',p.display_name||p.username);if(setting.pinned)label.append(node('span','pvPinnedMarker',' 📌'));if(setting.muted)label.append(node('span','pvMutedMarker',' 🔕'));
-details.append(label,node('small','',last?(last.sender_id===user.id?'You: ':'')+(last.body||'Message'):'Start a conversation'));const when=node('span','pvThreadWhen',last?new Date(last.created_at).toLocaleDateString(undefined,{month:'short',day:'numeric'}):'');
+details.append(label,node('small','',last?(last.sender_id===user.id?'You: ':'')+(last.body||'Message'):'Start a conversation'));
+window.PAVORA_PRESENCE?.attach(details,id,'thread');const when=node('span','pvThreadWhen',last?new Date(last.created_at).toLocaleDateString(undefined,{month:'short',day:'numeric'}):'');
 b.append(avatar,details,when);b.dataset.peerId=id;b.title='@'+p.username;b.onclick=()=>openChat(id,false);
 const menuButton=node('button','pvChatMore','⋯');menuButton.type='button';menuButton.title='Conversation options';menuButton.setAttribute('aria-label','Options for '+(p.display_name||p.username));
 const menu=node('div','pvChatContextMenu hide');menu.setAttribute('role','menu');
@@ -2523,7 +2525,7 @@ back.type='button';back.setAttribute('aria-label','Back to conversations');back.
 headerAvatar.type='button';headerAvatar.title='View profile';headerAvatar.setAttribute('aria-label','View '+person.username+' profile');
 function pvChatAvatar(target){target.replaceChildren();if(person.avatar_url){const img=node('img');img.src=person.avatar_url;img.alt='';img.onerror=()=>{target.replaceChildren();target.textContent=(person.display_name||person.username||'P')[0].toUpperCase()};target.append(img)}else target.textContent=(person.display_name||person.username||'P')[0].toUpperCase()}
 pvChatAvatar(headerAvatar);headerAvatar.onclick=()=>openCreator(id);
-const headerText=node('button','pvChatHeaderIdentity');headerText.type='button';headerText.onclick=()=>openCreator(id);headerText.append(heading,handle);chatWho.append(headerAvatar,headerText);chatTop.append(back,chatWho);
+const headerText=node('button','pvChatHeaderIdentity');headerText.type='button';headerText.onclick=()=>openCreator(id);headerText.append(heading,handle);window.PAVORA_PRESENCE?.attach(headerText,id,'chat');chatWho.append(headerAvatar,headerText);chatTop.append(back,chatWho);
 try{window.PVKit?.addCallActions?.(id,chatTop)}catch(e){console.warn('Call buttons:',e)}
 const liveLabel=node('span','pvDmRealtimeLabel',pvDmRealtimeStatus==='live'?'Live':'Syncing');
 liveLabel.title=pvDmRealtimeStatus==='live'?'Real-time messages enabled':'Using background message checks';
@@ -2886,6 +2888,8 @@ if(nextUser&&pvSessionInitializing&&pvSessionInitUser===nextUser.id)return pvSes
 // messages or profile and must not trigger the login transition again.
 if(nextUser&&user?.id===nextUser.id&&pvSessionReadyForUser===nextUser.id)return;
 user=nextUser;
+if(user)window.PAVORA_PRESENCE?.start(db,user.id);
+else window.PAVORA_PRESENCE?.stop();
 overlay.classList.toggle('pvAuthHidden',!!user);
 signout.style.display=user?'':'none';
 if(user){
