@@ -1039,6 +1039,7 @@ function reelAction(label,svg,handler){const b=node('button','pvReelAction');b.t
 let current=0,gestureLocked=false,gestureTimer=null,touchStartY=null,touchStartX=null,touchConsumed=false;
 
 let desktopWheelLastAt=0,desktopWheelGestureAt=0,desktopWheelDirection=0;
+const pvReelLoadStyle=document.createElement('style');pvReelLoadStyle.textContent=".pvReelLoadState{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(15,13,22,.76);color:#eee;border-radius:24px;padding:10px 16px;z-index:8;font-size:12px;pointer-events:none;box-shadow:0 6px 25px #0007;white-space:nowrap}.pvReelLoadState[hidden]{display:none!important}.pvReelLoadState.error{pointer-events:auto;cursor:pointer;border:1px solid #e67e9b;color:#fff}.pvReelCard[data-reel-position]:not([data-reel-position=\"active\"]) .pvReelLoadState{display:none!important}";document.head.append(pvReelLoadStyle);
 const videoFor=index=>cards[index]?.querySelector('video');
 reelStack.pvResume=index=>goTo(index,'auto');
 function pvActivateReel(index){
@@ -1152,12 +1153,21 @@ video.dataset.pvSrc=db.storage.from('reel-videos').getPublicUrl(reel.video_path)
 const avatar=node('div','pvReelAvatar');if(person.avatar_url){const img=node('img');img.src=person.avatar_url;img.alt='';avatar.append(img)}else avatar.textContent=(person.username||'P')[0].toUpperCase();
 const who=node('button','pvReelCreator','@'+(person.username||'creator'));who.type='button';who.onclick=()=>openCreator(reel.author_id);author.append(avatar,who);
 if(reel.author_id!==user.id){const follow=node('button','pvReelFollow','View profile');follow.type='button';follow.onclick=()=>openCreator(reel.author_id);author.append(follow)}
-meta.append(author,node('p','pvReelCaption',reel.caption||''));screen.append(video,meta);
-const togglePlay=()=>{if(video.paused)video.play().catch(()=>{});else video.pause()};video.addEventListener('click',togglePlay);
+meta.append(author,node('p','pvReelCaption',reel.caption||''));
+const loading=node('button','pvReelLoadState','Loading Reel…');loading.hidden=true;loading.disabled=true;
+loading.type='button';
+loading.onclick=()=>{video.removeAttribute('src');video.load();video.src=video.dataset.pvSrc;video.play().catch(()=>{})};
+video.addEventListener('loadstart',()=>{if(card.dataset.reelPosition==='active'){loading.classList.remove('error');loading.disabled=true;loading.textContent='Loading Reel…';loading.hidden=false}});
+video.addEventListener('waiting',()=>{if(card.dataset.reelPosition==='active'){loading.textContent='Loading Reel…';loading.hidden=false}});
+video.addEventListener('playing',()=>{loading.hidden=true;loading.classList.remove('error')});
+video.addEventListener('canplay',()=>{if(!video.paused)loading.hidden=true});
+video.addEventListener('error',()=>{if(!video.hasAttribute('src'))return;loading.textContent='Could not load Reel · Tap to retry';loading.disabled=false;loading.classList.add('error');loading.hidden=false});
+screen.append(video,meta,loading);
+const togglePlay=()=>{if(!video.hasAttribute('src')&&video.dataset.pvSrc)video.src=video.dataset.pvSrc;if(video.paused)video.play().catch(()=>{});else video.pause()};video.addEventListener('click',togglePlay);
 const play=reelAction('Play or pause','<path d="m9 6 10 6-10 6z"/>',togglePlay);play.classList.add('pvReelPlay');screen.append(play);video.addEventListener('play',()=>play.classList.add('hide'));video.addEventListener('pause',()=>play.classList.remove('hide'));
 const sound=reelAction('Mute or unmute','<path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15 9a4 4 0 0 1 0 6"/>',()=>{video.muted=!video.muted;sound.classList.toggle('pvMuted',video.muted)});video.muted=true;sound.classList.add('pvMuted');sound.classList.add('pvReelSound');screen.append(sound);
 actions.append(reelAction('Share reel','<path d="m21 3-8.5 18-3.5-7.5L2 10z"/><path d="M21 3 9 13.5"/>',async()=>{const link=location.href.split('#')[0]+'#reel-'+reel.id;try{if(navigator.share)await navigator.share({title:'PAVORA Reel',url:link});else if(navigator.clipboard){await navigator.clipboard.writeText(link);alert('Reel link copied!')}else prompt('Copy reel link:',link)}catch(e){if(e.name!=='AbortError')alert('Unable to share reel')}}));
-actions.append(reelAction(reel.author_id!==user.id?'Block account':'More options','<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>',()=>{if(reel.author_id!==user.id){pvBlockAccount(reel.author_id,person.username||'creator');return}if(!confirm('Delete your Reel permanently?'))return;(async()=>{const result=await db.from('reels').delete().eq('id',reel.id).eq('author_id',user.id);if(result.error){alert(result.error.message);return}await db.storage.from('reel-videos').remove([reel.video_path]);await loadReels()})()}));
+actions.append(reelAction(reel.author_id!==user.id?'Block account':'More options','<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>',()=>{if(reel.author_id!==user.id){pvBlockAccount(reel.author_id,person.username||'creator');return}if(!confirm('Delete your Reel permanently?'))return;(async()=>{const result=await db.from('reels').delete().eq('id',reel.id).eq('author_id',user.id);if(result.error){alert(result.error.message);return}await db.storage.from('reel-videos').remove([reel.video_path]);await loadReels(true)})()}));
 card.append(screen,actions);reelStack.append(card);cards.push(card);card.id='reel-'+reel.id;
 try{window.PVKit?.addReel?.(reel,actions,video)}catch(e){console.warn('Reel extras:',e)}
 }
