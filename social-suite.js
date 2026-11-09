@@ -320,7 +320,7 @@ kit.onNavigate=view=>{if(view==='home')kit.renderStories(document.getElementById
 
 async function pvOpenCloseFriends(){
  const person=owner();if(!person)return;
- const body=open('★ Close Friends');
+ const body=open('★ Close Friends');modal.classList.remove('pvStoryComposerModal');
  body.append(el('p','','Only people you choose can view your Close Friends Stories. People are not notified when you add or remove them.'));
  const list=el('div','');list.append(el('p','','Loading people…'));body.append(list);
  const [people,members]=await Promise.all([
@@ -349,7 +349,7 @@ async function pvOpenCloseFriends(){
 async function pvRenderHighlights(panel,profileId){
  if(!panel||!profileId||!owner())return;
  let section=panel.querySelector('.pvHighlights');
- if(!section){section=el('section','pvHighlights');panel.querySelector('.pvTabs')?.before(section)}
+ if(!section){section=el('section','pvHighlights');const tabs=panel.querySelector('.pvTabs');if(tabs)tabs.before(section);else panel.append(section)}
  if(!section.isConnected)return;
  const {data,error}=await db.from('stories').select('id,author_id,media_path,media_type,caption,created_at,expires_at,audience,is_highlighted,highlight_title').eq('author_id',profileId).eq('is_highlighted',true).order('created_at',{ascending:false}).limit(60);
  if(!section.isConnected)return;
