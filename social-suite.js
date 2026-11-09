@@ -145,7 +145,7 @@ const showStory=async story=>{
    console.warn('Story view could not be recorded:',err);
   }
   const report=el('button','pvSuiteSave','⚑ Report Story');report.type='button';
-  report.onclick=()=>{modal.hidden=true;window.PAVORAReport?.('story',story.id)};
+  report.onclick=()=>{pvStopStoryWatcher();modal.hidden=true;media.pause?.();window.PAVORAReport?.('story',story.id)};
   body.append(report);
   return;
  }
