@@ -219,7 +219,7 @@ const pvSettingsBack=node('button','pvSettingsBack','← Back to PAVORA');pvSett
 const pvSettingsHeading=node('h2','','Settings and activity');
 pvSettingsSidebar.append(pvSettingsBack,pvSettingsHeading);
 const pvSettingsLinks=node('div','pvSettingsLinks');pvSettingsSidebar.append(pvSettingsLinks);
-const pvSettingsMain=node('main','pvSettingsMain'); // native element, not linked to original main
+const pvSettingsMain=node('div','pvSettingsMain');
 const pvSettingsPage=node('div','pvSettingsPage');pvSettingsMain.append(pvSettingsPage);
 pvSettingsScreen.append(pvSettingsSidebar,pvSettingsMain);document.body.append(pvSettingsScreen);
 const pvSettingsItems=[
