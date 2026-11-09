@@ -27,6 +27,8 @@ assert.ok(cloud.includes('pvOnChatInput')&&cloud.includes('dm_typing_status'), '
 assert.ok(cloud.includes('pvDmDecorateContent')&&cloud.includes('pv-dm-media')&&cloud.includes('reply_to'), 'Private DM media and message replies missing');
 assert.ok(cloud.includes('pvShowDmMediaGallery')&&cloud.includes('pvForwardDmMessage'), 'DM gallery and forwarding missing');
 assert.ok(cloud.includes('pvDmOpenHoldMenu')&&cloud.includes('pvDmAttachHoldGesture'), 'Long-press message menu missing');
+assert.ok(cloud.includes('pvDmPinMessage')&&cloud.includes('dm_pinned_messages')&&cloud.includes('pvDmPinnedBar'), 'DM Pin flow missing');
+assert.ok(cloud.includes('pvDmHideForMe')&&cloud.includes('dm_hidden_messages'), 'DM Delete-for-You flow missing');
 assert.ok(cloud.includes('pv_edit_own_dm'), 'Secure sent-message Edit action missing');
 assert.ok(suite.includes('story_views'), 'Story viewer tracking missing');
 assert.ok(sw.includes("event.respondWith"), 'PWA offline fallback missing');
