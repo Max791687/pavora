@@ -62,6 +62,7 @@ for(const id of ['pvAllMediaTab','pvReelsMediaTab'])document.getElementById(id)?
 // Real 24-hour stories: upload, viewer, view count, automatic expiration.
 let stories=[];
 
+const pvStoryExtraStyle=el('style');pvStoryExtraStyle.textContent="\n.pvStoryAudience{padding:12px;background:#2b2534;border:1px solid #554062;border-radius:12px;color:#fff;display:grid;gap:7px;font-weight:700;font-size:13px}\n.pvStoryAudience select{background:#211b29;color:#fff;border:1px solid #685678;padding:11px;border-radius:10px;font:inherit}\n.pvStoryHighlightBtn{border:1px solid #795e91!important;background:#45304f!important;border-radius:12px!important;padding:12px 15px!important;color:#f5e6ff!important}\n.pvHighlights{margin:15px 0;padding:10px 1px}.pvHighlights h3{font-size:16px;margin:4px 0 12px}.pvHighlightsRow{display:flex;gap:14px;overflow-x:auto;padding:4px 0 10px}\n.pvHighlightItem{display:flex;flex-direction:column;gap:5px;align-items:center;flex:0 0 76px;color:inherit;background:none;border:0;cursor:pointer}\n.pvHighlightCover{height:66px;width:66px;display:grid;place-items:center;overflow:hidden;border-radius:50%;border:2px solid #9c6ad5;background:#372447;font-weight:900;font-size:22px}\n.pvHighlightCover img{width:100%;height:100%;object-fit:cover}.pvHighlightItem small{font-size:11px;max-width:76px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}\n.pvCloseFriendRow{display:flex;gap:11px;align-items:center;padding:12px 4px;border-bottom:1px solid #413548}\n.pvCloseFriendRow strong{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:13px}\n.pvCloseFriendRow button{background:#7044a0;color:white;border:0;padding:9px 12px;border-radius:9px;cursor:pointer}\n.pvCloseFriendRow button.active{background:#49334d;color:#eed6f5}\n";document.head.append(pvStoryExtraStyle);
 const pvStoryComposerStyle=el('style');
 pvStoryComposerStyle.textContent="\n.pvSuiteModal.pvStoryComposerModal{background:rgba(0,0,0,.8);backdrop-filter:blur(8px)}\n.pvStoryComposerModal .pvSuiteBox{width:min(480px,calc(100vw - 28px));padding:0;background:#222329;border:1px solid #393942;border-radius:22px;max-height:92dvh;box-shadow:0 28px 90px #000b;scrollbar-width:thin}\n.pvStoryComposerModal .pvSuiteTitle{text-align:center;font-size:18px;letter-spacing:-.3px;margin:0;border-bottom:1px solid #343640;padding:21px 48px}\n.pvStoryComposerModal .pvSuiteClose{right:12px;top:12px;width:38px;height:38px;display:grid;place-items:center;font-size:24px;border-radius:50%;background:#30313a;z-index:3}\n.pvStoryComposerModal .pvSuiteBody{padding:20px;gap:13px}\n.pvStoryUploadDrop{width:100%;min-height:236px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:13px;border:1.5px dashed #665a75;border-radius:16px;background:linear-gradient(135deg,#302639,#1b1b24);cursor:pointer;overflow:hidden;outline:none}\n.pvStoryUploadDrop:hover,.pvStoryUploadDrop:focus-visible{border-color:#cf92f4}\n.pvStoryUploadGlyph{width:73px;height:73px;border-radius:22px;background:#3e304f;display:grid;place-items:center;font-size:32px;color:#dfb5ff}\n.pvStoryUploadDrop strong{color:#fff;font-size:15px}\n.pvStoryUploadDrop small{color:#b9b1c4;font-size:12px;text-align:center;line-height:1.6}\n.pvStoryUploadDrop.has-file{min-height:290px;border-style:solid;background:#111116}\n.pvStoryUploadDrop.has-file .pvStoryUploadGlyph,.pvStoryUploadDrop.has-file strong,.pvStoryUploadDrop.has-file small{display:none}\n.pvStoryPreview{width:100%;height:300px;max-height:42dvh;object-fit:contain;border-radius:13px;background:#101015}\n.pvStoryReplace{font-size:12px;color:#d6afff;text-align:center;cursor:pointer}\n.pvStoryComposerModal .pvSuiteBody .pvStoryCaption{box-sizing:border-box;min-height:78px;max-height:140px;width:100%;resize:vertical;border:1px solid #504b5b;border-radius:12px;background:#2d2a36;color:white;padding:13px 14px;outline:none;font-size:14px;font:inherit}\n.pvStoryCaption:focus{border-color:#c18ced}\n.pvStoryFooter{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#bfb7c7}\n.pvStoryComposerModal .pvSuiteBody .pvStoryShareBtn{width:100%;min-height:49px;border:0;border-radius:12px;background:linear-gradient(105deg,#844ded,#b266d9);color:#fff;font-weight:800;font-size:14px}\n.pvStoryShareBtn:disabled{opacity:.48;cursor:not-allowed}\n.pvStoryFeedback{color:#cca5ee;line-height:1.45;font-size:12px;text-align:center;margin:0;min-height:18px;overflow-wrap:anywhere}\n.pvStoryHiddenInput{display:none!important}\n@media(max-width:600px){.pvStoryComposerModal .pvSuiteBody{padding:16px}.pvStoryUploadDrop{min-height:216px}.pvStoryPreview{height:260px}}\n";
 document.head.append(pvStoryComposerStyle);
@@ -78,9 +79,14 @@ const launch=async()=>{
  const caption=el('textarea','pvStoryCaption');caption.placeholder='Add a caption (optional)…';caption.maxLength=500;
  const footer=el('div','pvStoryFooter'),counter=el('span','','0 / 500');
  footer.append(el('span','','◷ Visible for 24 hours'),counter);
+ const audienceLabel=el('label','pvStoryAudience','Story audience'),audience=el('select');
+ for(const [value,title] of [['everyone','Everyone allowed to see my Stories'],['close_friends','★ Close Friends only']]){const opt=el('option','',title);opt.value=value;audience.append(opt)}
+ audienceLabel.append(audience);
+ const friendsManage=el('button','','Manage Close Friends');friendsManage.type='button';friendsManage.style.cssText='color:#d6aaff;background:none;border:0;font-size:12px;cursor:pointer;text-align:left';
+ friendsManage.onclick=()=>pvOpenCloseFriends();
  const submit=el('button','pvStoryShareBtn','Share to your story');submit.disabled=true;
  const feedback=el('p','pvStoryFeedback','');
- body.append(input,picker,change,caption,footer,submit,feedback);
+ body.append(input,picker,change,caption,audienceLabel,friendsManage,footer,submit,feedback);
  let selected=null,objectUrl=null,busy=false;
  const reset=()=>{
   if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null}
@@ -111,10 +117,17 @@ const launch=async()=>{
   busy=true;submit.disabled=true;submit.textContent='Sharing…';feedback.textContent='Uploading your story…';
   try{
    const path=owner().id+'/'+crypto.randomUUID()+'/'+selected.name.replace(/[^a-zA-Z0-9.-]/g,'_');
-   const result=await db.storage.from('story-media').upload(path,selected,{contentType:selected.type});
+   const audienceValue=audience.value;
+   if(audienceValue==='close_friends'){
+    const {count,error:friendError}=await db.from('close_friends').select('friend_id',{count:'exact',head:true}).eq('owner_id',owner().id);
+    if(friendError)throw friendError;
+    if(!count)throw Error('Add at least one Close Friend in Settings first.');
+   }
+   const bucket=audienceValue==='close_friends'?'pv-close-stories':'story-media';
+   const result=await db.storage.from(bucket).upload(path,selected,{contentType:selected.type});
    if(result.error)throw result.error;
-   const saved=await db.from('stories').insert({author_id:owner().id,media_path:path,media_type:selected.type.startsWith('video/')?'video':'image',caption:caption.value.trim()});
-   if(saved.error)throw saved.error;
+   const saved=await db.from('stories').insert({author_id:owner().id,media_path:path,media_type:selected.type.startsWith('video/')?'video':'image',caption:caption.value.trim(),audience:audienceValue});
+   if(saved.error){await db.storage.from(bucket).remove([path]);throw saved.error}
    reset();close.onclick=previous;modal.removeEventListener('click',onBackdrop);modal.hidden=true;
    await kit.renderStories(document.getElementById('stories'),{force:true});
   }catch(err){feedback.textContent='Upload failed: '+err.message}
@@ -128,7 +141,11 @@ const pvPlaybackStyle=el('style');pvPlaybackStyle.textContent=".pvStoryControls{
 const showStory=async story=>{
  const viewer=owner();if(!viewer)return;
  const body=open('Story'),media=el(story.media_type==='video'?'video':'img','pvSuiteMedia');
- media.src=imageUrl('story-media',story.media_path);
+ if(story.audience==='close_friends'){
+  const {data,error}=await db.storage.from('pv-close-stories').createSignedUrl(story.media_path,600);
+  if(error||!data?.signedUrl){body.append(el('p','','This private story cannot be loaded: '+(error?.message||'Access denied')));return}
+  media.src=data.signedUrl;
+ }else media.src=imageUrl('story-media',story.media_path);
  if(story.media_type==='video'){media.controls=true;media.autoplay=true;media.playsInline=true}
  const sequence=stories.filter(x=>x.author_id===story.author_id).slice().reverse();
  const currentIndex=Math.max(0,sequence.findIndex(x=>x.id===story.id));
@@ -238,6 +255,21 @@ const showStory=async story=>{
  }
  timer=setInterval(()=>{if(active()&&!document.hidden)sync()},5000);
  sync();
+ const highlight=el('button','pvStoryHighlightBtn',story.is_highlighted?'★ Remove from Highlights':'☆ Add to Highlights');
+ highlight.type='button';
+ highlight.onclick=async()=>{
+  const next=!story.is_highlighted;
+  const title=next?prompt('Highlight title (up to 40 characters)',story.highlight_title||'Highlights'):null;
+  if(next&&title===null)return;
+  highlight.disabled=true;
+  const {error}=await db.from('stories').update({is_highlighted:next,highlight_title:next?(title||'Highlights').slice(0,40):''}).eq('id',story.id).eq('author_id',viewer.id);
+  highlight.disabled=false;
+  if(error)return info(error);
+  story.is_highlighted=next;story.highlight_title=next?(title||'Highlights').slice(0,40):'';
+  highlight.textContent=next?'★ Remove from Highlights':'☆ Add to Highlights';
+  pvRenderHighlights(document.querySelector('#profile > .panel'),viewer.id);
+ };
+ body.append(highlight);
  const del=el('button','pvSuiteSave','Delete story');del.onclick=async()=>{
   if(!confirm('Delete this story?'))return;
   const result=await db.from('stories').delete().eq('id',story.id).eq('author_id',viewer.id);
@@ -255,9 +287,9 @@ kit.renderStories=async(bar,opts={})=>{
  if(pvStoriesPromise)return pvStoriesPromise;
  if(!opts.force&&pvStoriesLastCheck&&Date.now()-pvStoriesLastCheck<20000&&bar.childElementCount)return;
  pvStoriesPromise=(async()=>{
-  const {data,error}=await db.from('stories').select('id,author_id,media_path,media_type,caption,created_at,expires_at').gt('expires_at',new Date().toISOString()).order('created_at',{ascending:false}).limit(75);
+  const {data,error}=await db.from('stories').select('id,author_id,media_path,media_type,caption,created_at,expires_at,audience,is_highlighted,highlight_title').gt('expires_at',new Date().toISOString()).order('created_at',{ascending:false}).limit(75);
   if(error){console.warn('Stories unavailable:',error.message);return}
-  const nextStories=data||[];
+  const nextStories=(data||[]).filter(x=>new Date(x.expires_at).getTime()>Date.now());
   const people=[...new Set(nextStories.map(x=>x.author_id))];
   const {data:profiles,error:profileError}=people.length?await db.from('profiles').select('id,username,avatar_url').in('id',people):{data:[],error:null};
   if(profileError)console.warn('Stories profile info:',profileError.message);
@@ -285,5 +317,64 @@ kit.renderStories=async(bar,opts={})=>{
  try{return await pvStoriesPromise}finally{pvStoriesPromise=null}
 };
 kit.onNavigate=view=>{if(view==='home')kit.renderStories(document.getElementById('stories'))};
-kit.init=async()=>{kit.addSavedTab(document.querySelector('#profile > .panel'));await kit.renderStories(document.getElementById('stories'))};
+
+async function pvOpenCloseFriends(){
+ const person=owner();if(!person)return;
+ const body=open('★ Close Friends');
+ body.append(el('p','','Only people you choose can view your Close Friends Stories. People are not notified when you add or remove them.'));
+ const list=el('div','');list.append(el('p','','Loading people…'));body.append(list);
+ const [people,members]=await Promise.all([
+  db.from('profiles').select('id,username,display_name').neq('id',person.id).order('username').limit(150),
+  db.from('close_friends').select('friend_id').eq('owner_id',person.id)
+ ]);
+ if(modal.hidden||!list.isConnected)return;
+ list.replaceChildren();
+ if(people.error||members.error){list.append(el('p','','Unable to load: '+(people.error||members.error).message));return}
+ const chosen=new Set((members.data||[]).map(m=>m.friend_id));
+ for(const p of people.data||[]){
+  const row=el('div','pvCloseFriendRow'),name=el('strong','',(p.display_name||p.username)+' (@'+p.username+')'),button=el('button');
+  const render=()=>{button.textContent=chosen.has(p.id)?'✓ Added':'+ Add';button.classList.toggle('active',chosen.has(p.id))};
+  render();button.onclick=async()=>{
+   button.disabled=true;
+   const adding=!chosen.has(p.id);
+   const result=adding?await db.from('close_friends').insert({owner_id:person.id,friend_id:p.id})
+    :await db.from('close_friends').delete().eq('owner_id',person.id).eq('friend_id',p.id);
+   if(result.error)info(result.error);else{if(adding)chosen.add(p.id);else chosen.delete(p.id);render()}
+   button.disabled=false;
+  };
+  row.append(name,button);list.append(row);
+ }
+ if(!people.data?.length)list.append(el('p','','No other PAVORA accounts yet.'));
+}
+async function pvRenderHighlights(panel,profileId){
+ if(!panel||!profileId||!owner())return;
+ let section=panel.querySelector('.pvHighlights');
+ if(!section){section=el('section','pvHighlights');panel.querySelector('.pvTabs')?.before(section)}
+ if(!section.isConnected)return;
+ const {data,error}=await db.from('stories').select('id,author_id,media_path,media_type,caption,created_at,expires_at,audience,is_highlighted,highlight_title').eq('author_id',profileId).eq('is_highlighted',true).order('created_at',{ascending:false}).limit(60);
+ if(!section.isConnected)return;
+ section.replaceChildren();
+ if(error){section.append(el('p','','Highlights unavailable: '+error.message));return}
+ if(!data?.length){if(profileId===owner().id)section.append(el('p','','No Highlights yet. Open your Story and choose Add to Highlights.'));return}
+ section.append(el('h3','','Story Highlights'));
+ const row=el('div','pvHighlightsRow'),group=new Map();
+ for(const item of data){const title=item.highlight_title||'Highlights';if(!group.has(title))group.set(title,[]);group.get(title).push(item)}
+ for(const [title,items] of group){
+  const b=el('button','pvHighlightItem'),cover=el('span','pvHighlightCover','★');
+  const first=items[0];
+  if(first.media_type==='image'&&first.audience!=='close_friends'){const img=el('img');img.alt='';img.src=imageUrl('story-media',first.media_path);cover.replaceChildren(img)}
+  b.append(cover,el('small','',title));b.onclick=()=>{
+   // Keep highlight sequence independent from the 24-hour active Story row.
+   const active=stories;stories=items.slice().reverse();
+   showStory(items[items.length-1]).finally(()=>{stories=active});
+  };
+  row.append(b);
+ }
+ section.append(row);
+}
+kit.openCloseFriends=pvOpenCloseFriends;
+kit.renderHighlights=pvRenderHighlights;
+
+kit.init=async()=>{kit.addSavedTab(document.querySelector('#profile > .panel'));await kit.renderStories(document.getElementById('stories'));pvRenderHighlights(document.querySelector('#profile > .panel'),owner()?.id)};
+
 })();
