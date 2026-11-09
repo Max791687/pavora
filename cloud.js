@@ -1328,7 +1328,7 @@ const hash=location.hash.slice(1);if(hash.startsWith('reel-')){const target=docu
 })().finally(()=>{pvReelsLoading=null});
 return pvReelsLoading;
 }
-reelForm.onsubmit=async event=>{event.preventDefault();if(!user)return;const file=document.getElementById('reelVideo').files[0],caption=document.getElementById('reelCaption').value.trim(),feedback=document.getElementById('reelFeedback'),btn=reelForm.querySelector('button');if(!file||!file.type.startsWith('video/')){feedback.textContent='Choose a video supported by your browser.';return}btn.disabled=true;feedback.textContent='Preparing video…';let path=null;try{const ready=await window.PAVORA_VIDEO.prepare(file,status=>{feedback.textContent=status});feedback.textContent='Uploading '+(ready.size/1048576).toFixed(1)+' MB…';path=user.id+'/'+crypto.randomUUID()+(ready.type==='video/mp4'?'.mp4':'.webm');const upload=await db.storage.from('reel-videos').upload(path,ready,{contentType:ready.type});if(upload.error)throw upload.error;const result=await db.from('reels').insert({author_id:user.id,caption,video_path:path});if(result.error)throw result.error;feedback.textContent='Reel published!';reelForm.reset();await loadReels(true)}catch(e){feedback.textContent=e.message;if(path)await db.storage.from('reel-videos').remove([path])}finally{btn.disabled=false}};
+reelForm.onsubmit=async event=>{event.preventDefault();if(!user)return;const file=document.getElementById('reelVideo').files[0],caption=document.getElementById('reelCaption').value.trim(),feedback=document.getElementById('reelFeedback'),btn=reelForm.querySelector('button');if(!file||!file.type.startsWith('video/')){feedback.textContent='Choose a video supported by your browser.';return}btn.disabled=true;feedback.textContent='Preparing video…';let path=null;try{const ready=await window.PAVORA_VIDEO.prepare(file,status=>{feedback.textContent=status});feedback.textContent='Uploading '+(ready.size/1048576).toFixed(1)+' MB…';path=user.id+'/'+crypto.randomUUID()+(ready.type==='video/mp4'?'.mp4':'.webm');await window.PAVORA_UPLOAD.upload(db,'reel-videos',path,ready,{onStatus:status=>{feedback.textContent=status}});const result=await db.from('reels').insert({author_id:user.id,caption,video_path:path});if(result.error)throw result.error;feedback.textContent='Reel published!';reelForm.reset();await loadReels(true)}catch(e){feedback.textContent=e.message;if(path)await db.storage.from('reel-videos').remove([path])}finally{btn.disabled=false}};
 // pvNavigate('reels') owns loading and playback; avoid duplicate fetches.
 document.querySelectorAll('[data-view]').forEach(btn=>{if(btn.dataset.view!=='reels')btn.addEventListener('click',()=>document.querySelectorAll('#reelList video').forEach(v=>v.pause()))});
 
@@ -2651,7 +2651,7 @@ if(!file.type.startsWith('video/'))throw Error('Choose a supported video.');
 const ready=await window.PAVORA_VIDEO.prepare(file,status=>{pvFeedback.textContent=status});
 pvFeedback.textContent='Uploading optimized video ('+(ready.size/1048576).toFixed(1)+' MB)…';
 path=user.id+'/'+crypto.randomUUID()+(ready.type==='video/mp4'?'.mp4':'.webm');
-const upload=await db.storage.from('reel-videos').upload(path,ready,{contentType:ready.type});if(upload.error)throw upload.error;
+await window.PAVORA_UPLOAD.upload(db,'reel-videos',path,ready,{onStatus:status=>{pvFeedback.textContent=status}});
 const {data,error}=await db.from('reels').insert({author_id:user.id,caption:pvCaption.value.trim(),video_path:path}).select('id').single();
 if(error)throw error;saved=true;
 pvCloseComposeAfterUpload();pvNavigate('reels');
@@ -2661,7 +2661,7 @@ pvShowUploadToast('reel',()=>pvFocusPublished('reel',data.id));pvFocusPublished(
 if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>5*1024*1024)throw Error('Choose a JPG, PNG or WebP photo under 5 MB.');
 const suffix={'image/jpeg':'.jpg','image/png':'.png','image/webp':'.webp'}[file.type];
 path=user.id+'/'+crypto.randomUUID()+suffix;
-const upload=await db.storage.from('post-images').upload(path,file,{contentType:file.type});if(upload.error)throw upload.error;
+await window.PAVORA_UPLOAD.upload(db,'post-images',path,file,{onStatus:status=>{pvFeedback.textContent=status}});
 const {data,error}=await db.from('posts').insert({author_id:user.id,caption:pvCaption.value.trim(),image_path:path}).select('id').single();
 if(error)throw error;saved=true;
 pvCloseComposeAfterUpload();pvNavigate('home');
