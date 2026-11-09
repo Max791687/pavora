@@ -588,6 +588,7 @@ const pvSettingsItems=[
  {key:'privacy',icon:'◈',title:'Account privacy',category:'Who can see your content'},
  {key:'requests',icon:'✉',title:'Follow requests',category:'Who can see your content'},
  {key:'blocked',icon:'⊘',title:'Blocked accounts',category:'Who can see your content'},
+ {key:'closefriends',icon:'★',title:'Close Friends',category:'Who can see your content'},
  {key:'interactions',icon:'♡',title:'Interactions',category:'How others can interact with you'},
  {key:'accessibility',icon:'◐',title:'Accessibility',category:'Your app and media'},
  {key:'language',icon:'文',title:'Language',category:'Your app and media'},
@@ -644,6 +645,9 @@ function pvShowSettingsPage(page){
   const box=card('Pending follow requests','Approve or decline people who request access to your private profile.');
   box.append(pvPrivacyBox);pvPrivacyBox.hidden=false;
   pvUpdatePrivacyControl();pvLoadFollowRequests();
+ }else if(page==='closefriends'){
+  const box=card('Close Friends','Choose who can see Stories shared with Close Friends.');
+  box.append(action('Manage Close Friends',()=>{pvCloseSettings();window.PVKit?.openCloseFriends?.()}));
  }else if(page==='blocked'){
   const box=card('Blocked accounts','People you block cannot follow, message or view your content. You can unblock anytime.');
   pvLoadBlockedAccounts(box);
@@ -660,6 +664,7 @@ function pvShowSettingsPage(page){
   row(box,'Account privacy','Choose a public or private account.',action('Manage',()=>pvShowSettingsPage('privacy')));
   row(box,'Follow requests','Review requests from other people.',action('Open',()=>pvShowSettingsPage('requests')));
   row(box,'Blocked accounts','Manage people you blocked.',action('Manage',()=>pvShowSettingsPage('blocked')));
+  row(box,'Close Friends','Choose who can see your selected Stories.',action('Manage',()=>pvShowSettingsPage('closefriends')));
  }else if(page==='accessibility'){
   const box=card('Accessibility','Make the app easier and more comfortable to use.');
   const enabled=localStorage.getItem('pvReduceMotion')==='true';
@@ -692,6 +697,7 @@ function pvShowSettingsPage(page){
   row(more,'Follow requests','Requests from people who want to follow you.',action('Open',()=>pvShowSettingsPage('requests')));
   row(more,'Notifications','Manage browser notification permissions.',action('Open',()=>pvShowSettingsPage('notifications')));
   row(more,'Blocked accounts','Review and unblock users.',action('Manage',()=>pvShowSettingsPage('blocked')));
+  row(more,'Close Friends','Share private Stories with selected accounts.',action('Manage',()=>pvShowSettingsPage('closefriends')));
  }
 }
 pvSettingsSearch.addEventListener('input',()=>pvShowSettingsPage(pvSettingsActive));
@@ -1011,6 +1017,7 @@ db.from('follows').select('*',{count:'exact',head:true}).eq('follower_id',user.i
 {const el=document.getElementById('pvFollowing');if(el)el.textContent=e2?'—':following??0};
 await loadOwnPosts();
 await loadCreators();
+window.PVKit?.renderHighlights?.(document.querySelector('#profile > .panel'),user.id);
 }
 let pvProfileMediaTab='posts',pvOwnPosts=[],pvOwnReels=[];
 function pvDrawOwnMedia(){const grid=document.getElementById('pvPostGrid');if(!grid)return;grid.replaceChildren();
@@ -1661,6 +1668,7 @@ message.onclick=()=>openChat(id);
 const block=node('button','pvBlockAction','⊘ Block');block.onclick=()=>pvBlockAccount(id,person.username);
 const report=node('button','secondary','⚑ Report');report.type='button';report.onclick=()=>pvReportTarget('account',id);
 actions.append(follow,message,block,report);publicView.append(actions);
+if(!privateLocked)window.PVKit?.renderHighlights?.(publicView,id);
 if(privateLocked){const locked=node('div','pvPrivateLock');locked.append(node('div','','🔒'),node('strong','','This account is private'),node('p','','Follow this account to see its posts and reels.'));publicView.append(locked);return}
 publicView.append(node('h3','','Posts'));const grid=node('div','pvPublicGrid');publicView.append(grid);
 if(postError){grid.append(node('p','muted',postError.message));return}if(!posts?.length){grid.append(node('p','muted','No posts yet.'));return}
