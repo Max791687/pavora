@@ -295,6 +295,7 @@ function pvOpenVirtual(person){
  if(!user)return;
  pvActiveVirtual=person;
  // Use the same central feed area as real public profiles, not a popup preview.
+ document.body.classList.remove('pvMessagesMode','pvReelsMode','pvProfileMode');
  for(const id of ['home','reels','explore','profile','messages']){
   const view=document.getElementById(id);if(view)view.classList.add('hide');
  }
@@ -774,7 +775,7 @@ function pvSyncDesktopChatHeight(){
  document.body.style.setProperty('--pvMsgViewTop',viewTop+'px');
 }
 window.addEventListener('resize',()=>{if(document.body.classList.contains('pvMessagesMode'))requestAnimationFrame(pvSyncDesktopChatHeight)},{passive:true});
-function pvNavigate(view){pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');document.body.classList.toggle('pvExploreMode',view==='explore');document.body.classList.toggle('pvReelsMode',view==='reels');try{window.PVKit?.onNavigate?.(view)}catch(e){console.warn('Feature navigation:',e)}if(view==='messages'){loadInbox();requestAnimationFrame(pvSyncDesktopChatHeight)}if(view==='reels')loadReels();if(view==='explore')pvLoadExplore();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
+function pvNavigate(view){pvVirtualView.classList.add('hide');pvActiveVirtual=null;pvCloseVirtualChat();pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');document.body.classList.toggle('pvExploreMode',view==='explore');document.body.classList.toggle('pvReelsMode',view==='reels');try{window.PVKit?.onNavigate?.(view)}catch(e){console.warn('Feature navigation:',e)}if(view==='messages'){loadInbox();requestAnimationFrame(pvSyncDesktopChatHeight)}if(view==='reels')loadReels();if(view==='explore')pvLoadExplore();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
 // Legacy demo's button.onclick only hides/shows HTML. Connect each section
 // to the real cloud navigation so desktop rail opens Reels Mode + autoplay.
 document.querySelectorAll('aside.left [data-view="home"],aside.left [data-view="reels"],aside.left [data-view="profile"]').forEach(button=>{
