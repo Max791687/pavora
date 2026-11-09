@@ -1607,6 +1607,7 @@ function pvDmSetReply(id,message){
  form.querySelector('input[aria-label="Message"]')?.focus({preventScroll:true});
 }
 
+const pvDmInlineMenuCss=document.createElement('style');pvDmInlineMenuCss.textContent=".pvMessageRow{position:relative}.pvDmMoreButton{border:0!important;background:transparent!important;color:#b5a7c3!important;border-radius:50%!important;width:28px;height:28px;flex:none;cursor:pointer;font-weight:900;font-size:20px!important;padding:0!important}.pvDmMoreButton:hover{background:#332c3a!important;color:#fff!important}.pvDmInlineMenu{position:absolute;bottom:calc(100% + 3px);right:0;z-index:65;display:flex;flex-direction:column;min-width:175px;max-width:240px;padding:5px;border:1px solid #4c4159;border-radius:12px;background:#25212c;box-shadow:0 12px 32px #0009}.pvDmInlineMenu button{padding:10px 12px!important;border:0!important;border-radius:8px!important;background:transparent!important;color:#fff!important;font-size:12px!important;text-align:left!important;cursor:pointer}.pvDmInlineMenu button:hover{background:#3e324b!important}";document.head.append(pvDmInlineMenuCss);
 const pvDmUtilityCss=document.createElement('style');pvDmUtilityCss.textContent="\n.pvDmMenuAction{background:transparent!important;border:0!important;color:#aa9db5!important;font-size:12px!important;padding:4px 5px!important;cursor:pointer}\n.pvDmMenuAction:hover{color:#fff!important}\n.pvDmGalleryOverlay{position:fixed;inset:0;z-index:250;background:#000c;display:grid;place-items:center;padding:15px}\n.pvDmGalleryOverlay[hidden]{display:none!important}\n.pvDmGalleryCard{width:min(520px,100%);max-height:85dvh;display:flex;flex-direction:column;background:#19181e;border:1px solid #3b3545;border-radius:17px;overflow:hidden;box-shadow:0 22px 60px #000b}\n.pvDmGalleryHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:17px 18px;border-bottom:1px solid #302d37}\n.pvDmGalleryHead strong{font-size:16px}\n.pvDmGalleryHead button{border:0;border-radius:50%;width:33px;height:33px;background:#302a36;color:#fff;cursor:pointer}\n.pvDmGalleryGrid{overflow:auto;padding:15px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}\n.pvDmGalleryItem{border:0;background:#282431;aspect-ratio:1;border-radius:8px;overflow:hidden;display:flex;justify-content:center;align-items:center;cursor:pointer;position:relative;padding:0}\n.pvDmGalleryItem img{width:100%;height:100%;object-fit:cover}\n.pvDmGalleryItem video{width:100%;height:100%;object-fit:cover}\n.pvDmGalleryItem .pvDmGalleryPlay{position:absolute;background:#0009;padding:8px;border-radius:50%;color:#fff;font-size:17px}\n.pvDmGalleryEmpty{padding:30px 18px;text-align:center;color:#b9aec9;font-size:13px}\n.pvDmGalleryViewer{display:grid;place-items:center;min-height:200px;max-height:70dvh;padding:12px;background:#100f16}\n.pvDmGalleryViewer img,.pvDmGalleryViewer video{max-width:100%;max-height:65dvh;object-fit:contain}\n.pvDmForwardList{padding:10px 16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:7px}\n.pvDmForwardPerson{border:1px solid #403847;border-radius:11px;padding:12px 13px;color:#fff;background:#24212c;text-align:left;cursor:pointer;font-weight:650}\n.pvDmForwardPerson:hover{background:#382d47}\n.pvDmForwardStatus{font-size:12px;color:#c4afdb;padding:8px 16px}\n";document.head.append(pvDmUtilityCss);
 function pvDmOverlay(title){
  const overlay=node('div','pvDmGalleryOverlay'),card=node('div','pvDmGalleryCard'),head=node('div','pvDmGalleryHead');
@@ -1699,21 +1700,36 @@ async function pvForwardDmMessage(message,originPeer){
  }
 }
 
+document.addEventListener('click',e=>{if(!e.target.closest('.pvDmInlineMenu,.pvDmMoreButton'))document.querySelectorAll('.pvDmInlineMenu').forEach(menu=>menu.remove())});
 function pvDmDecorateContent(list,messages,peer){
  if(!list||!user||selectedPeer!==peer)return;
  const byId=new Map((messages||[]).map(x=>[String(x.id),x]));
  for(const row of list.querySelectorAll('.pvMessageRow[data-message-id]')){
   const msg=byId.get(row.dataset.messageId);
   if(!msg)continue;
-  if(!row.querySelector('.pvDmReplyButton')){
-   const btn=node('button','pvDmReplyButton','↩ Reply');btn.type='button';
-   btn.onclick=()=>pvDmSetReply(peer,msg);
-   row.append(btn);
-  }
-  if(!row.querySelector('.pvDmForwardButton')){
-   const btn=node('button','pvDmMenuAction pvDmForwardButton','↗ Forward');btn.type='button';
-   btn.onclick=()=>pvForwardDmMessage(msg,peer);
-   row.append(btn);
+  // One compact menu keeps message bubbles uncluttered on narrow phones.
+  row.querySelectorAll('.pvDmReplyButton,.pvDmForwardButton,.pvDeleteMessage').forEach(b=>b.remove());
+  if(!row.querySelector('.pvDmMoreButton')){
+   const more=node('button','pvDmMoreButton','⋯');more.type='button';more.title='Message options';more.setAttribute('aria-label','Message options');
+   more.onclick=e=>{
+    e.stopPropagation();
+    document.querySelectorAll('.pvDmInlineMenu').forEach(menu=>menu.remove());
+    const menu=node('div','pvDmInlineMenu');
+    const action=(label,handler)=>{
+     const btn=node('button','',label);btn.type='button';
+     btn.onclick=event=>{event.stopPropagation();menu.remove();handler()};menu.append(btn)
+    };
+    action('↩ Reply',()=>pvDmSetReply(peer,msg));
+    action('↗ Forward',()=>pvForwardDmMessage(msg,peer));
+    if(msg.sender_id===user.id)action('Delete for everyone',async()=>{
+     if(!confirm('Delete this message for everyone?'))return;
+     const {error}=await db.from('direct_messages').delete().eq('id',msg.id).eq('sender_id',user.id);
+     if(error){alert('Could not delete message: '+error.message);return}
+     row.remove();pvScheduleLiveDmRefresh();
+    });
+    row.append(menu);
+   };
+   row.append(more);
   }
   if(msg.reply_to&&!row.querySelector('.pvDmReplyPreview')){
    const preview=node('div','pvDmReplyPreview',pvDmMessageSummary(byId.get(String(msg.reply_to))));
