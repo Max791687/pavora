@@ -1606,6 +1606,99 @@ function pvDmSetReply(id,message){
  wrap.querySelector('strong').textContent=pvDmMessageSummary(message);
  form.querySelector('input[aria-label="Message"]')?.focus({preventScroll:true});
 }
+
+const pvDmUtilityCss=document.createElement('style');pvDmUtilityCss.textContent="\n.pvDmMenuAction{background:transparent!important;border:0!important;color:#aa9db5!important;font-size:12px!important;padding:4px 5px!important;cursor:pointer}\n.pvDmMenuAction:hover{color:#fff!important}\n.pvDmGalleryOverlay{position:fixed;inset:0;z-index:250;background:#000c;display:grid;place-items:center;padding:15px}\n.pvDmGalleryOverlay[hidden]{display:none!important}\n.pvDmGalleryCard{width:min(520px,100%);max-height:85dvh;display:flex;flex-direction:column;background:#19181e;border:1px solid #3b3545;border-radius:17px;overflow:hidden;box-shadow:0 22px 60px #000b}\n.pvDmGalleryHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:17px 18px;border-bottom:1px solid #302d37}\n.pvDmGalleryHead strong{font-size:16px}\n.pvDmGalleryHead button{border:0;border-radius:50%;width:33px;height:33px;background:#302a36;color:#fff;cursor:pointer}\n.pvDmGalleryGrid{overflow:auto;padding:15px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}\n.pvDmGalleryItem{border:0;background:#282431;aspect-ratio:1;border-radius:8px;overflow:hidden;display:flex;justify-content:center;align-items:center;cursor:pointer;position:relative;padding:0}\n.pvDmGalleryItem img{width:100%;height:100%;object-fit:cover}\n.pvDmGalleryItem video{width:100%;height:100%;object-fit:cover}\n.pvDmGalleryItem .pvDmGalleryPlay{position:absolute;background:#0009;padding:8px;border-radius:50%;color:#fff;font-size:17px}\n.pvDmGalleryEmpty{padding:30px 18px;text-align:center;color:#b9aec9;font-size:13px}\n.pvDmGalleryViewer{display:grid;place-items:center;min-height:200px;max-height:70dvh;padding:12px;background:#100f16}\n.pvDmGalleryViewer img,.pvDmGalleryViewer video{max-width:100%;max-height:65dvh;object-fit:contain}\n.pvDmForwardList{padding:10px 16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:7px}\n.pvDmForwardPerson{border:1px solid #403847;border-radius:11px;padding:12px 13px;color:#fff;background:#24212c;text-align:left;cursor:pointer;font-weight:650}\n.pvDmForwardPerson:hover{background:#382d47}\n.pvDmForwardStatus{font-size:12px;color:#c4afdb;padding:8px 16px}\n";document.head.append(pvDmUtilityCss);
+function pvDmOverlay(title){
+ const overlay=node('div','pvDmGalleryOverlay'),card=node('div','pvDmGalleryCard'),head=node('div','pvDmGalleryHead');
+ const heading=node('strong','',title),close=node('button','','×');
+ close.type='button';close.title='Close';close.onclick=()=>overlay.remove();
+ head.append(heading,close);card.append(head);overlay.append(card);overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});
+ document.body.append(overlay);return {overlay,card,heading};
+}
+async function pvShowDmMediaGallery(peer){
+ if(!user||!peer)return;
+ const uid=user.id,{overlay,card}=pvDmOverlay('Shared photos & videos');
+ const grid=node('div','pvDmGalleryGrid');card.append(grid);
+ grid.append(node('p','pvDmGalleryEmpty','Loading shared media…'));
+ const {data,error}=await db.from('direct_messages').select('id,media_path,media_type,created_at')
+ .or('and(sender_id.eq.'+uid+',recipient_id.eq.'+peer+'),and(sender_id.eq.'+peer+',recipient_id.eq.'+uid+')')
+ .not('media_path','is',null).order('created_at',{ascending:false}).limit(90);
+ if(!overlay.isConnected)return;
+ grid.replaceChildren();
+ if(error){grid.append(node('p','pvDmGalleryEmpty','Unable to load media: '+error.message));return}
+ if(!data?.length){grid.append(node('p','pvDmGalleryEmpty','No photos or videos shared yet.'));return}
+ // Signed links expire and are limited to media belonging to this chat.
+ for(const m of data){
+  const tile=node('button','pvDmGalleryItem'),isVideo=m.media_type?.startsWith('video/');
+  tile.type='button';tile.title=isVideo?'View video':'View photo';tile.append(node('span','',isVideo?'🎬':'▧'));
+  grid.append(tile);
+  const {data:link,error:linkError}=await db.storage.from('pv-dm-media').createSignedUrl(m.media_path,900);
+  if(!overlay.isConnected)return;
+  if(linkError||!link?.signedUrl){tile.disabled=true;tile.textContent='Unavailable';continue}
+  tile.replaceChildren();
+  if(isVideo){tile.append(node('span','pvDmGalleryPlay','▶'))}
+  else{const img=node('img');img.alt='Shared photo';img.loading='lazy';img.src=link.signedUrl;tile.append(img)}
+  tile.onclick=()=>{
+   const current=node('div','pvDmGalleryViewer');
+   const media=node(isVideo?'video':'img');
+   media.src=link.signedUrl;
+   if(isVideo){media.controls=true;media.playsInline=true;media.autoplay=false}
+   else media.alt='Shared photo';
+   current.append(media);grid.hidden=true;card.append(current);
+   const back=node('button','','← All media');back.type='button';back.style.cssText='margin:12px;align-self:start;background:#322739;color:white;border:0;border-radius:9px;padding:10px';
+   back.onclick=()=>{media.pause?.();current.remove();back.remove();grid.hidden=false};
+   card.append(back);
+  };
+ }
+}
+async function pvForwardDmMessage(message,originPeer){
+ if(!user||!message)return;
+ const sender=user.id,{overlay,card}=pvDmOverlay('Forward message');
+ const status=node('p','pvDmForwardStatus','Choose an existing conversation');
+ const recipients=node('div','pvDmForwardList');card.append(status,recipients);
+ const {data,error}=await db.from('direct_messages').select('sender_id,recipient_id')
+ .or('sender_id.eq.'+sender+',recipient_id.eq.'+sender).order('created_at',{ascending:false}).limit(300);
+ if(!overlay.isConnected)return;
+ if(error){status.textContent='Could not load chats: '+error.message;return}
+ const peers=[...new Set((data||[]).map(m=>m.sender_id===sender?m.recipient_id:m.sender_id))].filter(id=>id!==sender);
+ if(!peers.length){status.textContent='Start a conversation before forwarding messages.';return}
+ const {data:profiles}=await db.from('profiles').select('id,username,display_name').in('id',peers.slice(0,100));
+ if(!overlay.isConnected)return;
+ const persons=new Map((profiles||[]).map(p=>[p.id,p]));
+ for(const peer of peers.slice(0,100)){
+  const person=persons.get(peer);if(!person)continue;
+  const btn=node('button','pvDmForwardPerson','@'+person.username+(person.display_name?' · '+person.display_name:''));
+  btn.onclick=async()=>{
+   btn.disabled=true;status.textContent='Forwarding…';
+   let copiedPath=null;
+   try{
+    if(message.media_path){
+     // Re-upload under the current sender's folder; never share somebody
+     // else's original storage path with a different conversation.
+     const downloaded=await db.storage.from('pv-dm-media').download(message.media_path);
+     if(downloaded.error)throw downloaded.error;
+     const ext=message.media_type==='video/mp4'?'.mp4':message.media_type==='video/webm'?'.webm':message.media_type==='image/png'?'.png':message.media_type==='image/webp'?'.webp':'.jpg';
+     copiedPath=sender+'/'+crypto.randomUUID()+ext;
+     const upload=await db.storage.from('pv-dm-media').upload(copiedPath,downloaded.data,{contentType:message.media_type});
+     if(upload.error)throw upload.error;
+    }
+    const {error:sendError}=await db.from('direct_messages').insert({
+     sender_id:sender,recipient_id:peer,body:message.body||'',
+     media_path:copiedPath,media_type:copiedPath?message.media_type:null
+    });
+    if(sendError)throw sendError;
+    status.textContent='✓ Message forwarded';
+    setTimeout(()=>overlay.remove(),650);
+   }catch(err){
+    if(copiedPath)db.storage.from('pv-dm-media').remove([copiedPath]).catch(()=>{});
+    status.textContent='Forward failed: '+(err.message||'Please retry');
+    btn.disabled=false;
+   }
+  };
+  recipients.append(btn);
+ }
+}
+
 function pvDmDecorateContent(list,messages,peer){
  if(!list||!user||selectedPeer!==peer)return;
  const byId=new Map((messages||[]).map(x=>[String(x.id),x]));
