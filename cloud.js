@@ -1173,10 +1173,24 @@ document.getElementById('editProfileForm').onsubmit=async event=>{event.preventD
 
 /* Reels V1: MP4/WebM short-video upload, scroll playback and delete */
 const reelsView=document.getElementById('reels');
+/* Align phone Reels to the actual header + bottom navigation, not guessed pixel offsets. */
+function pvFitReelsViewport(){
+ if(window.innerWidth>700)return;
+ const root=document.documentElement;
+ const header=document.querySelector('body > header');
+ const rail=document.querySelector('.pvIconRail');
+ const top=header?.getBoundingClientRect().bottom||56;
+ const navTop=rail?.getBoundingClientRect().top;
+ const height=window.innerHeight;
+ root.style.setProperty('--pvReelsTop',Math.max(0,Math.round(top))+'px');
+ root.style.setProperty('--pvReelsBottom',Math.max(0,Math.round(Number.isFinite(navTop)?height-navTop:63))+'px');
+}
+window.addEventListener('resize',()=>{if(document.body.classList.contains('pvReelsMode'))requestAnimationFrame(pvFitReelsViewport)},{passive:true});
 reelsView.replaceChildren();
 const reelsStyles=document.createElement('style');reelsStyles.textContent=`
 .reelComposer{padding:16px;background:#171827;border:1px solid #303044;border-radius:16px;margin:12px 0}.reelComposer input,.reelComposer textarea{display:block;width:100%;padding:10px;margin:9px 0;background:#10111f;color:#fff;border:1px solid #39364f;border-radius:10px}.reelCard{background:#171827;border:1px solid #303044;border-radius:16px;margin:16px auto;overflow:hidden;max-width:470px}.reelCard video{width:100%;max-height:75vh;aspect-ratio:9/16;object-fit:contain;background:#000;display:block}.reelInfo{padding:12px 15px}.reelInfo p{white-space:pre-wrap;overflow-wrap:anywhere}.reelInfo button{margin-top:8px}`;document.head.append(reelsStyles);
 const reelForm=document.createElement('form');reelForm.className='reelComposer';reelForm.innerHTML='<h2>Reels ▣</h2><p class="muted">Upload an MP4 or WebM video. Upload size depends on your Supabase project limits. Videos are public.</p><input id="reelVideo" type="file" accept="video/mp4,video/webm" required><textarea id="reelCaption" maxlength="1000" placeholder="Write a reel caption…"></textarea><button class="primary" type="submit">Upload Reel</button><p id="reelFeedback" class="hint" role="status"></p>';reelsView.append(reelForm);reelForm.classList.add('hide');const reelUploadToggle=node('button','pvReelUploadToggle','＋ Create Reel');reelUploadToggle.type='button';reelUploadToggle.onclick=()=>{reelForm.classList.toggle('hide');if(!reelForm.classList.contains('hide'))reelForm.scrollIntoView({behavior:'smooth',block:'start'})};reelsView.insertBefore(reelUploadToggle,reelForm);
+// Discovery controls remain for desktop; immersive phone Reels hide them.
 const reelDiscovery=node('div','pvReelDiscovery');
 const reelDiscoveryText=node('span','pvReelDiscoveryText','Discover Reels from PAVORA creators');
 const reelRefresh=node('button','pvReelDiscoveryButton','↻ Refresh');
@@ -2110,7 +2124,7 @@ window.addEventListener('resize',pvScheduleMobileDmViewport,{passive:true});
 document.addEventListener('focusin',e=>{if(e.target.matches?.('#pvInboxView .pvMessageForm input'))pvScheduleMobileDmViewport()});
 document.addEventListener('focusout',e=>{if(e.target.matches?.('#pvInboxView .pvMessageForm input'))pvScheduleMobileDmViewport()});
 pvSyncMobileDmViewport();
-function pvNavigate(view){pvVirtualView.classList.add('hide');pvActiveVirtual=null;pvCloseVirtualChat();pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');document.body.classList.toggle('pvExploreMode',view==='explore');document.body.classList.toggle('pvReelsMode',view==='reels');try{window.PVKit?.onNavigate?.(view)}catch(e){console.warn('Feature navigation:',e)}if(view==='messages'){loadInbox();requestAnimationFrame(pvSyncDesktopChatHeight)}else{pvDmTypingLastSeen=0;pvClearTyping(selectedPeer)}if(view==='reels')loadReels();if(view==='explore')pvLoadExplore();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
+function pvNavigate(view){pvVirtualView.classList.add('hide');pvActiveVirtual=null;pvCloseVirtualChat();pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');document.body.classList.toggle('pvExploreMode',view==='explore');document.body.classList.toggle('pvReelsMode',view==='reels');try{window.PVKit?.onNavigate?.(view)}catch(e){console.warn('Feature navigation:',e)}if(view==='messages'){loadInbox();requestAnimationFrame(pvSyncDesktopChatHeight)}else{pvDmTypingLastSeen=0;pvClearTyping(selectedPeer)}if(view==='reels'){requestAnimationFrame(pvFitReelsViewport);loadReels()}if(view==='explore')pvLoadExplore();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
 // Legacy demo's button.onclick only hides/shows HTML. Connect each section
 // to the real cloud navigation so desktop rail opens Reels Mode + autoplay.
 document.querySelectorAll('aside.left [data-view="home"],aside.left [data-view="reels"],aside.left [data-view="profile"]').forEach(button=>{
