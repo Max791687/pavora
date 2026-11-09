@@ -57,7 +57,67 @@ for(const id of ['pvAllMediaTab','pvReelsMediaTab'])document.getElementById(id)?
 
 // Real 24-hour stories: upload, viewer, view count, automatic expiration.
 let stories=[];
-const launch=async()=>{if(!owner())return;const body=open('Add to your story'),file=el('input'),caption=el('input'),submit=el('button','primary','Post story'),feedback=el('p','muted','Visible for 24 hours');file.type='file';file.accept='image/jpeg,image/png,image/webp,video/mp4,video/webm';caption.placeholder='Caption (optional)';caption.maxLength=500;body.append(file,caption,submit,feedback);submit.onclick=async()=>{if(!file.files?.[0])return alert('Select a photo or video');const f=file.files[0];if(f.size>50*1024*1024)return alert('Maximum story size is 50 MB');submit.disabled=true;feedback.textContent='Uploading story…';let path=null;try{path=owner().id+'/'+crypto.randomUUID()+'/'+f.name.replace(/[^a-zA-Z0-9.-]/g,'_');const upload=await db.storage.from('story-media').upload(path,f,{contentType:f.type});if(upload.error)throw upload.error;const result=await db.from('stories').insert({author_id:owner().id,media_path:path,media_type:f.type.startsWith('video/')?'video':'image',caption:caption.value.trim()});if(result.error)throw result.error;modal.hidden=true;await kit.renderStories(document.getElementById('stories'),{force:true});alert('✓ Story uploaded! Visible for 24 hours.')}catch(e){feedback.textContent='Upload failed: '+e.message}finally{submit.disabled=false}}};
+
+const pvStoryComposerStyle=el('style');
+pvStoryComposerStyle.textContent="\n.pvSuiteModal.pvStoryComposerModal{background:rgba(0,0,0,.8);backdrop-filter:blur(8px)}\n.pvStoryComposerModal .pvSuiteBox{width:min(480px,calc(100vw - 28px));padding:0;background:#222329;border:1px solid #393942;border-radius:22px;max-height:92dvh;box-shadow:0 28px 90px #000b;scrollbar-width:thin}\n.pvStoryComposerModal .pvSuiteTitle{text-align:center;font-size:18px;letter-spacing:-.3px;margin:0;border-bottom:1px solid #343640;padding:21px 48px}\n.pvStoryComposerModal .pvSuiteClose{right:12px;top:12px;width:38px;height:38px;display:grid;place-items:center;font-size:24px;border-radius:50%;background:#30313a;z-index:3}\n.pvStoryComposerModal .pvSuiteBody{padding:20px;gap:13px}\n.pvStoryUploadDrop{width:100%;min-height:236px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:13px;border:1.5px dashed #665a75;border-radius:16px;background:linear-gradient(135deg,#302639,#1b1b24);cursor:pointer;overflow:hidden;outline:none}\n.pvStoryUploadDrop:hover,.pvStoryUploadDrop:focus-visible{border-color:#cf92f4}\n.pvStoryUploadGlyph{width:73px;height:73px;border-radius:22px;background:#3e304f;display:grid;place-items:center;font-size:32px;color:#dfb5ff}\n.pvStoryUploadDrop strong{color:#fff;font-size:15px}\n.pvStoryUploadDrop small{color:#b9b1c4;font-size:12px;text-align:center;line-height:1.6}\n.pvStoryUploadDrop.has-file{min-height:290px;border-style:solid;background:#111116}\n.pvStoryUploadDrop.has-file .pvStoryUploadGlyph,.pvStoryUploadDrop.has-file strong,.pvStoryUploadDrop.has-file small{display:none}\n.pvStoryPreview{width:100%;height:300px;max-height:42dvh;object-fit:contain;border-radius:13px;background:#101015}\n.pvStoryReplace{font-size:12px;color:#d6afff;text-align:center;cursor:pointer}\n.pvStoryComposerModal .pvSuiteBody .pvStoryCaption{box-sizing:border-box;min-height:78px;max-height:140px;width:100%;resize:vertical;border:1px solid #504b5b;border-radius:12px;background:#2d2a36;color:white;padding:13px 14px;outline:none;font-size:14px;font:inherit}\n.pvStoryCaption:focus{border-color:#c18ced}\n.pvStoryFooter{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#bfb7c7}\n.pvStoryComposerModal .pvSuiteBody .pvStoryShareBtn{width:100%;min-height:49px;border:0;border-radius:12px;background:linear-gradient(105deg,#844ded,#b266d9);color:#fff;font-weight:800;font-size:14px}\n.pvStoryShareBtn:disabled{opacity:.48;cursor:not-allowed}\n.pvStoryFeedback{color:#cca5ee;line-height:1.45;font-size:12px;text-align:center;margin:0;min-height:18px;overflow-wrap:anywhere}\n.pvStoryHiddenInput{display:none!important}\n@media(max-width:600px){.pvStoryComposerModal .pvSuiteBody{padding:16px}.pvStoryUploadDrop{min-height:216px}.pvStoryPreview{height:260px}}\n";
+document.head.append(pvStoryComposerStyle);
+const launch=async()=>{
+ if(!owner())return;
+ const body=open('Create story');
+ modal.classList.add('pvStoryComposerModal');
+ const input=el('input','pvStoryHiddenInput');
+ input.type='file';input.accept='image/jpeg,image/png,image/webp,video/mp4,video/webm';
+ const picker=el('div','pvStoryUploadDrop'),glyph=el('span','pvStoryUploadGlyph','▧');
+ picker.tabIndex=0;picker.setAttribute('role','button');picker.setAttribute('aria-label','Choose photo or video');
+ picker.append(glyph,el('strong','','Choose photo or video'),el('small','','Share your moment · Photos and videos up to 50 MB'));
+ const change=el('div','pvStoryReplace','Tap preview to choose another file');change.hidden=true;
+ const caption=el('textarea','pvStoryCaption');caption.placeholder='Add a caption (optional)…';caption.maxLength=500;
+ const footer=el('div','pvStoryFooter'),counter=el('span','','0 / 500');
+ footer.append(el('span','','◷ Visible for 24 hours'),counter);
+ const submit=el('button','pvStoryShareBtn','Share to your story');submit.disabled=true;
+ const feedback=el('p','pvStoryFeedback','');
+ body.append(input,picker,change,caption,footer,submit,feedback);
+ let selected=null,objectUrl=null,busy=false;
+ const reset=()=>{
+  if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null}
+  modal.classList.remove('pvStoryComposerModal');
+ };
+ const close=modal.querySelector('.pvSuiteClose'),previous=close.onclick;
+ const onBackdrop=e=>{if(e.target!==modal||busy)return;reset();close.onclick=previous;modal.removeEventListener('click',onBackdrop);modal.hidden=true};
+ close.onclick=()=>{if(busy)return;reset();close.onclick=previous;modal.removeEventListener('click',onBackdrop);previous()};
+ modal.addEventListener('click',onBackdrop);
+ input.onchange=()=>{
+  const file=input.files?.[0];if(!file)return;
+  if(!['image/jpeg','image/png','image/webp','video/mp4','video/webm'].includes(file.type)){feedback.textContent='Choose a JPG, PNG, WebP, MP4 or WebM file.';return}
+  if(file.size>50*1024*1024){feedback.textContent='Maximum story size is 50 MB.';return}
+  if(objectUrl)URL.revokeObjectURL(objectUrl);
+  objectUrl=URL.createObjectURL(file);selected=file;
+  const preview=el(file.type.startsWith('video/')?'video':'img','pvStoryPreview');
+  preview.src=objectUrl;
+  if(file.type.startsWith('video/')){preview.controls=true;preview.muted=true;preview.playsInline=true;preview.preload='metadata'}
+  picker.replaceChildren(preview);picker.classList.add('has-file');
+  change.hidden=false;submit.disabled=false;feedback.textContent=file.name;
+ };
+ picker.onclick=e=>{if(!busy&&!e.target.closest('video'))input.click()};
+ picker.onkeydown=e=>{if(!busy&&(e.key==='Enter'||e.key===' ')){e.preventDefault();input.click()}};
+ change.onclick=()=>{if(!busy)input.click()};
+ caption.oninput=()=>{counter.textContent=caption.value.length+' / 500'};
+ submit.onclick=async()=>{
+  if(!selected||busy||!owner())return;
+  busy=true;submit.disabled=true;submit.textContent='Sharing…';feedback.textContent='Uploading your story…';
+  try{
+   const path=owner().id+'/'+crypto.randomUUID()+'/'+selected.name.replace(/[^a-zA-Z0-9.-]/g,'_');
+   const result=await db.storage.from('story-media').upload(path,selected,{contentType:selected.type});
+   if(result.error)throw result.error;
+   const saved=await db.from('stories').insert({author_id:owner().id,media_path:path,media_type:selected.type.startsWith('video/')?'video':'image',caption:caption.value.trim()});
+   if(saved.error)throw saved.error;
+   reset();close.onclick=previous;modal.removeEventListener('click',onBackdrop);modal.hidden=true;
+   await kit.renderStories(document.getElementById('stories'),{force:true});
+  }catch(err){feedback.textContent='Upload failed: '+err.message}
+  finally{busy=false;submit.textContent='Share to your story';submit.disabled=!selected}
+ };
+};
+
 const showStory=async story=>{const body=open('Story'),media=el(story.media_type==='video'?'video':'img','pvSuiteMedia');media.src=imageUrl('story-media',story.media_path);if(story.media_type==='video'){media.controls=true;media.autoplay=true;media.playsInline=true}body.append(media,el('p','',story.caption||''));if(story.author_id!==owner()?.id)db.from('story_views').upsert({story_id:story.id,viewer_id:owner().id},{onConflict:'story_id,viewer_id'}).then(()=>{});else{const {data}=await db.from('story_views').select('viewer_id,viewed_at').eq('story_id',story.id).order('viewed_at',{ascending:false}).limit(100);body.append(el('p','',((data||[]).length)+' views'));if(data?.length){const ids=data.map(x=>x.viewer_id),res=await db.from('profiles').select('id,username,display_name').in('id',ids),profiles=new Map((res.data||[]).map(x=>[x.id,x]));const list=el('div','pvStoryViewers');list.append(el('strong','','Viewed by'));for(const v of data){const person=profiles.get(v.viewer_id);list.append(el('div','pvStoryViewer','@'+(person?.username||'viewer')))}body.append(list)}const del=el('button','pvSuiteSave','Delete story');del.onclick=async()=>{if(!confirm('Delete this story?'))return;const result=await db.from('stories').delete().eq('id',story.id).eq('author_id',owner().id);if(result.error)return info(result.error);modal.hidden=true;kit.renderStories(document.getElementById('stories'),{force:true})};body.append(del)}};
 let pvStoriesPromise=null,pvStoriesLastCheck=0,pvStoriesSignature='',pvStoriesUserId=null;
 kit.renderStories=async(bar,opts={})=>{
