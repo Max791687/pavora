@@ -2369,7 +2369,7 @@ fileInput.onchange=()=>{
  if(file.type.startsWith('image/')){const img=node('img');pvPreviewObjectUrl=URL.createObjectURL(file);img.src=pvPreviewObjectUrl;img.alt='Selected photo';thumb.append(img)}
  else thumb.textContent='🎬';
 };
-attach.onclick=()=>fileInput.click();
+attach.onclick=()=>{fileInput.accept='image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm';fileInput.click()};
 const replyCompose=node('div','pvDmSendPreview pvDmReplyCompose');replyCompose.hidden=true;
 const replyInfo=node('div','pvDmPreviewText'),replyHeading=node('span','pvDmPreviewTitle','REPLYING TO'),replyText=node('strong','',''),cancelReply=node('button','','×');cancelReply.type='button';
 cancelReply.title='Cancel reply';cancelReply.setAttribute('aria-label','Cancel reply');cancelReply.onclick=()=>{form.dataset.replyTo='';replyCompose.hidden=true};
