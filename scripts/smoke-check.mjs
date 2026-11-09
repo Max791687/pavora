@@ -3,8 +3,8 @@
 import { readFileSync, existsSync } from 'node:fs';
 import assert from 'node:assert/strict';
 const read = file => { assert.ok(existsSync(file), `Missing file: ${file}`); return readFileSync(file, 'utf8') };
-const html=read('index.html'),cloud=read('cloud.js'),suite=read('social-suite.js'),sw=read('sw.js'),compress=read('video-compress.js'),reliable=read('upload-reliable.js'),themes=read('chat-themes.js'),presence=read('presence.js'),presenceSql=read('supabase/user-presence.sql'),chatSearch=read('chat-search.js'),smart=read('smart-reels.js'),smartSql=read('supabase/smart-reels.sql'),smartWatchSql=read('supabase/smart-reels-watch.sql'),reelSeek=read('reel-seek.js');
-for(const file of ['cloud.js','social-suite.js','calls.js','app-install.js','push.js','sw.js','video-compress.js','upload-reliable.js','chat-themes.js','presence.js','chat-search.js','smart-reels.js','reel-seek.js']){
+const html=read('index.html'),cloud=read('cloud.js'),suite=read('social-suite.js'),sw=read('sw.js'),compress=read('video-compress.js'),reliable=read('upload-reliable.js'),themes=read('chat-themes.js'),presence=read('presence.js'),presenceSql=read('supabase/user-presence.sql'),chatSearch=read('chat-search.js'),smart=read('smart-reels.js'),smartSql=read('supabase/smart-reels.sql'),smartWatchSql=read('supabase/smart-reels-watch.sql'),reelSeek=read('reel-seek.js'),hub=read('creator-hub.js'),hubSql=read('supabase/creator-hub-v41.sql');
+for(const file of ['cloud.js','social-suite.js','calls.js','app-install.js','push.js','sw.js','video-compress.js','upload-reliable.js','chat-themes.js','presence.js','chat-search.js','smart-reels.js','reel-seek.js','creator-hub.js']){
  const code=read(file);
  try {new Function(code)}catch(err){throw Error(`${file} syntax failure: ${err.message}`)}
 }
@@ -49,7 +49,7 @@ assert.ok(sw.includes('upload-reliable.js'), 'Upload helper missing from offline
 assert.ok(cloud.includes('pvReadableAuthError')&&cloud.includes('pvNotifyAuth')&&cloud.includes('pvAuthBusy'), 'Visible login status logic missing');
 assert.ok(cloud.includes("insertAdjacentElement('afterend',document.getElementById('authMsg'))"), 'Login feedback must be near submit button');
 assert.ok(cloud.includes("pvNotifyAuth('✓ Login successful!")&&cloud.includes('Login failed. Email or password is incorrect.'), 'Login success/error messaging missing');
-assert.ok(html.includes('20261110-reel-seek-v40')&&sw.includes('pavora-shell-2026-11-10-reel-seek-v40'), 'PWA latest version mismatch');
+assert.ok(html.includes('20261110-creator-hub-v41')&&sw.includes('pavora-shell-2026-11-10-creator-hub-v41'), 'PWA latest version mismatch');
 assert.ok(html.indexOf('chat-themes.js')<html.indexOf('cloud.js?v='), 'Chat themes engine must load before cloud.js');
 assert.ok(sw.includes('chat-themes.js')&&themes.includes('PAVORA_CHAT_THEMES'), 'Chat themes shell integration missing');
 assert.ok(cloud.includes('pvChatThemeTrigger')&&cloud.includes('PAVORA_CHAT_THEMES?.apply')&&cloud.includes('PAVORA_CHAT_THEMES?.open'), 'Chat theme picker hookup missing');
@@ -88,6 +88,12 @@ assert.ok(html.indexOf('reel-seek.js?v=')<html.indexOf('cloud.js?v=')&&sw.includ
 assert.ok(cloud.includes('PAVORA_REEL_SEEK?.attach(screen,video)'), 'Reel seek bar must be attached to each video');
 assert.ok(reelSeek.includes("track.type='range'")&&reelSeek.includes("video.currentTime=requested")&&reelSeek.includes('loadedmetadata')&&reelSeek.includes('durationchange')&&reelSeek.includes('timeupdate'), 'Reel duration and seek logic missing');
 assert.ok(reelSeek.includes("e.stopPropagation()")&&reelSeek.includes('touch-action:pan-x')&&reelSeek.includes('pvReelSeekTime'), 'Mobile touch-scrubbing and duration display missing');
+assert.ok(html.includes('creator-hub.js?v=20261110-creator-hub-v41')&&sw.includes('creator-hub.js'), 'Creator Hub not loaded/cached');
+assert.ok(hub.includes('Your Creator Analytics')&&hub.includes('pv_creator_reel_stats')&&hub.includes('Completion')===false, 'Aggregate Creator Analytics not present');
+assert.ok(hub.includes('Moderation Queue')&&hub.includes('pv_app_admins')&&hub.includes('content_reports'), 'Admin-only moderation review missing');
+assert.ok(hub.includes('Discover Rising Creators')&&hub.includes("db.from('follows').insert"), 'Creator Growth follow workflow missing');
+assert.ok(hub.includes('Data Saver')&&hub.includes('pavora-data-saver')&&cloud.includes('PAVORA_CREATOR_HUB?.dataSaver()'), 'Reel performance data saver missing');
+assert.ok(hubSql.includes('enable row level security')&&hubSql.includes('pv_creator_reel_stats')&&hubSql.includes('from public,anon')&&hubSql.includes('pv_guard_official_profile'), 'Creator Hub security migration missing');
 assert.ok(suite.includes('story_views'), 'Story viewer tracking missing');
 assert.ok(sw.includes("event.respondWith"), 'PWA offline fallback missing');
 console.log('PAVORA static smoke checks passed. Browser integration tests are still required.');
