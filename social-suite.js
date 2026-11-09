@@ -41,7 +41,16 @@ like.onclick=async()=>{like.disabled=true;try{const existing=await db.from('reel
 comments.onclick=async()=>{const body=open('Reel comments'),list=el('div','pvSuiteCommentList'),form=el('form','pvSuiteCommentForm'),input=el('input'),send=el('button','','Post');input.required=true;input.maxLength=500;input.placeholder='Write a comment';form.append(input,send);body.append(list,form);const draw=async()=>{const result=await refresh();if(!result){list.textContent='Run supabase/social-suite.sql to enable comments.';return}list.replaceChildren();for(const comment of result.comments)list.append(el('div','pvSuiteComment',comment.body));if(!result.comments.length)list.append(el('p','','No comments yet.'))};form.onsubmit=async e=>{e.preventDefault();send.disabled=true;const result=await db.from('reel_comments').insert({reel_id:reel.id,user_id:user.id,body:input.value.trim()});send.disabled=false;if(result.error)return info(result.error);input.value='';draw()};draw()};
 // Only the currently playing Reel requests its statistics and saved status.
 // A feed of 40 reels previously triggered 160+ requests before playback.
-let viewed=false,statsLoaded=false,lastStatsRefresh=0,watchSeconds=0,lastWatchTime=0;
+let viewed=false,statsLoaded=false,lastStatsRefresh=0,watchSeconds=0,lastWatchTime=0,lastWatchReported=0;
+function pvCommitWatchProgress(){
+ if(watchSeconds<3||watchSeconds-lastWatchReported<3)return;
+ lastWatchReported=watchSeconds;
+ const completed=Number.isFinite(video.duration)&&video.duration>0
+  &&(watchSeconds>=video.duration*.8||video.currentTime>=video.duration*.85);
+ window.PAVORA_SMART_REELS?.recordWatch(db,user.id,reel.id,watchSeconds,completed);
+}
+video.addEventListener('pause',pvCommitWatchProgress);
+video.addEventListener('ended',pvCommitWatchProgress);
 video.addEventListener('play',()=>{
  const now=Date.now();lastWatchTime=video.currentTime||0;
  if(now-lastStatsRefresh>10000){
@@ -56,7 +65,7 @@ video.addEventListener('timeupdate',()=>{
  if(viewed||video.paused||document.hidden||!video.isConnected)return;
  const current=video.currentTime||0;
  const delta=current-lastWatchTime;lastWatchTime=current;
- if(delta>0&&delta<1.5)watchSeconds+=delta;
+ if(delta>0&&delta<1.5){watchSeconds+=delta;if(watchSeconds-lastWatchReported>=10)pvCommitWatchProgress()}
  // Require meaningful playback rather than counting a failed autoplay attempt.
  if(watchSeconds<2&&!(video.duration>0&&video.duration<2&&watchSeconds>=video.duration*.75))return;
  viewed=true;
