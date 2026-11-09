@@ -1590,7 +1590,7 @@ let pvDmRealtimeChannel=null,pvDmRealtimeUser=null,pvDmRealtimeStatus='offline',
 function pvStopDmRealtime(){
  if(pvDmRealtimeRefreshTimer){clearTimeout(pvDmRealtimeRefreshTimer);pvDmRealtimeRefreshTimer=null}
  if(pvDmRealtimeChannel){const old=pvDmRealtimeChannel;pvDmRealtimeChannel=null;try{db.removeChannel(old).catch(()=>{})}catch(e){console.warn('Realtime cleanup:',e)}}
- pvDmRealtimeUser=null;pvDmRealtimeStatus='offline';
+ pvDmRealtimeUser=null;pvDmRealtimeStatus='offline';pvStopDmExtras();
 }
 function pvDmUpdateReceipt(list,messages){
  if(!list)return;
@@ -1626,6 +1626,8 @@ function pvStartDmRealtime(){
  channel.on('postgres_changes',{event:'INSERT',schema:'public',table:'direct_messages',filter:'sender_id=eq.'+uid},onChange);
  channel.on('postgres_changes',{event:'UPDATE',schema:'public',table:'direct_messages',filter:'sender_id=eq.'+uid},onChange);
  channel.on('postgres_changes',{event:'DELETE',schema:'public',table:'direct_messages',filter:'recipient_id=eq.'+uid},onChange);
+ for(const event of ['INSERT','UPDATE','DELETE'])channel.on('postgres_changes',{event,schema:'public',table:'message_reactions'},()=>{if(user?.id===uid)pvScheduleDmReactionRefresh()});
+ for(const event of ['INSERT','UPDATE','DELETE'])channel.on('postgres_changes',{event,schema:'public',table:'dm_typing_status',filter:'peer_id=eq.'+uid},()=>{if(user?.id===uid)pvCheckTyping()});
  channel.subscribe(status=>{
   if(pvDmRealtimeUser!==uid)return;
   pvDmRealtimeStatus=status==='SUBSCRIBED'?'live':'offline';
@@ -1633,7 +1635,7 @@ function pvStartDmRealtime(){
   if(label){label.textContent=pvDmRealtimeStatus==='live'?'Live':'Syncing';label.title=pvDmRealtimeStatus==='live'?'Messages update in real time':'Message polling is active'}
   if(status==='SUBSCRIBED')pvScheduleLiveDmRefresh();
  });
- pvDmRealtimeChannel=channel;
+ pvDmRealtimeChannel=channel;pvStartDmExtras();
 }
 
 const pvNotifyStyle=document.createElement('style');pvNotifyStyle.textContent=`.pvThreadEntry{display:flex;align-items:center;gap:5px;margin:5px 0}.pvThreadEntry>button:first-child{flex:1;min-width:0}.pvThreadEntry .pvRemoveChat{width:35px;flex:none;justify-content:center!important;padding:9px!important;color:#ff9cae;background:#342637!important}.pvThreadEntry .pvRemoveChat:hover{background:#603047!important}.pvMessageRow{display:flex;align-items:center;gap:7px;max-width:100%;align-self:flex-start}.pvMessageRow.mine{align-self:flex-end;flex-direction:row-reverse}.pvMessageRow .pvBubble{max-width:min(80vw,450px)}.pvDeleteMessage{border:0;background:transparent;color:#c8b7db;font-size:12px;padding:7px;cursor:pointer;border-radius:8px}.pvDeleteMessage:hover{color:#ff9cae;background:#3c2b41}.pvUnreadBadge{display:inline-flex;align-items:center;justify-content:center;background:#f04478;color:white;border-radius:999px;font-size:11px;font-weight:800;padding:2px 7px;margin-left:8px;min-width:20px}.pvUnreadBadge[hidden]{display:none!important}.pvThreadList button{display:flex!important;align-items:center;justify-content:space-between;gap:8px}`;document.head.append(pvNotifyStyle);
@@ -1688,7 +1690,7 @@ function pvSyncDesktopChatHeight(){
  document.body.style.setProperty('--pvMsgViewTop',viewTop+'px');
 }
 window.addEventListener('resize',()=>{if(document.body.classList.contains('pvMessagesMode'))requestAnimationFrame(pvSyncDesktopChatHeight)},{passive:true});
-function pvNavigate(view){pvVirtualView.classList.add('hide');pvActiveVirtual=null;pvCloseVirtualChat();pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');document.body.classList.toggle('pvExploreMode',view==='explore');document.body.classList.toggle('pvReelsMode',view==='reels');try{window.PVKit?.onNavigate?.(view)}catch(e){console.warn('Feature navigation:',e)}if(view==='messages'){loadInbox();requestAnimationFrame(pvSyncDesktopChatHeight)}if(view==='reels')loadReels();if(view==='explore')pvLoadExplore();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
+function pvNavigate(view){pvVirtualView.classList.add('hide');pvActiveVirtual=null;pvCloseVirtualChat();pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');document.body.classList.toggle('pvExploreMode',view==='explore');document.body.classList.toggle('pvReelsMode',view==='reels');try{window.PVKit?.onNavigate?.(view)}catch(e){console.warn('Feature navigation:',e)}if(view==='messages'){loadInbox();requestAnimationFrame(pvSyncDesktopChatHeight)}else{pvDmTypingLastSeen=0;pvClearTyping(selectedPeer)}if(view==='reels')loadReels();if(view==='explore')pvLoadExplore();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
 // Legacy demo's button.onclick only hides/shows HTML. Connect each section
 // to the real cloud navigation so desktop rail opens Reels Mode + autoplay.
 document.querySelectorAll('aside.left [data-view="home"],aside.left [data-view="reels"],aside.left [data-view="profile"]').forEach(button=>{
@@ -1931,6 +1933,7 @@ if(silent&&area.querySelector('.pvMessageForm')){
    list.append(row);
   }
   pvDmUpdateReceipt(list,messages);
+  pvDmDecorateRows(list);pvScheduleDmReactionRefresh(70);
   if(received.length)list.scrollTop=list.scrollHeight;
  }
  return;
@@ -1987,10 +1990,13 @@ send.addEventListener('click',event=>{
  pvSendMessage();
 });
 const composerWrap=node('div','pvChatComposerWrap');form.append(emojiButton,input,send);composerWrap.append(emojiTray,form);
+input.addEventListener('input',()=>{if(input.value.trim()&&!input.disabled)pvOnChatInput(id);else pvClearTyping(id)});
+input.addEventListener('blur',()=>{if(input.value.trim())pvClearTyping(id)});
 if(pendingOutgoing&&alreadySent){input.disabled=true;send.disabled=true;input.placeholder='Request pending — waiting for acceptance';}
 form.addEventListener('submit',event=>{event.preventDefault();pvSendMessage()});
 async function pvSendMessage(){
  const body=input.value.trim();if(!body||send.disabled)return;
+ pvClearTyping(id);
  // Keep the original input element mounted. Rebuilding renderChat() here
  // makes iOS/Android close the soft keyboard after every message.
  input.value='';
@@ -2032,7 +2038,8 @@ async function pvSendMessage(){
 }area.append(chatTop);
 if(pendingIncoming){const banner=node('div','pvRequestBanner'),description=node('p','','Message request from someone who does not follow you.'),accept=node('button','pvAcceptRequest','Accept'),remove=node('button','pvDeclineRequest','Remove');accept.type=remove.type='button';accept.onclick=async()=>{accept.disabled=true;const {error}=await db.from('message_requests').update({accepted_at:new Date().toISOString()}).eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null);if(error){alert('Could not accept request: '+error.message);accept.disabled=false;return}pvInboxTab='Primary';await loadInbox();await pvCheckUnread()};remove.onclick=()=>pvRemoveChat(id);banner.append(description,accept,remove);area.append(banner)}
 if(pendingOutgoing){area.append(node('p','pvPendingRequestNote',alreadySent?'Request sent. Wait for acceptance, or follow this account to continue.':'You can send one message request. Follow this account to message freely.'))}
-area.append(list,composerWrap);emojiButton.disabled=input.disabled;pvDmUpdateReceipt(list,messages);list.scrollTop=list.scrollHeight}
+const typingLabel=node('div','pvDmTypingLabel','● typing…');typingLabel.hidden=true;
+area.append(list,typingLabel,composerWrap);emojiButton.disabled=input.disabled;pvDmUpdateReceipt(list,messages);pvDmDecorateRows(list);pvScheduleDmReactionRefresh(90);pvCheckTyping();list.scrollTop=list.scrollHeight}
 
 
 // Slide-out navigation and separate Create Post dialog; retain existing publish handlers.
