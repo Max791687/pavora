@@ -181,6 +181,124 @@ document.head.append(pvPrivacyCss);
 const pvPrivacyBox=node('section');pvPrivacyBox.id='pvPrivacySettings';
 pvPrivacyBox.innerHTML='<h3>Account privacy</h3><p>Choose who can see your posts and reels inside PAVORA. Private accounts approve followers before they can view content. Note: media uploaded to the old public storage buckets may still be accessible through a previously shared direct URL.</p><div class="pvPrivacyOptions"><button type="button" id="pvSetPublic">🌐 Public</button><button type="button" id="pvSetPrivate">🔒 Private</button></div><div id="pvPrivacyStatus" role="status"></div><div id="pvRequestsBox" hidden><h3>Follow requests <span id="pvRequestsCount"></span></h3><div id="pvRequestsList"></div></div>';
 document.getElementById('profile').append(pvPrivacyBox);
+
+/* Dedicated settings experience, inspired by familiar social-app navigation. */
+const pvSettingsCSS=document.createElement('style');
+pvSettingsCSS.textContent=`
+#pvSettingsScreen{position:fixed;inset:0;z-index:90;display:grid;grid-template-columns:270px minmax(0,1fr);background:#0b0c10;color:#f7f6fc;overflow:hidden}
+#pvSettingsScreen[hidden]{display:none!important}
+.pvSettingsSidebar{border-right:1px solid #292831;background:#101015;padding:27px 15px;overflow:auto}
+.pvSettingsSidebar h2{font-size:23px;margin:13px 12px 26px}
+.pvSettingsBack{background:transparent;border:0;color:#ddd2ef;font-weight:750;padding:12px;cursor:pointer}
+.pvSettingsSectionLabel{font-size:11px;font-weight:800;color:#918b9f;margin:24px 13px 9px}
+.pvSettingsNav{width:100%;display:flex;align-items:center;gap:13px;padding:15px 13px;border:0;border-radius:11px;background:transparent;color:#e8e4f0;text-align:left;font-size:14px;font-weight:650;cursor:pointer}
+.pvSettingsNav:hover,.pvSettingsNav.active{background:#272331}
+.pvSettingsNav .pvSettingsIcon{width:23px;font-size:20px;text-align:center}
+.pvSettingsMain{overflow:auto;padding:42px clamp(18px,5vw,80px) 75px}
+.pvSettingsPage{width:min(620px,100%);margin:0 auto}
+.pvSettingsPage h2{font-size:24px;margin:0 0 25px}
+.pvSettingsAccount{padding:20px;background:#19171f;border:1px solid #34303c;border-radius:15px;margin-bottom:25px;display:flex;align-items:center;gap:12px}
+.pvSettingsAccount .pvSettingsAccountAvatar{width:49px;height:49px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#804eeb,#e061af);overflow:hidden;font-weight:900}
+.pvSettingsAccountAvatar img{width:100%;height:100%;object-fit:cover}
+.pvSettingsAccount strong{display:block;font-size:14px}
+.pvSettingsAccount small{font-size:12px;color:#a9a2b4}
+#pvSettingsScreen #pvPrivacySettings{margin:0;background:#16141c;border-color:#35303c;padding:24px}
+#pvSettingsScreen #pvPrivacySettings h3{font-size:19px}
+#pvSettingsScreen #pvPrivacySettings .pvPrivacyOptions{margin-top:20px}
+#pvSettingsScreen #pvPrivacySettings .pvPrivacyOptions button{flex:1;min-height:54px}
+.pvSettingsInfo{margin:18px 0;color:#aaa2b8;font-size:13px;line-height:1.7}
+.pvSettingsHint{padding:15px;background:#211b2b;border:1px solid #473852;border-radius:12px;color:#d4c4e9;font-size:12px;line-height:1.6}
+.pvSettingsOpenProfile{padding:12px 19px;border:0;background:#7048bc;color:white;border-radius:10px;font-weight:750;cursor:pointer}
+@media(max-width:680px){#pvSettingsScreen{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.pvSettingsSidebar{border-right:0;border-bottom:1px solid #2a2632;padding:8px 11px}.pvSettingsSidebar h2{font-size:18px;margin:5px 10px 9px}.pvSettingsSectionLabel{display:none}.pvSettingsLinks{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}.pvSettingsNav{width:auto;flex:none;padding:10px;font-size:12px}.pvSettingsNav .pvSettingsIcon{font-size:16px;width:17px}.pvSettingsBack{padding:7px 9px}.pvSettingsMain{padding:23px 14px 90px}.pvSettingsPage h2{font-size:20px}.pvSettingsAccount{padding:12px}#pvSettingsScreen #pvPrivacySettings{padding:15px}}
+`;
+document.head.append(pvSettingsCSS);
+const pvSettingsScreen=node('section');pvSettingsScreen.id='pvSettingsScreen';pvSettingsScreen.hidden=true;
+pvSettingsScreen.setAttribute('aria-label','PAVORA settings');
+const pvSettingsSidebar=node('nav','pvSettingsSidebar');
+const pvSettingsBack=node('button','pvSettingsBack','← Back to PAVORA');pvSettingsBack.type='button';
+const pvSettingsHeading=node('h2','','Settings and activity');
+pvSettingsSidebar.append(pvSettingsBack,pvSettingsHeading);
+const pvSettingsLinks=node('div','pvSettingsLinks');pvSettingsSidebar.append(pvSettingsLinks);
+const pvSettingsMain=node('main','pvSettingsMain'); // native element, not linked to original main
+const pvSettingsPage=node('div','pvSettingsPage');pvSettingsMain.append(pvSettingsPage);
+pvSettingsScreen.append(pvSettingsSidebar,pvSettingsMain);document.body.append(pvSettingsScreen);
+const pvSettingsItems=[
+ {key:'overview',icon:'⚙',title:'Settings overview',category:'Your account'},
+ {key:'edit',icon:'♙',title:'Edit profile',category:'Your account'},
+ {key:'privacy',icon:'♙',title:'Account privacy',category:'Who can see your content'},
+ {key:'requests',icon:'✉',title:'Follow requests',category:'Who can see your content'}
+];
+let pvSettingsActive='privacy';
+function pvCloseSettings(){
+ pvSettingsScreen.hidden=true;
+ const profilePage=document.getElementById('profile');
+ profilePage.append(pvPrivacyBox);
+ pvPrivacyBox.hidden=true;
+ if(user&&profile)pvUpdatePrivacyControl();
+}
+function pvOpenSettings(page='overview'){
+ if(!user)return;
+ document.body.classList.remove('pvDrawerOpen');
+ pvSettingsScreen.hidden=false;
+ pvShowSettingsPage(page);
+}
+function pvShowSettingsPage(page){
+ pvSettingsActive=page;
+ pvSettingsLinks.replaceChildren();
+ let lastCategory='';
+ for(const item of pvSettingsItems){
+  if(item.category!==lastCategory){
+   pvSettingsLinks.append(node('div','pvSettingsSectionLabel',item.category));lastCategory=item.category;
+  }
+  const b=node('button','pvSettingsNav'+(page===item.key?' active':''));b.type='button';
+  b.append(node('span','pvSettingsIcon',item.icon),node('span','',item.title));
+  b.onclick=()=>pvShowSettingsPage(item.key);pvSettingsLinks.append(b);
+ }
+ pvSettingsPage.replaceChildren();
+ const title=node('h2','',pvSettingsItems.find(i=>i.key===page)?.title||'Settings');
+ pvSettingsPage.append(title);
+ if(page==='privacy'||page==='requests'){
+  pvSettingsPage.append(pvPrivacyBox);
+  pvPrivacyBox.hidden=false;
+  pvUpdatePrivacyControl();
+  if(page==='requests'){
+   const intro=node('p','pvSettingsInfo','Approve or decline follow requests from people who want to follow your private account.');
+   pvSettingsPage.insertBefore(intro,pvPrivacyBox);
+   pvLoadFollowRequests();
+  }
+  if(page==='privacy'){
+   const info=node('p','pvSettingsInfo','Public profiles can be discovered and followed immediately. Private profiles require approval from you before new followers can see posts or reels.');
+   pvSettingsPage.append(info);
+   const note=node('div','pvSettingsHint','Privacy protection for content requires the Supabase migration. Older public media URLs may remain accessible until storage is migrated to private buckets.');
+   pvSettingsPage.append(note);
+  }
+ }else if(page==='edit'){
+  pvSettingsPage.append(node('p','pvSettingsInfo','Manage your username, profile photo, display name and bio.'));
+  const edit=node('button','pvSettingsOpenProfile','Open profile editor');
+  edit.onclick=()=>{pvCloseSettings();pvNavigate('profile');editor.hidden=false;editor.scrollIntoView({behavior:'smooth',block:'start'})};
+  pvSettingsPage.append(edit);
+ }else{
+  const card=node('div','pvSettingsAccount'),avatar=node('div','pvSettingsAccountAvatar');
+  if(profile?.avatar_url){const img=node('img');img.src=profile.avatar_url;img.alt='';avatar.append(img)}
+  else avatar.textContent=(profile?.username||'P')[0].toUpperCase();
+  const info=node('div');info.append(node('strong','',profile?.display_name||profile?.username||'Your account'),node('small','','@'+(profile?.username||'creator')));
+  card.append(avatar,info);pvSettingsPage.append(card);
+  const desc=node('p','pvSettingsInfo','Control your account privacy and manage follow requests in one place.');
+  pvSettingsPage.append(desc);
+  const privacyButton=node('button','pvSettingsOpenProfile','Manage account privacy');
+  privacyButton.onclick=()=>pvShowSettingsPage('privacy');pvSettingsPage.append(privacyButton);
+ }
+}
+pvSettingsBack.onclick=pvCloseSettings;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pvSettingsScreen.hidden)pvCloseSettings()});
+const pvSettingsDrawerButton=node('button','nav','⚙ Settings');pvSettingsDrawerButton.type='button';
+pvSettingsDrawerButton.id='pvOpenSettings';pvSettingsDrawerButton.onclick=()=>pvOpenSettings('overview');
+document.querySelector('aside.left').append(pvSettingsDrawerButton);
+const pvProfileSettingsButton=node('button','secondary pvEditButton','⚙ Settings');
+pvProfileSettingsButton.type='button';pvProfileSettingsButton.onclick=()=>pvOpenSettings('privacy');
+document.getElementById('profile').insertBefore(pvProfileSettingsButton,pvPrivacyBox);
+pvPrivacyBox.hidden=true;
+
 let pvPrivacyBusy=false;
 function pvUpdatePrivacyControl(){
  const ready=profile&&typeof profile.is_private==='boolean';
