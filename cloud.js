@@ -1671,32 +1671,31 @@ if(user){
  pvShowCachedFeed(user.id);
  pvSessionInitUser=user.id;
  pvSessionInitializing=(async()=>{
+  // Always reveal within a few seconds if the network stalls.
+  const visualFallback=setTimeout(()=>{if(user?.id===nextUser.id)pvRevealApp()},3500);
   try{
-   // Restore the previously open tab first, without waiting for feed,
-   // notifications and other unrelated Supabase requests.
-   // Route immediately while the profile request runs in parallel. The splash
-   // does not need to wait for Supabase profile/feed/notification round trips.
+   // Restore the requested tab while auth and profile load.
    const profileResult=ensureProfile().then(()=>null,error=>error);
    try{await pvRestoreView()}catch(e){console.warn('Startup route restore:',e)}
-   // Give the browser a frame to paint the route/snapshot before fading out
-   // the splash. This avoids displaying a blank intermediate launch frame.
-   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-   pvRevealApp();
-   pvSessionReadyForUser=user.id;
    const profileError=await profileResult;
    if(profileError)throw profileError;
+   pvSessionReadyForUser=user.id;
    pvStartDmRealtime();
    const pvSafeSetup=async(label,fn)=>{try{await fn()}catch(err){console.warn('PAVORA '+label+' setup failed:',err);status.textContent=label+' temporarily unavailable: '+err.message}};
-   // Profile and chat preferences can load alongside each other. None should
-   // hold up showing the saved screen.
    pvHiddenChats=new Map();pvConversationSettings=new Map();
-   await Promise.all([
+   // The first visible frame should contain the real feed and real stories.
+   // Don't wait for inbox, calls and background notifications before revealing.
+   const homeTask=pvSafeSetup('Home feed',refresh);
+   const storiesTask=pvSafeSetup('Social suite',async()=>window.PVKit?.init?.());
+   const otherTasks=[
     pvSafeSetup('Profile',updateSocialProfile),
     pvSafeSetup('Hidden chats',pvLoadHiddenChats),
-    pvSafeSetup('Conversation folders',pvLoadConversationSettings),
-    pvSafeSetup('Home feed',refresh),
-    pvSafeSetup('Social suite',async()=>window.PVKit?.init?.())
-   ]);
+    pvSafeSetup('Conversation folders',pvLoadConversationSettings)
+   ];
+   await Promise.race([Promise.all([homeTask,storiesTask]),new Promise(resolve=>setTimeout(resolve,2800))]);
+   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+   pvRevealApp();
+   await Promise.all([homeTask,storiesTask,...otherTasks]);
    if(!user||user.id!==pvSessionInitUser)return;
    pvUnreadAvailable=true;pvLastNotified=null;pvLastNoticeId=null;pvIncomingBaseline=null;pvUnreadInitialized=false;
    await pvSafeSetup('Unread messages',()=>pvCheckUnread(true));
@@ -1709,7 +1708,7 @@ if(user){
   }catch(e){
    console.error('PAVORA startup failed:',e.stack||e);
    status.textContent='App setup error: '+e.message+' — Please refresh. If this continues, send a screenshot.';
-  }finally{pvSessionInitializing=null;pvRevealApp()}
+  }finally{clearTimeout(visualFallback);pvSessionInitializing=null;pvRevealApp()}
  })();
  await pvSessionInitializing;
 }else{
