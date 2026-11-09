@@ -124,13 +124,53 @@ const launch=async()=>{
 
 
 const pvViewStyle=el('style');pvViewStyle.textContent="\n.pvLiveViews{padding:15px;background:#26212e;border:1px solid #43364e;border-radius:14px;margin:7px 0}\n.pvLiveViewsTop{display:flex;justify-content:space-between;align-items:center;gap:12px}\n.pvLiveViewsTop strong{font-size:17px}.pvLiveViewsTop strong span{color:#d9afff;font-variant-numeric:tabular-nums}\n.pvLiveViewsTop small{color:#bca4d3;font-size:11px}\n.pvLiveViewList{display:flex;flex-direction:column;max-height:290px;overflow:auto;margin-top:10px}\n.pvLiveViewRow{display:flex;align-items:center;gap:11px;padding:11px 2px;border-bottom:1px solid #403648}\n.pvLiveViewRow:last-child{border-bottom:0}\n.pvLiveViewAvatar{height:39px;width:39px;flex:none;display:grid;place-items:center;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#8852dd,#c85d9f);font-weight:800}\n.pvLiveViewAvatar img{width:100%;height:100%;object-fit:cover}\n.pvLiveViewIdentity{flex:1;min-width:0}.pvLiveViewIdentity strong{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pvLiveViewIdentity small{display:block;font-size:11px;color:#b9aac9}\n.pvLiveViewTime{white-space:nowrap;color:#ad9dbd;font-size:11px}.pvLiveViewEmpty{color:#bba9cf;font-size:12px;line-height:1.6;padding:16px 3px}\n";document.head.append(pvViewStyle);
+const pvPlaybackStyle=el('style');pvPlaybackStyle.textContent=".pvStoryControls{display:flex;flex-direction:column;gap:9px}.pvStoryBars{display:flex;gap:4px}.pvStoryTrack{height:3px;flex:1;background:#ffffff50;border-radius:3px;overflow:hidden}.pvStoryFill{display:block;background:#fff;height:100%;width:0}.pvStoryNav{display:flex;justify-content:space-between;gap:10px}.pvStoryNav button{border-radius:999px!important;font-size:12px!important}.pvStoryNav button:disabled{opacity:.4}.pvStoryHoldHint{text-align:center;color:#b8aac8;font-size:11px}";document.head.append(pvPlaybackStyle);
 const showStory=async story=>{
  const viewer=owner();if(!viewer)return;
  const body=open('Story'),media=el(story.media_type==='video'?'video':'img','pvSuiteMedia');
  media.src=imageUrl('story-media',story.media_path);
  if(story.media_type==='video'){media.controls=true;media.autoplay=true;media.playsInline=true}
- body.append(media);
+ const sequence=stories.filter(x=>x.author_id===story.author_id).slice().reverse();
+ const currentIndex=Math.max(0,sequence.findIndex(x=>x.id===story.id));
+ const controls=el('div','pvStoryControls'),bars=el('div','pvStoryBars'),fills=[];
+ sequence.forEach((x,i)=>{const track=el('div','pvStoryTrack'),fill=el('span','pvStoryFill');track.append(fill);bars.append(track);fills.push(fill)});
+ const nav=el('div','pvStoryNav'),prev=el('button','','← Previous'),next=el('button','','Next →');
+ prev.disabled=currentIndex===0;prev.type=next.type='button';
+ let progressTimer=null,seconds=0,holding=false,activePlayback=true;
+ const stopPlayback=()=>{activePlayback=false;if(progressTimer)clearInterval(progressTimer);if(media.tagName==='VIDEO')media.pause()};
+ const travel=step=>{
+  if(!activePlayback)return;
+  const target=currentIndex+step;
+  if(step<0&&target<0)return;
+  stopPlayback();
+  if(target<sequence.length){showStory(sequence[target]);return}
+  const authorOrder=[...new Set(stories.map(x=>x.author_id))];
+  const followingAuthor=authorOrder[authorOrder.indexOf(story.author_id)+1];
+  const nextStory=followingAuthor?stories.filter(x=>x.author_id===followingAuthor).slice().reverse()[0]:null;
+  if(nextStory)showStory(nextStory);else{pvStopStoryWatcher();modal.hidden=true}
+ };
+ prev.onclick=()=>travel(-1);next.onclick=()=>travel(1);
+ nav.append(prev,el('small','',String(currentIndex+1)+' / '+sequence.length),next);
+ controls.append(bars,media,nav,el('span','pvStoryHoldHint','Hold photo or video to pause'));
+ body.append(controls);
  if(story.caption)body.append(el('p','',story.caption));
+ // The account owner keeps their story and live audience list open.
+ const viewerOwnsStory=story.author_id===viewer.id;
+ function tick(){
+  if(!activePlayback||modal.hidden||!controls.isConnected)return;
+  if(document.hidden||holding||viewerOwnsStory)return;
+  const duration=media.tagName==='VIDEO'&&Number.isFinite(media.duration)&&media.duration>0?Math.min(120,media.duration):5;
+  seconds=media.tagName==='VIDEO'?media.currentTime:seconds+0.05;
+  fills.forEach((fill,i)=>{fill.style.width=(i<currentIndex?100:i>currentIndex?0:Math.min(100,seconds/duration*100))+'%'});
+  if(seconds>=duration)travel(1);
+ }
+ fills.forEach((fill,i)=>{fill.style.width=(i<currentIndex?100:0)+'%'});
+ progressTimer=setInterval(tick,50);
+ media.addEventListener('pointerdown',()=>{holding=true;if(media.tagName==='VIDEO')media.pause()});
+ const release=()=>{if(!holding)return;holding=false;if(media.tagName==='VIDEO')media.play().catch(()=>{})};
+ for(const event of ['pointerup','pointercancel','pointerleave'])media.addEventListener(event,release);
+ if(media.tagName==='VIDEO'){media.controls=false;media.onended=()=>{if(!viewerOwnsStory)travel(1)};media.play().catch(()=>{media.controls=true})}
+ pvStopStoryWatcher=stopPlayback;
  if(story.author_id!==viewer.id){
   // Each signed-in account counts once. Keep a visible result so failures
   // aren't silently hidden in DevTools and mistaken for a recorded view.
@@ -190,7 +230,7 @@ const showStory=async story=>{
   if(timer)clearInterval(timer);if(debounce)clearTimeout(debounce);
   if(channel){const old=channel;channel=null;try{db.removeChannel(old).catch(()=>{})}catch(e){}}
  };
- pvStopStoryWatcher=stop;
+ pvStopStoryWatcher=()=>{stop();stopPlayback()};
  if(db.channel){
   channel=db.channel('pavora-story-views-'+story.id);
   channel.on('postgres_changes',{event:'INSERT',schema:'public',table:'story_views',filter:'story_id=eq.'+story.id},schedule);
