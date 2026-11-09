@@ -511,8 +511,10 @@ function pvPostDoubleLike(){
  pvShowDoubleLikeHeart(card);
 }
 const postPhoto=card.querySelector('img:not(.profilepic img)');
-if(postPhoto){
- pvBindDoubleTap(postPhoto,pvPostDoubleLike,{single:null});
+if(postPhoto)pvBindDoubleTap(postPhoto,pvPostDoubleLike);
+else{
+ const body=card.querySelector('.postbody');
+ if(body)pvBindDoubleTap(body,pvPostDoubleLike);
 }
 like.onclick=async()=>{
  if(like.disabled||!user)return;
