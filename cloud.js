@@ -63,7 +63,37 @@ document.getElementById('authTogglePassword').onclick=()=>{const input=document.
 document.getElementById('authForm').onsubmit=async e=>{e.preventDefault();const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value,btn=document.getElementById('authSubmit');if(!email)return msg('Please enter your email.');if(authMode==='signup'&&password!==document.getElementById('authConfirm').value)return msg('Passwords do not match.');btn.disabled=true;msg(authMode==='login'?'Logging in…':authMode==='signup'?'Creating your account…':'Sending reset link…');try{if(authMode==='login'){const {data,error}=await pvAuthTimeout(db.auth.signInWithPassword({email,password}));if(error)throw error;if(data?.session){msg('Login successful! Opening PAVORA…');await setSession(data.session)}else throw Error('No session returned. Please try logging in again.')}else if(authMode==='reset'){const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:'https://max791687.github.io/pavora/'});if(error)throw error;msg('If this email has an account, a reset link will arrive shortly. Check spam too.')}else{const username=document.getElementById('authUsername').value.trim(),display_name=document.getElementById('authName').value.trim();if(!/^[a-zA-Z0-9_]{3,24}$/.test(username))throw Error('Username must be 3–24 letters, numbers or underscores.');const {data:existing,error:lookupError}=await db.from('profiles').select('id').eq('username',username).maybeSingle();if(lookupError)throw lookupError;if(existing)throw Error('This username is already taken. Try another.');const {data,error}=await db.auth.signUp({email,password,options:{emailRedirectTo:'https://max791687.github.io/pavora/',data:{username,display_name}}});if(error)throw error;msg(data.session?'Account created! Opening PAVORA…':'Account created! Check your email to confirm, then log in.')}}catch(err){msg(err.message||'Something went wrong. Please try again.')}finally{btn.disabled=false}};
 signout.onclick=async()=>{pvExplicitSignout=true;try{const {error}=await db.auth.signOut();if(error)throw error;await setSession(null)}catch(e){pvExplicitSignout=false;alert('Could not log out: '+e.message)}};
 async function ensureProfile(){if(!user)return;let {data,error}=await db.from('profiles').select('*').eq('id',user.id).maybeSingle();if(error)throw error;if(!data){const base=(user.email||'creator').split('@')[0].replace(/[^a-zA-Z0-9_]/g,'').slice(0,12)||'creator';const requested=user.user_metadata?.username;const username=/^[a-zA-Z0-9_]{3,24}$/.test(requested||'')?requested:(base+'_'+user.id.slice(0,7)).slice(0,24);const display_name=String(user.user_metadata?.display_name||base).slice(0,60);let created=await db.from('profiles').insert({id:user.id,username,display_name}).select().single();if(created.error?.code==='23505'&&username===requested){created=await db.from('profiles').insert({id:user.id,username:(base+'_'+user.id.slice(0,7)).slice(0,24),display_name}).select().single()}if(created.error)throw created.error;data=created.data}profile=data;document.querySelectorAll('.intro b').forEach(e=>e.textContent='@'+data.username);{const title=document.querySelector('#profile h2');if(title)title.textContent=data.username}}
-async function refresh(){if(!user)return;try{status.textContent='Loading cloud posts…';const {data,error}=await db.from('posts').select('id,author_id,caption,image_path,created_at').order('created_at',{ascending:false}).limit(50);if(error){status.textContent='Cloud feed error: '+error.message;return}feed=data||[];const ids=feed.map(p=>p.id);if(ids.length){const [profiles,likes,comments]=await Promise.all([db.from('profiles').select('id,username,display_name,avatar_url').in('id',[...new Set(feed.map(p=>p.author_id))]),db.from('likes').select('post_id,user_id').in('post_id',ids),db.from('comments').select('id,post_id,user_id,body').in('post_id',ids)]);if(profiles.error||likes.error||comments.error){status.textContent='Cloud posts loaded; some social details unavailable: '+[profiles.error,likes.error,comments.error].filter(Boolean).map(e=>e.message).join('; ')}const names=new Map((profiles.data||[]).map(p=>[p.id,p]));feed.forEach(p=>{p.profiles=names.get(p.author_id)||null;p.likes=(likes.data||[]).filter(x=>x.post_id===p.id);p.comments=(comments.data||[]).filter(x=>x.post_id===p.id)})}if(!status.textContent.startsWith('Cloud posts loaded'))status.textContent='☁ Cloud feed · '+feed.length+' posts';draw()}finally{document.body.classList.remove('pvFeedLoading')}}
+// Warm-start the public feed from a per-account snapshot on this device.
+// No messages, auth tokens or private activity are cached here.
+function pvFeedCacheKey(uid){return 'pavora-feed-snapshot-v1-'+uid}
+function pvShowCachedFeed(uid){
+ try{
+  const raw=localStorage.getItem(pvFeedCacheKey(uid));
+  if(!raw)return false;
+  const saved=JSON.parse(raw);
+  if(!saved||!Array.isArray(saved.posts)||Date.now()-saved.savedAt>24*3600*1000)return false;
+  feed=saved.posts.slice(0,18);
+  if(!feed.length)return false;
+  draw();
+  status.textContent='☁ Recent posts · updating…';
+  document.body.classList.remove('pvFeedLoading');
+  return true;
+ }catch(e){console.warn('Feed snapshot not available:',e);return false}
+}
+function pvRememberFeed(){
+ if(!user||!feed.length)return;
+ try{
+  const recent=feed.slice(0,18).map(p=>({
+   id:p.id,author_id:p.author_id,caption:String(p.caption||'').slice(0,2200),
+   image_path:p.image_path,created_at:p.created_at,
+   profiles:p.profiles?{id:p.profiles.id,username:p.profiles.username,display_name:p.profiles.display_name,avatar_url:p.profiles.avatar_url}:null,
+   likes:(p.likes||[]).slice(0,100).map(x=>({user_id:x.user_id,post_id:x.post_id})),
+   comments:(p.comments||[]).slice(0,30).map(x=>({id:x.id,body:x.body,user_id:x.user_id,post_id:x.post_id}))
+  }));
+  localStorage.setItem(pvFeedCacheKey(user.id),JSON.stringify({savedAt:Date.now(),posts:recent}));
+ }catch(e){console.warn('Feed snapshot storage skipped:',e)}
+}
+async function refresh(){if(!user)return;try{status.textContent='Loading cloud posts…';const {data,error}=await db.from('posts').select('id,author_id,caption,image_path,created_at').order('created_at',{ascending:false}).limit(50);if(error){status.textContent='Cloud feed error: '+error.message;return}feed=data||[];const ids=feed.map(p=>p.id);if(ids.length){const [profiles,likes,comments]=await Promise.all([db.from('profiles').select('id,username,display_name,avatar_url').in('id',[...new Set(feed.map(p=>p.author_id))]),db.from('likes').select('post_id,user_id').in('post_id',ids),db.from('comments').select('id,post_id,user_id,body').in('post_id',ids)]);if(profiles.error||likes.error||comments.error){status.textContent='Cloud posts loaded; some social details unavailable: '+[profiles.error,likes.error,comments.error].filter(Boolean).map(e=>e.message).join('; ')}const names=new Map((profiles.data||[]).map(p=>[p.id,p]));feed.forEach(p=>{p.profiles=names.get(p.author_id)||null;p.likes=(likes.data||[]).filter(x=>x.post_id===p.id);p.comments=(comments.data||[]).filter(x=>x.post_id===p.id)})}if(!status.textContent.startsWith('Cloud posts loaded'))status.textContent='☁ Cloud feed · '+feed.length+' posts';draw();pvRememberFeed()}finally{document.body.classList.remove('pvFeedLoading')}}
 function node(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e}
 function draw(){const root=document.getElementById('posts');root.replaceChildren();feed.forEach(p=>{const card=node('article','post'),head=node('div','posthead');card.id='pv-post-'+p.id;const authorAvatar=node('div','profilepic');const authorName=p.profiles?.display_name||p.profiles?.username||'P';if(p.profiles?.avatar_url){const avatarImg=node('img');avatarImg.src=p.profiles.avatar_url;avatarImg.alt=authorName+' profile photo';avatarImg.loading='lazy';avatarImg.onerror=()=>{authorAvatar.replaceChildren();authorAvatar.textContent=authorName[0].toUpperCase()};authorAvatar.append(avatarImg)}else authorAvatar.textContent=authorName[0].toUpperCase();head.append(authorAvatar);const who=node('div');who.append(pvProfileButton({id:p.author_id,username:p.profiles?.username||'creator'}),node('div','muted',new Date(p.created_at).toLocaleString()));head.append(who);card.append(head);if(p.caption)card.append(node('div','postbody',p.caption));if(p.image_path){const image=node('img');image.src=db.storage.from('post-images').getPublicUrl(p.image_path).data.publicUrl;image.alt='Post photo';image.loading='lazy';card.append(image)}const foot=node('div','postfoot');let liked=(p.likes||[]).some(l=>l.user_id===user.id);
 const like=node('button','',(liked?'♥':'♡')+' '+(p.likes||[]).length+' Likes');
@@ -924,6 +954,9 @@ overlay.classList.toggle('pvAuthHidden',!!user);
 signout.style.display=user?'':'none';
 if(user){
  document.body.classList.add('pvFeedLoading');
+ // Fill the launch frame immediately from last good public posts, then
+ // reconcile with Supabase without making users stare at an empty feed.
+ pvShowCachedFeed(user.id);
  pvSessionInitUser=user.id;
  pvSessionInitializing=(async()=>{
   try{
@@ -933,6 +966,9 @@ if(user){
    // does not need to wait for Supabase profile/feed/notification round trips.
    const profileResult=ensureProfile().then(()=>null,error=>error);
    try{await pvRestoreView()}catch(e){console.warn('Startup route restore:',e)}
+   // Give the browser a frame to paint the route/snapshot before fading out
+   // the splash. This avoids displaying a blank intermediate launch frame.
+   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
    pvRevealApp();
    pvSessionReadyForUser=user.id;
    const profileError=await profileResult;
