@@ -126,8 +126,7 @@ const launch=async()=>{
     if(!count)throw Error('Add at least one Close Friend in Settings first.');
    }
    const bucket=audienceValue==='close_friends'?'pv-close-stories':'story-media';
-   const result=await db.storage.from(bucket).upload(path,uploadFile,{contentType:uploadFile.type});
-   if(result.error)throw result.error;
+   await window.PAVORA_UPLOAD.upload(db,bucket,path,uploadFile,{onStatus:status=>{feedback.textContent=status}});
    const saved=await db.from('stories').insert({author_id:owner().id,media_path:path,media_type:selected.type.startsWith('video/')?'video':'image',caption:caption.value.trim(),audience:audienceValue});
    if(saved.error){await db.storage.from(bucket).remove([path]);throw saved.error}
    reset();close.onclick=previous;modal.removeEventListener('click',onBackdrop);modal.hidden=true;
