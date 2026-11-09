@@ -785,6 +785,103 @@ socialNav.addEventListener('click',()=>pvNavigate('messages'));
 document.querySelectorAll('[data-view="explore"]').forEach(btn=>btn.addEventListener('click',()=>pvNavigate('explore')));
 document.querySelectorAll('[data-view]:not([data-view="explore"])').forEach(btn=>btn.addEventListener('click',()=>document.body.classList.remove('pvExploreMode')));
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{if(b!==socialNav){publicView.classList.add('hide');inboxView.classList.add('hide');if(chatPoll){clearInterval(chatPoll);chatPoll=null}}}));
+/* Public followers/following lists: only public profile details are displayed.
+   Queries respect existing Supabase RLS and use pages to avoid heavy fetches. */
+const pvConnectionsStyle=document.createElement('style');
+pvConnectionsStyle.textContent=`
+#pvConnectionsDialog{position:fixed;inset:0;z-index:150;background:#000b;display:flex;align-items:center;justify-content:center;padding:14px}
+#pvConnectionsDialog[hidden]{display:none!important}
+.pvConnectionsCard{width:min(460px,100%);max-height:min(78dvh,730px);display:flex;flex-direction:column;background:#181625;border:1px solid #423651;border-radius:18px;overflow:hidden;box-shadow:0 22px 90px #0009}
+.pvConnectionsHeader{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:17px 18px;border-bottom:1px solid #383146}
+.pvConnectionsHeader h3{margin:0;font-size:17px}
+.pvConnectionsClose{border:0;background:#30283c;color:#fff;font-size:22px;line-height:1;border-radius:8px;width:33px;height:33px;cursor:pointer}
+.pvConnectionsPeople{overflow:auto;padding:8px 10px 14px}
+.pvConnectionPerson{display:flex;align-items:center;gap:12px;width:100%;border:0;background:transparent;color:#fff;border-radius:11px;text-align:left;padding:10px;cursor:pointer}
+.pvConnectionPerson:hover{background:#292338}
+.pvConnectionAvatar{width:45px;height:45px;flex:none;border-radius:50%;background:linear-gradient(135deg,#6546bf,#d466ae);display:grid;place-items:center;font-weight:800;overflow:hidden}
+.pvConnectionAvatar img{width:100%;height:100%;object-fit:cover}
+.pvConnectionText{min-width:0;display:flex;flex-direction:column;gap:3px}
+.pvConnectionText strong{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pvConnectionText small{font-size:12px;color:#bbb3cb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pvConnectionNotice{padding:18px;color:#c7bdd5;text-align:center;font-size:13px}
+.pvConnectionsMore{align-self:center;border:1px solid #624e87;border-radius:10px;padding:10px 18px;margin:8px 0 16px;background:#322643;color:#fff;font-weight:700;cursor:pointer}
+.pvCounts .pvConnectionCount,#pvPublicView .pvConnectionCount{border:0;background:transparent;color:inherit;font:inherit;padding:0;cursor:pointer;text-align:left}
+.pvCounts .pvConnectionCount:hover,#pvPublicView .pvConnectionCount:hover{text-decoration:underline;text-underline-offset:3px}
+.pvCounts .pvConnectionCount:focus-visible,#pvPublicView .pvConnectionCount:focus-visible{outline:2px solid #c19cff;border-radius:4px;outline-offset:4px}
+`;
+document.head.append(pvConnectionsStyle);
+const pvConnectionsDialog=node('div');pvConnectionsDialog.id='pvConnectionsDialog';pvConnectionsDialog.hidden=true;
+pvConnectionsDialog.setAttribute('role','dialog');pvConnectionsDialog.setAttribute('aria-modal','true');
+pvConnectionsDialog.setAttribute('aria-label','Followers and following');
+document.body.append(pvConnectionsDialog);
+let pvConnectionsRequest=0;
+function pvCloseConnections(){pvConnectionsRequest++;pvConnectionsDialog.hidden=true;pvConnectionsDialog.replaceChildren()}
+pvConnectionsDialog.onclick=e=>{if(e.target===pvConnectionsDialog)pvCloseConnections()};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pvConnectionsDialog.hidden)pvCloseConnections()});
+async function pvShowConnections(ownerId,kind){
+ if(!user||!ownerId||!['followers','following'].includes(kind))return;
+ const request=++pvConnectionsRequest,heading=kind==='followers'?'Followers':'Following';
+ const card=node('div','pvConnectionsCard'),head=node('div','pvConnectionsHeader');
+ const close=node('button','pvConnectionsClose','×');close.type='button';close.setAttribute('aria-label','Close '+heading);close.onclick=pvCloseConnections;
+ head.append(node('h3','',heading),close);
+ const people=node('div','pvConnectionsPeople'),more=node('button','pvConnectionsMore','Load more');
+ more.type='button';more.hidden=true;card.append(head,people,more);
+ pvConnectionsDialog.replaceChildren(card);pvConnectionsDialog.hidden=false;close.focus();
+ let offset=0,loading=false;
+ async function loadPage(){
+  if(loading||request!==pvConnectionsRequest)return;
+  loading=true;more.hidden=true;
+  if(offset===0)people.append(node('div','pvConnectionNotice','Loading '+heading.toLowerCase()+'…'));
+  const filterColumn=kind==='followers'?'following_id':'follower_id';
+  const personColumn=kind==='followers'?'follower_id':'following_id';
+  const {data:edges,error}=await db.from('follows').select('follower_id,following_id').eq(filterColumn,ownerId).order(personColumn,{ascending:true}).range(offset,offset+49);
+  if(request!==pvConnectionsRequest)return;
+  if(offset===0)people.replaceChildren();
+  if(error){people.append(node('div','pvConnectionNotice','Could not load list: '+error.message));loading=false;return}
+  const rows=edges||[],ids=rows.map(e=>e[personColumn]).filter(Boolean);
+  if(ids.length){
+   const {data:profiles,error:profileError}=await db.from('profiles').select('id,username,display_name,avatar_url,is_official').in('id',ids);
+   if(request!==pvConnectionsRequest)return;
+   if(profileError){people.append(node('div','pvConnectionNotice','Could not load profiles: '+profileError.message));loading=false;return}
+   const names=new Map((profiles||[]).map(p=>[p.id,p]));
+   for(const id of ids){const person=names.get(id);if(!person)continue;
+    const row=node('button','pvConnectionPerson');row.type='button';
+    const avatar=node('span','pvConnectionAvatar');
+    if(person.avatar_url){const img=node('img');img.src=person.avatar_url;img.alt='';img.loading='lazy';avatar.append(img)}
+    else avatar.textContent=(person.display_name||person.username||'P')[0].toUpperCase();
+    const info=node('span','pvConnectionText'),name=node('strong','','@'+(person.username||'creator'));
+    if(person.is_official)name.append(pvOfficialBadge());
+    info.append(name,node('small','',person.display_name||''));
+    row.append(avatar,info);
+    row.onclick=()=>{pvCloseConnections();openCreator(id)};
+    people.append(row);
+   }
+  }
+  offset+=rows.length;
+  if(offset===0)people.append(node('div','pvConnectionNotice','No '+heading.toLowerCase()+' yet.'));
+  more.hidden=rows.length<50;
+  loading=false;
+ }
+ more.onclick=loadPage;
+ await loadPage();
+}
+function pvConnectionCountButton(amount,label,ownerId,failed){
+ const b=node('button','pvConnectionCount');b.type='button';
+ b.append(node('strong','',amount),document.createTextNode(' '+label));
+ b.disabled=!!failed;b.title='View '+label;b.onclick=()=>pvShowConnections(ownerId,label);
+ return b;
+}
+// Own profile: convert only followers and following counters into actionable buttons.
+for(const [id,kind] of [['pvFollowers','followers'],['pvFollowing','following']]){
+ const count=document.getElementById(id);
+ const parent=count?.parentElement;
+ if(!count||!parent)continue;
+ const button=node('button','pvConnectionCount');button.type='button';
+ button.append(count,document.createTextNode(' '+kind));
+ parent.replaceWith(button);
+ button.title='View '+kind;
+ button.onclick=()=>{if(user)pvShowConnections(user.id,kind)};
+}
 function pvProfileButton(person){const b=node('button','pvPersonButton','@'+(person.username||'creator'));b.type='button';b.onclick=()=>openCreator(person.id);return b}
 async function openCreator(id){if(!user||!id)return;pvRememberView('creator',id);if(id===user.id){pvNavigate('profile');await updateSocialProfile();return}pvNavigate('creator');pvRememberView('creator',id);publicView.replaceChildren(node('p','muted','Loading profile…'));
 const [{data:person,error},{data:posts,count:postCount,error:postError},{count:reelCount,error:reelCountError},{count:followerCount,error:followerCountError},{count:followingCount,error:followingCountError},{data:myFollow}]=await Promise.all([
@@ -802,12 +899,12 @@ if(person.is_official){publicName.append(pvOfficialBadge());details.append(publi
 else details.append(publicName);
 const pvCountText=(value,failed)=>failed?'—':String(value??0);
 const publicStats=node('div','pvPublicStats');
-for(const [amount,label] of [
- [pvCountText(postCount,postError),'posts'],
- [pvCountText(reelCount,reelCountError),'reels'],
- [pvCountText(followerCount,followerCountError),'followers'],
- [pvCountText(followingCount,followingCountError),'following']
-]){const stat=node('span','pvPublicStat');stat.append(node('strong','',amount),document.createTextNode(' '+label));publicStats.append(stat)}
+for(const [amount,label,failed] of [
+ [pvCountText(postCount,postError),'posts',postError],
+ [pvCountText(reelCount,reelCountError),'reels',reelCountError],
+ [pvCountText(followerCount,followerCountError),'followers',followerCountError],
+ [pvCountText(followingCount,followingCountError),'following',followingCountError]
+]){const stat=label==='followers'||label==='following'?pvConnectionCountButton(amount,label,id,failed):node('span','pvPublicStat');if(label!=='followers'&&label!=='following')stat.append(node('strong','',amount),document.createTextNode(' '+label));publicStats.append(stat)}
 details.append(node('strong','',person.display_name||person.username),publicStats,node('p','',person.bio||''));
 top.append(avatar,details);publicView.append(top);
 const actions=node('div','pvPublicActions'),follow=node('button','secondary',myFollow?'Following ✓':'Follow'),message=node('button','primary','✉ Message');
