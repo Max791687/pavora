@@ -451,12 +451,61 @@ const pvSettingsLinks=node('div','pvSettingsLinks');pvSettingsSidebar.append(pvS
 const pvSettingsMain=node('div','pvSettingsMain');
 const pvSettingsPage=node('div','pvSettingsPage');pvSettingsMain.append(pvSettingsPage);
 pvSettingsScreen.append(pvSettingsSidebar,pvSettingsMain);document.body.append(pvSettingsScreen);
+
+const pvBlockStyle=document.createElement('style');
+pvBlockStyle.textContent=".pvBlockAction{background:#372334!important;color:#ffa0b6!important;border:1px solid #704b66!important;border-radius:10px;padding:10px 15px;cursor:pointer}.pvBlockedNotice{border:1px solid #67435e;border-radius:14px;padding:20px;background:#251b29;text-align:center;margin:20px 0}.pvBlockedNotice strong{display:block;font-size:17px;margin-bottom:8px}.pvBlockedNotice p{color:#bfb2c7;font-size:13px;line-height:1.5}.pvBlockRow{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #373040}.pvBlockAvatar{width:42px;height:42px;flex:none;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#784bd3,#d56398)}.pvBlockAvatar img{width:100%;height:100%;object-fit:cover}.pvBlockIdentity{flex:1;min-width:0}.pvBlockIdentity strong,.pvBlockIdentity small{display:block}.pvBlockIdentity small{font-size:12px;color:#b7aaca}";document.head.append(pvBlockStyle);
+async function pvAmBlocking(id){
+ const {data,error}=await db.from('account_blocks').select('blocked_id').eq('blocker_id',user.id).eq('blocked_id',id).maybeSingle();
+ if(error)throw error;return !!data;
+}
+async function pvBlockAccount(id,name){
+ if(!user||!id||id===user.id)return;
+ if(!confirm('Block @'+(name||'this user')+'? They cannot follow, message, or view your profile and content. Existing follows will be removed.'))return;
+ const {error}=await db.from('account_blocks').insert({blocker_id:user.id,blocked_id:id});
+ if(error){alert('Block failed: '+error.message);return}
+ await Promise.allSettled([refresh(),updateSocialProfile()]);
+ await openCreator(id);
+}
+async function pvUnblockAccount(id,name){
+ if(!user||!id)return;
+ if(!confirm('Unblock @'+(name||'this user')+'? They can interact with your public account again. Previous follows will not be restored.'))return;
+ const {error}=await db.from('account_blocks').delete().eq('blocker_id',user.id).eq('blocked_id',id);
+ if(error){alert('Unblock failed: '+error.message);return}
+ if(!pvSettingsScreen.hidden&&pvSettingsActive==='blocked')pvShowSettingsPage('blocked');
+ else await openCreator(id);
+ await Promise.allSettled([refresh(),updateSocialProfile()]);
+}
+async function pvLoadBlockedAccounts(box){
+ const area=node('div','');area.append(node('p','muted','Loading…'));box.append(area);
+ const {data,error}=await db.from('account_blocks').select('blocked_id').eq('blocker_id',user.id).order('created_at',{ascending:false}).limit(200);
+ if(!area.isConnected||pvSettingsActive!=='blocked')return;
+ area.replaceChildren();
+ if(error){area.append(node('p','muted',error.message));return}
+ if(!data?.length){area.append(node('p','muted','No blocked accounts.'));return}
+ const ids=data.map(x=>x.blocked_id);
+ const result=await db.from('profiles').select('id,username,display_name,avatar_url').in('id',ids);
+ if(!area.isConnected||pvSettingsActive!=='blocked')return;
+ const names=new Map((result.data||[]).map(x=>[x.id,x]));
+ for(const item of data){
+  const person=names.get(item.blocked_id)||{},handle=person.username||'PAVORA user';
+  const row=node('div','pvBlockRow'),avatar=node('div','pvBlockAvatar');
+  if(person.avatar_url){const img=node('img');img.alt='';img.src=person.avatar_url;avatar.append(img)}
+  else avatar.textContent=handle[0].toUpperCase();
+  const details=node('div','pvBlockIdentity');
+  details.append(node('strong','',person.display_name||handle),node('small','','@'+handle));
+  const button=node('button','pvSettingsAction','Unblock');
+  button.onclick=()=>pvUnblockAccount(item.blocked_id,handle);
+  row.append(avatar,details,button);area.append(row);
+ }
+}
+
 const pvSettingsItems=[
  {key:'overview',icon:'◎',title:'Accounts Center',category:'Your account'},
  {key:'edit',icon:'♙',title:'Edit profile',category:'How you use PAVORA'},
  {key:'notifications',icon:'♧',title:'Notifications',category:'How you use PAVORA'},
  {key:'privacy',icon:'◈',title:'Account privacy',category:'Who can see your content'},
  {key:'requests',icon:'✉',title:'Follow requests',category:'Who can see your content'},
+ {key:'blocked',icon:'⊘',title:'Blocked accounts',category:'Who can see your content'},
  {key:'interactions',icon:'♡',title:'Interactions',category:'How others can interact with you'},
  {key:'accessibility',icon:'◐',title:'Accessibility',category:'Your app and media'},
  {key:'language',icon:'文',title:'Language',category:'Your app and media'},
@@ -513,6 +562,9 @@ function pvShowSettingsPage(page){
   const box=card('Pending follow requests','Approve or decline people who request access to your private profile.');
   box.append(pvPrivacyBox);pvPrivacyBox.hidden=false;
   pvUpdatePrivacyControl();pvLoadFollowRequests();
+ }else if(page==='blocked'){
+  const box=card('Blocked accounts','People you block cannot follow, message or view your content. You can unblock anytime.');
+  pvLoadBlockedAccounts(box);
  }else if(page==='edit'){
   const box=card('Profile details','Change your username, profile picture, display name and bio.');
   row(box,'Edit your profile','These details are visible to people viewing your profile.',action('Edit profile',()=>{pvCloseSettings();pvNavigate('profile');editor.hidden=false;editor.scrollIntoView({behavior:'smooth',block:'start'})}));
@@ -525,6 +577,7 @@ function pvShowSettingsPage(page){
   const box=card('Interactions','Manage account visibility and incoming followers.');
   row(box,'Account privacy','Choose a public or private account.',action('Manage',()=>pvShowSettingsPage('privacy')));
   row(box,'Follow requests','Review requests from other people.',action('Open',()=>pvShowSettingsPage('requests')));
+  row(box,'Blocked accounts','Manage people you blocked.',action('Manage',()=>pvShowSettingsPage('blocked')));
  }else if(page==='accessibility'){
   const box=card('Accessibility','Make the app easier and more comfortable to use.');
   const enabled=localStorage.getItem('pvReduceMotion')==='true';
@@ -556,6 +609,7 @@ function pvShowSettingsPage(page){
   const more=card('Quick access','Frequently used settings.');
   row(more,'Follow requests','Requests from people who want to follow you.',action('Open',()=>pvShowSettingsPage('requests')));
   row(more,'Notifications','Manage browser notification permissions.',action('Open',()=>pvShowSettingsPage('notifications')));
+  row(more,'Blocked accounts','Review and unblock users.',action('Manage',()=>pvShowSettingsPage('blocked')));
  }
 }
 pvSettingsSearch.addEventListener('input',()=>pvShowSettingsPage(pvSettingsActive));
@@ -1433,7 +1487,9 @@ for(const [id,kind] of [['pvFollowers','followers'],['pvFollowing','following']]
  button.onclick=()=>{if(user)pvShowConnections(user.id,kind)};
 }
 function pvProfileButton(person){const b=node('button','pvPersonButton','@'+(person.username||'creator'));b.type='button';b.onclick=()=>openCreator(person.id);return b}
-async function openCreator(id){if(!user||!id)return;pvRememberView('creator',id);if(id===user.id){pvNavigate('profile');await updateSocialProfile();return}pvNavigate('creator');pvRememberView('creator',id);publicView.replaceChildren(node('p','muted','Loading profile…'));
+async function openCreator(id){if(!user||!id)return;pvRememberView('creator',id);if(id===user.id){pvNavigate('profile');await updateSocialProfile();return}
+let blockedByMe=false;
+try{blockedByMe=await pvAmBlocking(id)}catch(e){console.warn('Block check:',e);return alert('Could not check account privacy. Retry shortly.')}pvNavigate('creator');pvRememberView('creator',id);publicView.replaceChildren(node('p','muted','Loading profile…'));
 const [{data:person,error},{data:posts,count:postCount,error:postError},{count:reelCount,error:reelCountError},{count:followerCount,error:followerCountError},{count:followingCount,error:followingCountError},{data:myFollow},{data:pendingRequest}]=await Promise.all([
 db.from('profiles').select('*').eq('id',id).maybeSingle(),
 db.from('posts').select('id,caption,image_path,created_at',{count:'exact'}).eq('author_id',id).order('created_at',{ascending:false}).limit(90),
@@ -1459,6 +1515,7 @@ for(const [amount,label,failed] of [
 ]){const stat=label==='followers'||label==='following'?pvConnectionCountButton(amount,label,id,failed):node('span','pvPublicStat');if(label!=='followers'&&label!=='following')stat.append(node('strong','',amount),document.createTextNode(' '+label));publicStats.append(stat)}
 details.append(node('strong','',person.display_name||person.username),publicStats,node('p','',person.bio||''));
 top.append(avatar,details);publicView.append(top);
+if(blockedByMe){const warning=node('div','pvBlockedNotice');warning.append(node('strong','','You blocked @'+person.username),node('p','','This account cannot access your PAVORA profile or content. Unblock to interact again.'));const button=node('button','pvSettingsAction','Unblock');button.onclick=()=>pvUnblockAccount(id,person.username);warning.append(button);publicView.append(warning);return}
 const privateLocked=!!person.is_private&&!myFollow;
 const actions=node('div','pvPublicActions'),follow=node('button','secondary',myFollow?'Following ✓':pendingRequest?'Requested ✓':person.is_private?'Request follow':'Follow'),message=node('button','primary','✉ Message');
 follow.onclick=async()=>{follow.disabled=true;let result;
@@ -1467,7 +1524,7 @@ follow.onclick=async()=>{follow.disabled=true;let result;
  else if(person.is_private)result=await db.from('follow_requests').insert({follower_id:user.id,following_id:id});
  else result=await db.from('follows').insert({follower_id:user.id,following_id:id});
  if(result.error)alert(result.error.message);await openCreator(id)};
-message.onclick=()=>openChat(id);actions.append(follow,message);publicView.append(actions);
+message.onclick=()=>openChat(id);const block=node('button','pvBlockAction','⊘ Block');block.onclick=()=>pvBlockAccount(id,person.username);actions.append(follow,message,block);publicView.append(actions);
 if(privateLocked){const locked=node('div','pvPrivateLock');locked.append(node('div','','🔒'),node('strong','','This account is private'),node('p','','Follow this account to see its posts and reels.'));publicView.append(locked);return}
 publicView.append(node('h3','','Posts'));const grid=node('div','pvPublicGrid');publicView.append(grid);
 if(postError){grid.append(node('p','muted',postError.message));return}if(!posts?.length){grid.append(node('p','muted','No posts yet.'));return}
