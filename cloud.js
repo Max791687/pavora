@@ -230,10 +230,60 @@ function pvUpdateRenderedFeedStats(){
   if(comments&&!comments.disabled)comments.textContent='💬 '+(post.comments||[]).length+' Comments';
  }
 }
+
+/* Live post likes: subscribe to secured database events and reconcile only
+   the like button. No full page refresh or post/image replacement. */
+let pvLikesChannel=null,pvLikesUserId=null,pvLikesTimer=null,pvLikesSyncTimer=null,pvLikesSyncBusy=false;
+async function pvSyncVisibleLikes(){
+ if(!user||pvLikesSyncBusy||document.hidden||!feed.length)return;
+ const uid=user.id,posts=feed.map(p=>p.id).filter(Boolean);
+ if(!posts.length)return;
+ pvLikesSyncBusy=true;
+ try{
+  const {data,error}=await db.from('likes').select('post_id,user_id').in('post_id',posts);
+  if(error)throw error;
+  if(user?.id!==uid)return;
+  const grouped=new Map();
+  for(const like of data||[]){if(!grouped.has(like.post_id))grouped.set(like.post_id,[]);grouped.get(like.post_id).push(like)}
+  for(const post of feed){
+   const likes=grouped.get(post.id)||[];
+   const btn=document.querySelector('#pv-post-'+post.id+' .postfoot button[data-pv-like-post]');
+   // Don't overwrite a user's optimistic click while its request is pending.
+   if(btn?.disabled)continue;
+   post.likes=likes;
+   if(btn)btn.textContent=(likes.some(l=>l.user_id===uid)?'♥':'♡')+' '+likes.length+' Likes';
+  }
+ }catch(e){console.warn('Live like sync failed:',e.message)}
+ finally{pvLikesSyncBusy=false}
+}
+function pvScheduleLikesSync(delay=160){
+ if(pvLikesSyncTimer)clearTimeout(pvLikesSyncTimer);
+ pvLikesSyncTimer=setTimeout(()=>{pvLikesSyncTimer=null;pvSyncVisibleLikes()},delay);
+}
+function pvStopLikesRealtime(){
+ if(pvLikesTimer){clearInterval(pvLikesTimer);pvLikesTimer=null}
+ if(pvLikesSyncTimer){clearTimeout(pvLikesSyncTimer);pvLikesSyncTimer=null}
+ if(pvLikesChannel){const channel=pvLikesChannel;pvLikesChannel=null;try{db.removeChannel(channel).catch(()=>{})}catch(e){}}
+ pvLikesUserId=null;pvLikesSyncBusy=false;
+}
+function pvStartLikesRealtime(){
+ if(!user||!db.channel||pvLikesUserId===user.id)return;
+ pvStopLikesRealtime();
+ const uid=user.id;pvLikesUserId=uid;
+ const channel=db.channel('pavora-post-likes-'+uid);
+ channel.on('postgres_changes',{event:'INSERT',schema:'public',table:'likes'},()=>{if(user?.id===uid)pvScheduleLikesSync()});
+ channel.on('postgres_changes',{event:'DELETE',schema:'public',table:'likes'},()=>{if(user?.id===uid)pvScheduleLikesSync()});
+ channel.subscribe(status=>{if(status==='SUBSCRIBED'&&user?.id===uid)pvScheduleLikesSync()});
+ pvLikesChannel=channel;
+ // Catch missed events after offline/reconnect or delivery gaps, without redrawing feed.
+ pvLikesTimer=setInterval(()=>{if(user?.id===uid&&!document.hidden)pvSyncVisibleLikes()},12000);
+}
+
 async function refresh(){if(!user)return;try{status.textContent='Loading cloud posts…';const {data,error}=await db.from('posts').select('id,author_id,caption,image_path,created_at').order('created_at',{ascending:false}).limit(50);if(error){status.textContent='Cloud feed error: '+error.message;return}const freshFeed=data||[];const oldIds=feed.map(p=>p.id).join(',');const newIds=freshFeed.map(p=>p.id).join(',');const hasRenderedFeed=oldIds===newIds&&freshFeed.length>0&&!!document.getElementById('posts')?.children.length;feed=freshFeed;const ids=feed.map(p=>p.id);if(ids.length){const [profiles,likes,comments]=await Promise.all([db.from('profiles').select('id,username,display_name,avatar_url').in('id',[...new Set(feed.map(p=>p.author_id))]),db.from('likes').select('post_id,user_id').in('post_id',ids),db.from('comments').select('id,post_id,user_id,body').in('post_id',ids)]);if(profiles.error||likes.error||comments.error){status.textContent='Cloud posts loaded; some social details unavailable: '+[profiles.error,likes.error,comments.error].filter(Boolean).map(e=>e.message).join('; ')}const names=new Map((profiles.data||[]).map(p=>[p.id,p]));feed.forEach(p=>{p.profiles=names.get(p.author_id)||null;p.likes=(likes.data||[]).filter(x=>x.post_id===p.id);p.comments=(comments.data||[]).filter(x=>x.post_id===p.id)})}if(!status.textContent.startsWith('Cloud posts loaded'))status.textContent='☁ Cloud feed · '+feed.length+' posts';if(!hasRenderedFeed)draw();else pvUpdateRenderedFeedStats();pvRememberFeed()}finally{document.body.classList.remove('pvFeedLoading')}}
 function node(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e}
 function draw(){const root=document.getElementById('posts');root.replaceChildren();feed.forEach((p,postIndex)=>{const card=node('article','post'),head=node('div','posthead');card.id='pv-post-'+p.id;const authorAvatar=node('div','profilepic');const authorName=p.profiles?.display_name||p.profiles?.username||'P';if(p.profiles?.avatar_url){const avatarImg=node('img');avatarImg.src=p.profiles.avatar_url;avatarImg.alt=authorName+' profile photo';avatarImg.loading='lazy';avatarImg.onerror=()=>{authorAvatar.replaceChildren();authorAvatar.textContent=authorName[0].toUpperCase()};authorAvatar.append(avatarImg)}else authorAvatar.textContent=authorName[0].toUpperCase();head.append(authorAvatar);const who=node('div');who.append(pvProfileButton({id:p.author_id,username:p.profiles?.username||'creator'}),node('div','muted',new Date(p.created_at).toLocaleString()));if(p.author_id===pvOfficialId)who.querySelector('.pvPersonButton')?.after(pvOfficialBadge());head.append(who);card.append(head);if(p.caption)card.append(node('div','postbody',p.caption));if(p.image_path){const image=node('img');image.src=db.storage.from('post-images').getPublicUrl(p.image_path).data.publicUrl;image.alt='Post photo';image.loading=postIndex<2?'eager':'lazy';image.decoding='async';if(postIndex===0)image.fetchPriority='high';card.append(image)}const foot=node('div','postfoot');let liked=(p.likes||[]).some(l=>l.user_id===user.id);
 const like=node('button','',(liked?'♥':'♡')+' '+(p.likes||[]).length+' Likes');
+like.dataset.pvLikePost=p.id;
 like.onclick=async()=>{
  if(like.disabled)return;
  const previousLikes=[...(p.likes||[])],wasLiked=liked;
@@ -1055,6 +1105,7 @@ function pvScheduleLiveDmRefresh(){
 function pvStartDmRealtime(){
  if(!user||!db.channel||pvDmRealtimeUser===user.id)return;
  pvStopDmRealtime();
+ pvStopLikesRealtime();
  const uid=user.id;
  pvDmRealtimeUser=uid;
  const channel=db.channel('pavora-dm-'+uid);
@@ -1681,6 +1732,7 @@ if(user){
    if(profileError)throw profileError;
    pvSessionReadyForUser=user.id;
    pvStartDmRealtime();
+   pvStartLikesRealtime();
    const pvSafeSetup=async(label,fn)=>{try{await fn()}catch(err){console.warn('PAVORA '+label+' setup failed:',err);status.textContent=label+' temporarily unavailable: '+err.message}};
    pvHiddenChats=new Map();pvConversationSettings=new Map();
    // The first visible frame should contain the real feed and real stories.
@@ -1726,7 +1778,7 @@ if(user){
 }
 pvRevealApp();
 }
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&user){pvCheckUnread();pvCheckActivity()}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&user){pvCheckUnread();pvCheckActivity();pvScheduleLikesSync(100)}});
 // Restore a saved session before considering the user logged out. Supabase can
 // emit INITIAL_SESSION while refresh and token recovery are still in progress.
 db.auth.onAuthStateChange((event,session)=>{
