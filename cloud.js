@@ -98,7 +98,53 @@ overlay.innerHTML=`<section class="authShowcase"><div class="authLogo">PAVORA �
 document.body.append(overlay);
 const status=document.createElement('p');status.id='cloudStatus';status.textContent='Connecting to PAVORA Cloud…';document.querySelector('.feed').prepend(status);
 const signout=document.createElement('button');signout.id='signout';signout.className='secondary';signout.textContent='Log out';document.querySelector('.top').append(signout);
-const msg=t=>document.getElementById('authMsg').textContent=t;
+/* Visible, accessible authentication feedback beside the submit button and after navigation. */
+const pvAuthNotice=document.createElement('div');
+pvAuthNotice.className='pvAuthNotice';pvAuthNotice.setAttribute('role','status');pvAuthNotice.setAttribute('aria-live','polite');pvAuthNotice.hidden=true;
+document.body.append(pvAuthNotice);
+let pvAuthNoticeTimer=null,pvAuthPending=false;
+function pvNotifyAuth(message,type='success'){
+ clearTimeout(pvAuthNoticeTimer);
+ pvAuthNotice.textContent=message;
+ pvAuthNotice.dataset.kind=type;
+ pvAuthNotice.hidden=false;
+ pvAuthNoticeTimer=setTimeout(()=>{pvAuthNotice.hidden=true},4800);
+}
+function msg(value,kind=''){
+ const el=document.getElementById('authMsg');
+ el.textContent=value||'';
+ el.dataset.kind=kind||(value?/logging|creating|sending|verifying|opening|please wait/i.test(value)?'loading':'error':'');
+ el.hidden=!value;
+}
+function pvAuthBusy(busy,mode=authMode){
+ pvAuthPending=busy;
+ const submit=document.getElementById('authSubmit');
+ submit.disabled=busy;
+ submit.setAttribute('aria-busy',String(busy));
+ submit.textContent=busy?(mode==='login'?'Logging in…':mode==='signup'?'Creating account…':mode==='reset'?'Sending link…':'Verifying…'):(mode==='login'?'Log in':mode==='signup'?'Create account':mode==='reset'?'Send reset link':'Verify phone');
+}
+function pvReadableAuthError(err){
+ const raw=String(err?.message||'Login failed. Please try again.');
+ const code=String(err?.code||'').toLowerCase();
+ if(!navigator.onLine||/failed to fetch|network|fetch failed|load failed/i.test(raw))return 'No internet connection. Check your network and try again.';
+ if(/invalid login credentials/i.test(raw)||code==='invalid_credentials')return 'Login failed. Email or password is incorrect.';
+ if(/email not confirmed|email_not_confirmed/i.test(raw))return 'Please verify your email first. Check your inbox and spam folder.';
+ if(/too many requests|rate limit|security purposes/i.test(raw)||err?.status===429)return 'Too many attempts. Please try again later.';
+ if(/timeout|too long|timed out/i.test(raw))return 'Login timed out. Check your internet connection and try again.';
+ return raw;
+}
+const pvAuthFeedbackStyle=document.createElement('style');
+pvAuthFeedbackStyle.textContent=`
+#authBox #authMsg{display:flex;align-items:center;min-height:0;margin:12px 0 0;padding:11px 12px;border-radius:11px;background:#fff1f3;border:1px solid #efb1c1;color:#9f2547;font-size:13px;font-weight:650;line-height:1.5;overflow-wrap:anywhere}
+#authBox #authMsg[hidden]{display:none!important}
+#authBox #authMsg[data-kind="loading"]{background:#f3efff;color:#6540bc;border-color:#cfc1f2}
+#authBox #authMsg[data-kind="success"]{background:#edfbf1;color:#187044;border-color:#a6dfbc}
+#authBox .authMainBtn[aria-busy="true"]{opacity:.75;cursor:progress}
+.pvAuthNotice{position:fixed;z-index:230;top:max(17px,env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);width:min(400px,calc(100vw - 28px));padding:14px 16px;border:1px solid #52775f;border-radius:14px;background:#193323;color:#edfff2;font:650 13px/1.5 Inter,system-ui,Arial;box-shadow:0 12px 40px #0008;text-align:center;pointer-events:none}
+.pvAuthNotice[data-kind="error"]{background:#411e2b;border-color:#945066;color:#ffe4e7}
+.pvAuthNotice[hidden]{display:none!important}
+@media(max-width:600px){#authBox #authMsg{position:relative;font-size:12px;margin-top:9px}.pvAuthNotice{top:max(12px,env(safe-area-inset-top,0px))}}
+`;document.head.append(pvAuthFeedbackStyle);
 const pvPhoneStyles=document.createElement('style');pvPhoneStyles.textContent=`
 #authOverlay .pvAuthMethods{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:2px 0 16px}
 #authOverlay .pvAuthMethod{border:1px solid #59506d;border-radius:12px;padding:11px;background:#211b32;color:#d9d2eb;cursor:pointer;font-weight:700}
@@ -117,7 +163,9 @@ document.getElementById('pvOtpResend').onclick=async()=>{if(!pvPhonePending)retu
 
 let authMode='login';
 function setAuthMode(mode){authMode=mode;pvPhonePending='';document.getElementById('pvOtpWrap').hidden=true;document.getElementById('pvOtp').required=false;document.getElementById('pvAuthMethods').hidden=mode==='reset';document.getElementById('pvEmailWrap').hidden=mode!=='reset'&&pvAuthMethod==='phone';document.getElementById('pvPhoneWrap').hidden=mode==='reset'||pvAuthMethod==='email';document.getElementById('authEmail').required=mode==='reset'||pvAuthMethod==='email';document.getElementById('authPhone').required=mode!=='reset'&&pvAuthMethod==='phone';msg('');const signup=mode==='signup',reset=mode==='reset';document.getElementById('authNameWrap').hidden=!signup;document.getElementById('authUsernameWrap').hidden=!signup;document.getElementById('authConfirmWrap').hidden=!signup;document.getElementById('authName').required=signup;document.getElementById('authUsername').required=signup;document.getElementById('authConfirm').required=signup;document.getElementById('authPassword').required=!reset;document.getElementById('authPassword').closest('.authPasswordRow').previousElementSibling.hidden=reset;document.getElementById('authPassword').closest('.authPasswordRow').hidden=reset;document.getElementById('authHeading').textContent=signup?'Create your account':reset?'Reset your password':'Log in to PAVORA';document.getElementById('authSubtitle').textContent=signup?'Join PAVORA in a few easy steps.':reset?'We will send you a password reset link.':'Welcome back! Enter your details to continue.';document.getElementById('authSubmit').textContent=signup?'Create account':reset?'Send reset link':'Log in';document.getElementById('signup').textContent=signup||reset?'Back to log in':'Create new account';document.getElementById('authForgot').hidden=signup||reset||pvAuthMethod==='phone';document.getElementById('authPassword').autocomplete=signup?'new-password':'current-password'}
-document.getElementById('signup').onclick=()=>setAuthMode(authMode==='login'?'signup':'login');
+// Place feedback immediately below the main action, above OR and account switching.
+document.getElementById('authSubmit').insertAdjacentElement('afterend',document.getElementById('authMsg'));
+document.getElementById('signup').onclick=()=>{if(!pvAuthPending)setAuthMode(authMode==='login'?'signup':'login')};
 document.getElementById('authForgot').onclick=()=>setAuthMode('reset');
 document.getElementById('authTogglePassword').onclick=()=>{const input=document.getElementById('authPassword');input.type=input.type==='password'?'text':'password';document.getElementById('authTogglePassword').textContent=input.type==='password'?'Show':'Hide'};
 document.getElementById('authForm').onsubmit=async e=>{
