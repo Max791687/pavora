@@ -282,17 +282,56 @@ function pvStartLikesRealtime(){
 
 /* Live comment counters and discussion list: never redraw a post image. */
 let pvCommentsChannel=null,pvCommentsUid=null,pvCommentsTimer=null,pvCommentsDebounce=null,pvCommentsBusy=false;
+const pvCommentsStyle=document.createElement('style');pvCommentsStyle.textContent=".pvCommentItem{padding:10px 0;border-bottom:1px solid #ffffff18;font-size:13px}.pvCommentItem:last-child{border-bottom:0}.pvCommentHeader{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}.pvCommentUsername{font-weight:800;color:#ecdbff}.pvCommentMessage{color:#f3edf7;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}.pvCommentTools{display:flex;align-items:center;gap:11px;margin-top:5px}.pvCommentTools button{padding:2px 1px;background:none!important;border:0!important;color:#aa94c4;font-size:11px;cursor:pointer}.pvCommentTools button:hover{color:#fff}.pvCommentReplies{margin-left:16px;padding-left:11px;border-left:2px solid #5e4180}.pvCommentReplyComposer{padding:10px;background:#2b2337;border:1px solid #70508f;border-radius:11px;margin:9px 0}.pvCommentReplyComposer[hidden]{display:none!important}.pvCommentReplyComposer small{display:block;color:#d6b3ff;margin-bottom:7px}.pvCommentReplyComposer input{width:100%;box-sizing:border-box;min-height:38px;background:#1f1a29;color:#fff;border:1px solid #705c82;border-radius:8px;padding:9px}.pvCommentReplyComposer button{padding:8px 11px;border:0;border-radius:7px;background:#7148b2;color:#fff;font-size:12px}.pvCommentReplyActions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}";document.head.append(pvCommentsStyle);
+const pvCommentPeople=new Map();
+function pvCommentAuthor(c){return pvCommentPeople.get(c.user_id)?.username||(c.user_id===user?.id?profile?.username:'user')||'user'}
 function pvRenderComments(post){
  const card=document.getElementById('pv-post-'+post.id);
  if(!card)return;
+ const all=post.comments||[];
  const button=card.querySelector('[data-pv-comment-post]');
- if(button)button.textContent='💬 '+(post.comments||[]).length+' Comments';
+ if(button)button.textContent='💬 '+all.length+' Comments';
  const list=card.querySelector('[data-pv-comment-list]');
  if(!list)return;
- const signature=JSON.stringify((post.comments||[]).map(c=>[c.id,c.body]));
+ const signature=JSON.stringify(all.map(c=>[c.id,c.body,c.parent_id,c.created_at,pvCommentAuthor(c)]));
  if(list.dataset.signature===signature)return;
+ const children=new Map();
+ const parentIds=new Set(all.map(c=>c.id));
+ const roots=[];
+ for(const c of all){if(c.parent_id&&parentIds.has(c.parent_id)){if(!children.has(c.parent_id))children.set(c.parent_id,[]);children.get(c.parent_id).push(c)}
+ else roots.push(c)}
  const frag=document.createDocumentFragment();
- for(const c of post.comments||[])frag.append(node('div','commentline',c.body));
+ const drawComment=(c,isReply=false)=>{
+  const item=node('div','pvCommentItem'+(isReply?' pvCommentReply':'')),head=node('div','pvCommentHeader');
+  const handle=pvCommentAuthor(c);
+  head.append(node('strong','pvCommentUsername','@'+handle),node('span','pvCommentMessage',c.body));
+  item.append(head);
+  const tools=node('div','pvCommentTools');
+  if(!isReply){const reply=node('button','','Reply');reply.type='button';reply.onclick=()=>{
+   const composer=card.querySelector('[data-pv-reply-composer]');
+   const field=composer?.querySelector('input');
+   if(!composer||!field)return;
+   composer.hidden=false;composer.dataset.parentId=c.id;
+   composer.querySelector('[data-pv-reply-label]').textContent='Replying to @'+handle;
+   field.value='';field.focus();
+  };tools.append(reply)}
+  if(c.user_id===user?.id){const remove=node('button','','Delete');remove.type='button';remove.onclick=async()=>{
+   if(!confirm('Delete this comment?'))return;
+   remove.disabled=true;
+   const {error}=await db.from('comments').delete().eq('id',c.id).eq('user_id',user.id);
+   if(error){remove.disabled=false;alert('Cannot delete comment: '+error.message);return}
+   post.comments=(post.comments||[]).filter(x=>x.id!==c.id).map(x=>x.parent_id===c.id?{...x,parent_id:null}:x);
+   pvRenderComments(post);pvScheduleComments(140);
+  };tools.append(remove)}
+  if(tools.childElementCount)item.append(tools);
+  return item;
+ };
+ for(const c of roots){
+  const item=drawComment(c);
+  const replies=children.get(c.id)||[];
+  if(replies.length){const nested=node('div','pvCommentReplies');for(const reply of replies)nested.append(drawComment(reply,true));item.append(nested)}
+  frag.append(item);
+ }
  list.replaceChildren(frag);list.dataset.signature=signature;
 }
 async function pvSyncComments(){
@@ -300,9 +339,14 @@ async function pvSyncComments(){
  const uid=user.id,ids=feed.map(p=>p.id);
  pvCommentsBusy=true;
  try{
-  const {data,error}=await db.from('comments').select('id,post_id,user_id,body').in('post_id',ids);
+  const {data,error}=await db.from('comments').select('id,post_id,user_id,body,parent_id,created_at').in('post_id',ids).order('created_at',{ascending:true});
   if(error)throw error;
   if(user?.id!==uid)return;
+  const idsToLookup=[...new Set((data||[]).map(c=>c.user_id))].filter(id=>!pvCommentPeople.has(id));
+  if(idsToLookup.length){
+   const {data:authors}=await db.from('profiles').select('id,username').in('id',idsToLookup.slice(0,100));
+   for(const a of authors||[])pvCommentPeople.set(a.id,{username:a.username});
+  }
   const byPost=new Map();
   for(const c of data||[]){if(!byPost.has(c.post_id))byPost.set(c.post_id,[]);byPost.get(c.post_id).push(c)}
   for(const post of feed){
@@ -371,7 +415,7 @@ function pvStartPostChanges(){
 let pvFeedRequestNumber=0;
 async function refresh(){if(!user)return;
  const activeUser=user.id,requestNumber=++pvFeedRequestNumber;
- try{if(!feed.length)status.textContent='Loading cloud posts…';const {data,error}=await db.from('posts').select('id,author_id,caption,image_path,created_at').order('created_at',{ascending:false}).limit(50);if(user?.id!==activeUser||requestNumber!==pvFeedRequestNumber)return;if(error){status.textContent='Cloud feed error: '+error.message;return}const freshFeed=data||[];const previousFeed=feed;const oldIds=feed.map(p=>p.id).join(',');const newIds=freshFeed.map(p=>p.id).join(',');const hasRenderedFeed=oldIds===newIds&&freshFeed.length>0&&!!document.getElementById('posts')?.children.length;feed=freshFeed;const ids=feed.map(p=>p.id);if(ids.length){const [profiles,likes,comments]=await Promise.all([db.from('profiles').select('id,username,display_name,avatar_url').in('id',[...new Set(feed.map(p=>p.author_id))]),db.from('likes').select('post_id,user_id').in('post_id',ids),db.from('comments').select('id,post_id,user_id,body').in('post_id',ids)]);if(profiles.error||likes.error||comments.error){status.textContent='Cloud posts loaded; some social details unavailable: '+[profiles.error,likes.error,comments.error].filter(Boolean).map(e=>e.message).join('; ')}if(user?.id!==activeUser||requestNumber!==pvFeedRequestNumber)return;const names=new Map((profiles.data||[]).map(p=>[p.id,p]));feed.forEach(p=>{p.profiles=names.get(p.author_id)||null;p.likes=(likes.data||[]).filter(x=>x.post_id===p.id);p.comments=(comments.data||[]).filter(x=>x.post_id===p.id)})}if(hasRenderedFeed){
+ try{if(!feed.length)status.textContent='Loading cloud posts…';const {data,error}=await db.from('posts').select('id,author_id,caption,image_path,created_at').order('created_at',{ascending:false}).limit(50);if(user?.id!==activeUser||requestNumber!==pvFeedRequestNumber)return;if(error){status.textContent='Cloud feed error: '+error.message;return}const freshFeed=data||[];const previousFeed=feed;const oldIds=feed.map(p=>p.id).join(',');const newIds=freshFeed.map(p=>p.id).join(',');const hasRenderedFeed=oldIds===newIds&&freshFeed.length>0&&!!document.getElementById('posts')?.children.length;feed=freshFeed;const ids=feed.map(p=>p.id);if(ids.length){const [profiles,likes,comments]=await Promise.all([db.from('profiles').select('id,username,display_name,avatar_url').in('id',[...new Set(feed.map(p=>p.author_id))]),db.from('likes').select('post_id,user_id').in('post_id',ids),db.from('comments').select('id,post_id,user_id,body,parent_id,created_at').in('post_id',ids).order('created_at',{ascending:true})]);if(profiles.error||likes.error||comments.error){status.textContent='Cloud posts loaded; some social details unavailable: '+[profiles.error,likes.error,comments.error].filter(Boolean).map(e=>e.message).join('; ')}if(user?.id!==activeUser||requestNumber!==pvFeedRequestNumber)return;const names=new Map((profiles.data||[]).map(p=>[p.id,p]));feed.forEach(p=>{p.profiles=names.get(p.author_id)||null;p.likes=(likes.data||[]).filter(x=>x.post_id===p.id);p.comments=(comments.data||[]).filter(x=>x.post_id===p.id)})}if(hasRenderedFeed){
  // Keep the post objects captured by each like/comment handler in sync.
  const previous=new Map(previousFeed.map(p=>[p.id,p]));
  feed=feed.map(post=>{const existing=previous.get(post.id);if(!existing)return post;Object.assign(existing,post);return existing});
@@ -401,19 +445,40 @@ like.onclick=async()=>{
 };const comments=node('button','', '💬 '+(p.comments||[]).length+' Comments');comments.dataset.pvCommentPost=p.id;
 const section=node('div');section.hidden=true;
 const commentList=node('div');commentList.dataset.pvCommentList=p.id;
+const replyComposer=node('div','pvCommentReplyComposer');replyComposer.hidden=true;replyComposer.dataset.pvReplyComposer=p.id;
+const replyLabel=node('small');replyLabel.dataset.pvReplyLabel='1';
+const replyInput=node('input');replyInput.placeholder='Write a reply…';replyInput.maxLength=500;
+const replyActions=node('div','pvCommentReplyActions'),cancelReply=node('button','','Cancel'),sendReply=node('button','','Post reply');
+cancelReply.type=sendReply.type='button';
+cancelReply.onclick=()=>{replyComposer.hidden=true;replyInput.value='';replyComposer.dataset.parentId=''};
+const submitReply=async()=>{
+ const parent_id=replyComposer.dataset.parentId,body=replyInput.value.trim(),account=user;
+ if(!account||!parent_id||!body||sendReply.disabled)return;
+ sendReply.disabled=true;replyInput.disabled=true;
+ try{
+  const {data,error}=await db.from('comments').insert({post_id:p.id,user_id:account.id,body,parent_id}).select('id,post_id,user_id,body,parent_id,created_at').single();
+  if(error)throw error;
+  p.comments=[...(p.comments||[]),data];replyComposer.hidden=true;replyInput.value='';replyComposer.dataset.parentId='';
+  pvRenderComments(p);pvScheduleComments(220);
+ }catch(e){alert('Could not reply: '+e.message)}
+ finally{sendReply.disabled=false;replyInput.disabled=false}
+};
+sendReply.onclick=submitReply;
+replyInput.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();submitReply()}};
+replyActions.append(cancelReply,sendReply);replyComposer.append(replyLabel,replyInput,replyActions);
 const input=node('input','comment');input.dataset.pvCommentInput=p.id;input.placeholder='Write a comment and press Enter';input.maxLength=500;
 input.onkeydown=async e=>{
  if(e.key!=='Enter'||!input.value.trim()||input.disabled)return;
  input.disabled=true;const body=input.value.trim();
  try{
-  const {data,error}=await db.from('comments').insert({post_id:p.id,user_id:user.id,body}).select('id,post_id,user_id,body').single();
+  const {data,error}=await db.from('comments').insert({post_id:p.id,user_id:user.id,body}).select('id,post_id,user_id,body,parent_id,created_at').single();
   if(error)throw error;
   p.comments=[...(p.comments||[]),data];input.value='';pvRenderComments(p);pvScheduleComments(250);
  }catch(err){alert('Could not add comment: '+err.message)}
  finally{input.disabled=false;input.focus()}
 };
 comments.onclick=()=>{section.hidden=!section.hidden;if(!section.hidden)pvScheduleComments(50)};
-section.append(commentList,input);foot.append(like,comments,section);try{window.PVKit?.addPostSave?.(p,foot)}catch(e){console.warn('Post save:',e)}if(p.author_id!==user.id){const report=node('button','pvPostReport','⚑ Report');report.type='button';report.onclick=()=>pvReportTarget('post',p.id);foot.append(report)}if(p.author_id===user.id){const del=node('button','','Delete');del.onclick=async()=>{if(!confirm('Delete your post?'))return;const {error}=await db.from('posts').delete().eq('id',p.id);if(error)alert(error.message);await refresh()};foot.append(del)}card.append(foot);root.append(card);pvRenderComments(p)});if(!feed.length)root.append(node('div','empty','No cloud posts yet. Share the first one!'));if(document.getElementById('stats'))document.getElementById('stats').textContent=feed.filter(p=>p.author_id===user.id).length+' posts · @'+(profile?.username||'creator')}
+section.append(commentList,replyComposer,input);foot.append(like,comments,section);try{window.PVKit?.addPostSave?.(p,foot)}catch(e){console.warn('Post save:',e)}if(p.author_id!==user.id){const report=node('button','pvPostReport','⚑ Report');report.type='button';report.onclick=()=>pvReportTarget('post',p.id);foot.append(report)}if(p.author_id===user.id){const del=node('button','','Delete');del.onclick=async()=>{if(!confirm('Delete your post?'))return;const {error}=await db.from('posts').delete().eq('id',p.id);if(error)alert(error.message);await refresh()};foot.append(del)}card.append(foot);root.append(card);pvRenderComments(p)});if(!feed.length)root.append(node('div','empty','No cloud posts yet. Share the first one!'));if(document.getElementById('stats'))document.getElementById('stats').textContent=feed.filter(p=>p.author_id===user.id).length+' posts · @'+(profile?.username||'creator')}
 document.getElementById('publish').onclick=async()=>{if(!user)return;const caption=document.getElementById('caption').value.trim(),file=document.getElementById('photo').files[0];if(!caption&&!file)return alert('Add a caption or photo');if(caption.length>2200)return alert('Caption too long');const btn=document.getElementById('publish');btn.disabled=true;btn.textContent='Posting…';try{let image_path=null;if(file){if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>5*1024*1024)throw Error('Only JPG, PNG or WebP under 5MB allowed');image_path=user.id+'/'+crypto.randomUUID()+'.'+({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[file.type]);const {error}=await db.storage.from('post-images').upload(image_path,file,{contentType:file.type});if(error)throw error}const {error}=await db.from('posts').insert({author_id:user.id,caption,image_path});if(error)throw error;document.getElementById('caption').value='';document.getElementById('photo').value='';document.getElementById('filename').textContent='';await refresh();await loadOwnPosts();if(status.textContent.startsWith('Cloud feed error'))alert('Post saved, but feed could not load: '+status.textContent)}catch(e){alert(e.message)}finally{btn.disabled=false;btn.textContent='Publish'}};
 
 /* Profile editor + creator discovery, using existing profiles/follows tables */
