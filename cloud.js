@@ -434,7 +434,7 @@ function pvUpdatePrivacyControl(){
  document.getElementById('pvSetPublic').disabled=!ready||pvPrivacyBusy;
  document.getElementById('pvSetPrivate').disabled=!ready||pvPrivacyBusy;
  document.getElementById('pvPrivacyStatus').textContent=!ready?'Privacy setup required: run supabase/account-privacy.sql.':privateMode?'🔒 Private — new followers need your approval.':'🌐 Public — everyone can view your content.';
- document.getElementById('pvRequestsBox').hidden=!privateMode;
+ document.getElementById('pvRequestsBox').hidden=!privateMode||(!pvSettingsScreen.hidden&&pvSettingsActive!=='requests');
 }
 async function pvSetPrivacy(value){
  if(!user||pvPrivacyBusy||typeof profile?.is_private!=='boolean')return;
