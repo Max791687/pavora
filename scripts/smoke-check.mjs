@@ -25,7 +25,9 @@ assert.ok(cloud.includes('pvCommentReplyComposer')&&cloud.includes('parent_id'),
 assert.ok(cloud.includes('pvDmDecorateRows')&&cloud.includes('message_reactions'), 'DM message reactions missing');
 assert.ok(cloud.includes('pvOnChatInput')&&cloud.includes('dm_typing_status'), 'DM typing indicator missing');
 assert.ok(cloud.includes('pvDmDecorateContent')&&cloud.includes('pv-dm-media')&&cloud.includes('reply_to'), 'Private DM media and message replies missing');
-assert.ok(cloud.includes('pvShowDmMediaGallery')&&cloud.includes('pvForwardDmMessage')&&cloud.includes('pvDmMoreButton'), 'DM gallery and message options missing');
+assert.ok(cloud.includes('pvShowDmMediaGallery')&&cloud.includes('pvForwardDmMessage'), 'DM gallery and forwarding missing');
+assert.ok(cloud.includes('pvDmOpenHoldMenu')&&cloud.includes('pvDmAttachHoldGesture'), 'Long-press message menu missing');
+assert.ok(cloud.includes('pv_edit_own_dm'), 'Secure sent-message Edit action missing');
 assert.ok(suite.includes('story_views'), 'Story viewer tracking missing');
 assert.ok(sw.includes("event.respondWith"), 'PWA offline fallback missing');
 console.log('PAVORA static smoke checks passed. Browser integration tests are still required.');
