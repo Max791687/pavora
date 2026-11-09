@@ -1022,10 +1022,8 @@ async function loadReels(force=false){
  if(!force&&pvReelsLoadedFor===user.id&&list.querySelector('.pvReelCard')&&Date.now()-pvReelsLoadedAt<120000){
   const stack=list.querySelector('.pvReelStack');
   if(document.body.classList.contains('pvReelsMode')&&stack){
-   const cards=[...stack.querySelectorAll('.pvReelCard')];
-   const restored=Number(stack.dataset.activeReel);
-   const index=Math.min(cards.length-1,Math.max(0,Number.isFinite(restored)?restored:Math.round(stack.scrollTop/(stack.clientHeight||1))));
-   cards.forEach((card,i)=>{const v=card.querySelector('video');if(v){if(i===index)v.play().catch(()=>{});else v.pause()}});
+   const resumed=Number(stack.dataset.activeReel);
+   if(typeof stack.pvResume==='function')stack.pvResume(Number.isFinite(resumed)?resumed:0);
   }
   return;
  }
@@ -1042,20 +1040,28 @@ let current=0,gestureLocked=false,gestureTimer=null,touchStartY=null,touchStartX
 
 let desktopWheelLastAt=0,desktopWheelGestureAt=0,desktopWheelDirection=0;
 const videoFor=index=>cards[index]?.querySelector('video');
+reelStack.pvResume=index=>goTo(index,'auto');
 function pvActivateReel(index){
  if(!cards.length||!document.body.classList.contains('pvReelsMode'))return;
  cards.forEach((card,i)=>{
   const v=card.querySelector('video');if(!v)return;
-  if(i===index){
-   if(v.preload==='none')v.preload='metadata';
-   if(v.paused)v.play().catch(()=>{});
-  }else if(!v.paused)v.pause();
+  const distance=Math.abs(i-index);
+  if(distance<=1){
+   // Only active and adjacent videos hold media connections/decoders.
+   if(!v.hasAttribute('src')&&v.dataset.pvSrc)v.src=v.dataset.pvSrc;
+   v.preload=distance===0?'auto':'metadata';
+   if(i===index){
+    if(v.paused)v.play().catch(()=>{});
+   }else if(!v.paused)v.pause();
+  }else{
+   if(!v.paused)v.pause();
+   if(v.hasAttribute('src')){
+    v.removeAttribute('src');v.preload='none';
+    // Release far-away decoders and network connections.
+    v.load();
+   }
+  }
  });
- // Prepare the next and previous clip so a swipe does not wait for metadata.
- for(const nearby of [index-1,index+1]){
-  const adjacent=videoFor(nearby);
-  if(adjacent&&adjacent.preload==='none')adjacent.preload='metadata';
- }
 }
 function goTo(index,behavior='smooth'){
  if(!cards.length)return;
@@ -1142,7 +1148,7 @@ const originalReelsCleanup=window.pvReelsWheelCleanup;
 window.pvReelsWheelCleanup=()=>{originalReelsCleanup?.();window.removeEventListener('resize',pvReelsResize)};
 
 for(const reel of data){const person=people.get(reel.author_id)||{},card=node('article','pvReelCard'),screen=node('div','pvReelScreen'),video=node('video'),meta=node('div','pvReelMeta'),author=node('div','pvReelAuthor'),actions=node('div','pvReelActions');
-video.src=db.storage.from('reel-videos').getPublicUrl(reel.video_path).data.publicUrl;video.loop=true;video.playsInline=true;video.muted=true;video.defaultMuted=true;video.autoplay=false;video.preload=cards.length<2?'metadata':'none';video.controls=false;video.setAttribute('muted','');video.setAttribute('playsinline','');video.setAttribute('aria-label','Reel by '+(person.username||'creator'));
+video.dataset.pvSrc=db.storage.from('reel-videos').getPublicUrl(reel.video_path).data.publicUrl;video.loop=true;video.playsInline=true;video.muted=true;video.defaultMuted=true;video.autoplay=false;video.preload='none';video.controls=false;video.setAttribute('muted','');video.setAttribute('playsinline','');video.setAttribute('aria-label','Reel by '+(person.username||'creator'));
 const avatar=node('div','pvReelAvatar');if(person.avatar_url){const img=node('img');img.src=person.avatar_url;img.alt='';avatar.append(img)}else avatar.textContent=(person.username||'P')[0].toUpperCase();
 const who=node('button','pvReelCreator','@'+(person.username||'creator'));who.type='button';who.onclick=()=>openCreator(reel.author_id);author.append(avatar,who);
 if(reel.author_id!==user.id){const follow=node('button','pvReelFollow','View profile');follow.type='button';follow.onclick=()=>openCreator(reel.author_id);author.append(follow)}
@@ -1151,7 +1157,7 @@ const togglePlay=()=>{if(video.paused)video.play().catch(()=>{});else video.paus
 const play=reelAction('Play or pause','<path d="m9 6 10 6-10 6z"/>',togglePlay);play.classList.add('pvReelPlay');screen.append(play);video.addEventListener('play',()=>play.classList.add('hide'));video.addEventListener('pause',()=>play.classList.remove('hide'));
 const sound=reelAction('Mute or unmute','<path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15 9a4 4 0 0 1 0 6"/>',()=>{video.muted=!video.muted;sound.classList.toggle('pvMuted',video.muted)});video.muted=true;sound.classList.add('pvMuted');sound.classList.add('pvReelSound');screen.append(sound);
 actions.append(reelAction('Share reel','<path d="m21 3-8.5 18-3.5-7.5L2 10z"/><path d="M21 3 9 13.5"/>',async()=>{const link=location.href.split('#')[0]+'#reel-'+reel.id;try{if(navigator.share)await navigator.share({title:'PAVORA Reel',url:link});else if(navigator.clipboard){await navigator.clipboard.writeText(link);alert('Reel link copied!')}else prompt('Copy reel link:',link)}catch(e){if(e.name!=='AbortError')alert('Unable to share reel')}}));
-actions.append(reelAction('More options','<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>',()=>{if(reel.author_id!==user.id){alert('More options coming soon.');return}if(!confirm('Delete your Reel permanently?'))return;(async()=>{const result=await db.from('reels').delete().eq('id',reel.id).eq('author_id',user.id);if(result.error){alert(result.error.message);return}await db.storage.from('reel-videos').remove([reel.video_path]);await loadReels()})()}));
+actions.append(reelAction(reel.author_id!==user.id?'Block account':'More options','<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>',()=>{if(reel.author_id!==user.id){pvBlockAccount(reel.author_id,person.username||'creator');return}if(!confirm('Delete your Reel permanently?'))return;(async()=>{const result=await db.from('reels').delete().eq('id',reel.id).eq('author_id',user.id);if(result.error){alert(result.error.message);return}await db.storage.from('reel-videos').remove([reel.video_path]);await loadReels()})()}));
 card.append(screen,actions);reelStack.append(card);cards.push(card);card.id='reel-'+reel.id;
 try{window.PVKit?.addReel?.(reel,actions,video)}catch(e){console.warn('Reel extras:',e)}
 }
