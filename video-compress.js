@@ -99,7 +99,7 @@
  }
  async function prepare(file,onProgress,signal){
   if(!file||!file.type.startsWith('video/'))throw Error('Choose a video file.');
-  if(file.size<=MAX)return file;
+  if(file.size<=MAX&&['video/mp4','video/webm'].includes(file.type))return file;
   if(!supported())throw Error('This browser cannot compress large videos automatically. Try a recent Chrome browser.');
   const meta=await getMeta(file);
   if(meta.duration>1800)throw Error('Videos longer than 30 minutes need external compression on this device.');
