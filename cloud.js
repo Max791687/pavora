@@ -23,6 +23,9 @@ async function pvLoadOfficialIdentity(){
 function pvOfficialBadge(){const b=document.createElement('span');b.className='pvOfficialBadge';b.textContent='✓';b.setAttribute('aria-label','Verified official PAVORA account');b.title='Verified official PAVORA account';return b}
 const officialStyle=document.createElement('style');officialStyle.textContent=`
 #pvPublicView .pvPublicName{display:flex;align-items:center;gap:5px;margin:0 0 8px}
+#pvPublicView .pvPublicStats{display:flex;flex-wrap:wrap;gap:8px 18px;color:#bdb7ce;font-size:12px;margin:13px 0}
+#pvPublicView .pvPublicStats strong{color:#f8f6fb;font-weight:800;font-size:14px}
+
 #pvPublicView .pvPublicName .pvOfficialBadge{width:21px;height:21px;font-size:14px}
 #pvPublicView .pvPublicOfficialType{font-size:12px;font-weight:700;color:#94caff;margin:0 0 9px}
 
@@ -599,11 +602,12 @@ document.querySelectorAll('[data-view]:not([data-view="explore"])').forEach(btn=
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{if(b!==socialNav){publicView.classList.add('hide');inboxView.classList.add('hide');if(chatPoll){clearInterval(chatPoll);chatPoll=null}}}));
 function pvProfileButton(person){const b=node('button','pvPersonButton','@'+(person.username||'creator'));b.type='button';b.onclick=()=>openCreator(person.id);return b}
 async function openCreator(id){if(!user||!id)return;pvRememberView('creator',id);if(id===user.id){pvNavigate('profile');await updateSocialProfile();return}pvNavigate('creator');pvRememberView('creator',id);publicView.replaceChildren(node('p','muted','Loading profile…'));
-const [{data:person,error},{data:posts,error:postError},{data:followers},{data:following},{data:myFollow}]=await Promise.all([
+const [{data:person,error},{data:posts,count:postCount,error:postError},{count:reelCount,error:reelCountError},{count:followerCount,error:followerCountError},{count:followingCount,error:followingCountError},{data:myFollow}]=await Promise.all([
 db.from('profiles').select('id,username,display_name,bio,avatar_url,is_official').eq('id',id).maybeSingle(),
-db.from('posts').select('id,caption,image_path,created_at').eq('author_id',id).order('created_at',{ascending:false}).limit(90),
-db.from('follows').select('*',{count:'exact',head:true}).eq('following_id',id),
-db.from('follows').select('*',{count:'exact',head:true}).eq('follower_id',id),
+db.from('posts').select('id,caption,image_path,created_at',{count:'exact'}).eq('author_id',id).order('created_at',{ascending:false}).limit(90),
+db.from('reels').select('id',{count:'exact',head:true}).eq('author_id',id),
+db.from('follows').select('follower_id',{count:'exact',head:true}).eq('following_id',id),
+db.from('follows').select('following_id',{count:'exact',head:true}).eq('follower_id',id),
 db.from('follows').select('following_id').eq('follower_id',user.id).eq('following_id',id).maybeSingle()
 ]);publicView.replaceChildren();if(error||!person){publicView.append(node('p','muted',error?.message||'Profile unavailable'));return}
 const back=node('button','secondary','← Explore creators');back.onclick=()=>pvNavigate('explore');publicView.append(back);
@@ -611,7 +615,15 @@ const top=node('div','pvPublicTop'),avatar=node('div','pvPublicAvatar');if(perso
 const details=node('div'),publicName=node('h2','pvPublicName');publicName.append(document.createTextNode(person.username));
 if(person.is_official){publicName.append(pvOfficialBadge());details.append(publicName,node('div','pvPublicOfficialType','Official PAVORA Account'));}
 else details.append(publicName);
-details.append(node('strong','',person.display_name||person.username),node('p','muted',(posts?.length||0)+' recent posts · '+(followers??0)+' followers · '+(following??0)+' following'),node('p','',person.bio||''));
+const pvCountText=(value,failed)=>failed?'—':String(value??0);
+const publicStats=node('div','pvPublicStats');
+for(const [amount,label] of [
+ [pvCountText(postCount,postError),'posts'],
+ [pvCountText(reelCount,reelCountError),'reels'],
+ [pvCountText(followerCount,followerCountError),'followers'],
+ [pvCountText(followingCount,followingCountError),'following']
+]){const stat=node('span','pvPublicStat');stat.append(node('strong','',amount),document.createTextNode(' '+label));publicStats.append(stat)}
+details.append(node('strong','',person.display_name||person.username),publicStats,node('p','',person.bio||''));
 top.append(avatar,details);publicView.append(top);
 const actions=node('div','pvPublicActions'),follow=node('button','secondary',myFollow?'Following ✓':'Follow'),message=node('button','primary','✉ Message');
 follow.onclick=async()=>{follow.disabled=true;const result=myFollow?await db.from('follows').delete().eq('follower_id',user.id).eq('following_id',id):await db.from('follows').insert({follower_id:user.id,following_id:id});if(result.error)alert(result.error.message);await openCreator(id)};
