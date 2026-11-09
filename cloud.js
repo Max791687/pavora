@@ -1018,7 +1018,13 @@ const publicView=node('div','hide');publicView.id='pvPublicView';document.queryS
 messagesView.classList.add('hide');messagesView.style.display='none';
 const inboxView=node('div','hide');inboxView.id='pvInboxView';document.querySelector('.feed').append(inboxView);
 /* Replace demo story initials with real profile photos from signed-up creators. */
-async function refreshStoryAvatars(){if(!user)return;const storyBar=document.getElementById('stories');if(!storyBar)return;const {data:creators,error}=await db.from('profiles').select('id,username,display_name,avatar_url').order('created_at',{ascending:false}).limit(16);if(error)return;storyBar.replaceChildren();const ordered=[profile,...(creators||[]).filter(p=>p.id!==user.id)];for(const person of ordered){if(!person)continue;const item=node('div','storyitem'),circle=node('div','profilepic'),label=node('span','',person.id===user.id?'You':person.display_name||person.username);label.style.cssText='display:block;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';const initial=(person.display_name||person.username||'P')[0].toUpperCase();if(person.avatar_url){const img=node('img');img.src=person.avatar_url;img.alt=(person.display_name||person.username)+' profile photo';img.onerror=()=>{circle.replaceChildren();circle.textContent=initial};circle.append(img)}else circle.textContent=initial;item.append(circle,label);item.style.cursor='pointer';item.title='View '+(person.display_name||person.username)+' profile';item.onclick=()=>person.id===user.id?pvNavigate('profile'):openCreator(person.id);storyBar.append(item)}try{window.PVKit?.renderStories?.(storyBar)}catch(e){console.warn('Story extras:',e)}}
+// Single owner for the home stories row: social-suite.js (no duplicate creator/demo redraw).
+async function refreshStoryAvatars(){
+ if(!user)return;
+ const storyBar=document.getElementById('stories');
+ if(storyBar&&window.PVKit?.renderStories)await window.PVKit.renderStories(storyBar,{force:true});
+}
+
 let selectedPeer=null,chatPoll=null,pvChatPollBusy=false;let pvHiddenChats=new Map();
 let pvDmRealtimeChannel=null,pvDmRealtimeUser=null,pvDmRealtimeStatus='offline',pvDmRealtimeRefreshTimer=null;
 function pvStopDmRealtime(){
@@ -1689,7 +1695,6 @@ if(user){
     pvSafeSetup('Hidden chats',pvLoadHiddenChats),
     pvSafeSetup('Conversation folders',pvLoadConversationSettings),
     pvSafeSetup('Home feed',refresh),
-    pvSafeSetup('Stories',refreshStoryAvatars),
     pvSafeSetup('Social suite',async()=>window.PVKit?.init?.())
    ]);
    if(!user||user.id!==pvSessionInitUser)return;
