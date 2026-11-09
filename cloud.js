@@ -1586,6 +1586,58 @@ function pvStartDmExtras(){
  pvDmTypingTimer=setInterval(()=>{if(!document.hidden&&selectedPeer&&!inboxView.classList.contains('hide'))pvCheckTyping()},3500);
 }
 
+
+const pvDmMediaCSS=document.createElement('style');
+pvDmMediaCSS.textContent=".pvDmReplyPreview{font-size:11px;color:#e1c7f9;background:#553776;border-left:3px solid #d2a6ff;padding:7px 10px;border-radius:7px;max-width:270px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px}.pvDmAttachment{display:block;max-width:min(260px,67vw);max-height:320px;object-fit:contain;border-radius:11px;margin:7px 0;background:#110e19}.pvDmAttachment.video{width:min(260px,67vw);max-height:300px}.pvDmReplyButton{border:0!important;background:transparent!important;color:#c9b1df!important;font-size:12px!important;padding:4px!important}.pvDmSendPreview{display:flex;align-items:center;gap:8px;padding:9px 12px;margin:6px 0;border-left:3px solid #bc95ea;background:#392747;border-radius:9px;color:#f6eaff;font-size:12px}.pvDmSendPreview strong{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pvDmSendPreview button{border:0!important;background:#57436a!important;color:#fff;border-radius:7px;padding:5px 10px}.pvDmAttachButton{border:0;background:transparent;color:#e0c4ff;font-size:24px;cursor:pointer;padding:5px 10px}.pvDmUploadNote{font-size:11px;color:#b8a9cb}.pvDmMediaError{color:#ffb3ba;font-size:12px}";
+document.head.append(pvDmMediaCSS);
+function pvDmMessageSummary(message){
+ if(!message)return 'Original message unavailable';
+ const content=(message.body||'').trim();
+ return content.slice(0,120)||(message.media_type?.startsWith('image/')?'📷 Photo':message.media_type?.startsWith('video/')?'🎬 Video':'Message');
+}
+function pvDmSetReply(id,message){
+ const area=document.getElementById('pvChatArea'),form=area?.querySelector('.pvMessageForm');
+ if(!form||!message||selectedPeer!==id)return;
+ const wrap=area.querySelector('.pvDmReplyCompose');
+ if(!wrap)return;
+ form.dataset.replyTo=message.id;
+ wrap.hidden=false;
+ wrap.querySelector('strong').textContent='Replying to: '+pvDmMessageSummary(message);
+ form.querySelector('input[aria-label="Message"]')?.focus({preventScroll:true});
+}
+function pvDmDecorateContent(list,messages,peer){
+ if(!list||!user||selectedPeer!==peer)return;
+ const byId=new Map((messages||[]).map(x=>[String(x.id),x]));
+ for(const row of list.querySelectorAll('.pvMessageRow[data-message-id]')){
+  const msg=byId.get(row.dataset.messageId);
+  if(!msg)continue;
+  if(!row.querySelector('.pvDmReplyButton')){
+   const btn=node('button','pvDmReplyButton','↩ Reply');btn.type='button';
+   btn.onclick=()=>pvDmSetReply(peer,msg);
+   row.append(btn);
+  }
+  if(msg.reply_to&&!row.querySelector('.pvDmReplyPreview')){
+   const preview=node('div','pvDmReplyPreview',pvDmMessageSummary(byId.get(String(msg.reply_to))));
+   preview.title='Reply to original message';
+   const bubble=row.querySelector('.pvBubble');
+   if(bubble)bubble.prepend(preview);
+  }
+  if(msg.media_path&&!row.querySelector('.pvDmAttachment')&&!row.querySelector('.pvDmMediaError')){
+   const bubble=row.querySelector('.pvBubble');if(!bubble)continue;
+   const isVideo=msg.media_type?.startsWith('video/');
+   const media=node(isVideo?'video':'img','pvDmAttachment'+(isVideo?' video':''));
+   if(isVideo){media.controls=true;media.playsInline=true;media.preload='none'}
+   else {media.loading='lazy';media.alt='Shared photo'}
+   bubble.append(media);
+   db.storage.from('pv-dm-media').createSignedUrl(msg.media_path,1800).then(({data,error})=>{
+    if(!media.isConnected||selectedPeer!==peer)return;
+    if(error||!data?.signedUrl){media.replaceWith(node('span','pvDmMediaError','Media unavailable'));return}
+    media.src=data.signedUrl;
+   }).catch(()=>{if(media.isConnected)media.replaceWith(node('span','pvDmMediaError','Media unavailable'))});
+  }
+ }
+}
+
 let pvDmRealtimeChannel=null,pvDmRealtimeUser=null,pvDmRealtimeStatus='offline',pvDmRealtimeRefreshTimer=null;
 function pvStopDmRealtime(){
  if(pvDmRealtimeRefreshTimer){clearTimeout(pvDmRealtimeRefreshTimer);pvDmRealtimeRefreshTimer=null}
