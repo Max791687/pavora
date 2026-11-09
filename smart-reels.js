@@ -13,19 +13,22 @@ async function rank(db,user,reels,requestedMode){
  if(!db||!user||!Array.isArray(reels))return reels||[];
  const selected=requestedMode==='following'?'following':'for-you';
  const videoIds=reels.map(r=>r.id);
- const [follows,myLikes,mySaves,myViews,hidden,allLikes,allViews]=await Promise.all([
+ const [follows,myLikes,mySaves,myViews,hidden,allLikes,allViews,watchSignals]=await Promise.all([
   safely(db.from('follows').select('following_id').eq('follower_id',user.id).limit(500)),
   safely(db.from('reel_likes').select('reel_id').eq('user_id',user.id).limit(1500)),
   safely(db.from('saved_media').select('reel_id').eq('user_id',user.id).not('reel_id','is',null).limit(1500)),
   safely(db.from('reel_views').select('reel_id').eq('user_id',user.id).limit(1500)),
   videoIds.length?safely(db.from('pv_reel_preferences').select('reel_id').eq('user_id',user.id).eq('not_interested',true).in('reel_id',videoIds)):[],
   videoIds.length?safely(db.from('reel_likes').select('reel_id,user_id').in('reel_id',videoIds).limit(3500)):[],
-  videoIds.length?safely(db.from('reel_views').select('reel_id,user_id').in('reel_id',videoIds).limit(3500)):[]
+  videoIds.length?safely(db.from('reel_views').select('reel_id,user_id').in('reel_id',videoIds).limit(3500)):[],
+  safely(db.from('pv_reel_watch_signals').select('reel_id,watch_seconds,completed').eq('user_id',user.id).limit(1500))
  ]);
  const following=ids(follows,'following_id'),mineLiked=ids(myLikes,'reel_id'),mineSaved=ids(mySaves,'reel_id'),seen=ids(myViews,'reel_id'),excluded=ids(hidden,'reel_id');
+ const completed=ids(watchSignals.filter(s=>s.completed),'reel_id');
  const byAuthor=new Map();
  for(const like of myLikes){const r=reels.find(v=>v.id===like.reel_id);if(r)byAuthor.set(r.author_id,(byAuthor.get(r.author_id)||0)+3)}
  for(const saved of mySaves){const r=reels.find(v=>v.id===saved.reel_id);if(r)byAuthor.set(r.author_id,(byAuthor.get(r.author_id)||0)+5)}
+ for(const watch of watchSignals){const r=reels.find(v=>v.id===watch.reel_id);if(r&&watch.completed)byAuthor.set(r.author_id,(byAuthor.get(r.author_id)||0)+2)}
  const likeCounts=new Map(),viewCounts=new Map();
  for(const l of allLikes)likeCounts.set(l.reel_id,(likeCounts.get(l.reel_id)||0)+1);
  for(const v of allViews)viewCounts.set(v.reel_id,(viewCounts.get(v.reel_id)||0)+1);
@@ -39,7 +42,8 @@ async function rank(db,user,reels,requestedMode){
   const engagement=Math.min(12,(likeCounts.get(r.id)||0)*2)+Math.min(8,Math.sqrt(viewCounts.get(r.id)||0)*1.4);
   const affinity=Math.min(18,byAuthor.get(r.author_id)||0);
   const score=13/(1+ageDays/5)+engagement+affinity+(following.has(r.author_id)?5:0)
-   +(mineSaved.has(r.id)?2:0)+(mineLiked.has(r.id)?1:0)-(seen.has(r.id)?13:0);
+   +(mineSaved.has(r.id)?2:0)+(mineLiked.has(r.id)?1:0)-(seen.has(r.id)?13:0)
+   -(completed.has(r.id)?3:0);
   return {r,score};
  }).sort((a,b)=>b.score-a.score || Date.parse(b.r.created_at)-Date.parse(a.r.created_at));
  // Diversity: avoid serving too many consecutive videos from one author.
@@ -51,6 +55,24 @@ async function rank(db,user,reels,requestedMode){
   authorsShown.set(item.r.author_id,(authorsShown.get(item.r.author_id)||0)+1);result.push(item.r);
  }
  return result;
+}
+async function recordWatch(db,uid,reelId,seconds,completed){
+ if(!db||!uid||!reelId||!Number.isFinite(seconds)||seconds<2)return;
+ try{
+  const {data}=await db.from('pv_reel_watch_signals').select('watch_seconds,completed').eq('user_id',uid).eq('reel_id',reelId).maybeSingle();
+  const {error}=await db.from('pv_reel_watch_signals').upsert({
+   user_id:uid,reel_id:reelId,watch_seconds:Math.min(100000,Math.max(seconds,Number(data?.watch_seconds)||0)),
+   completed:!!completed||!!data?.completed,updated_at:new Date().toISOString()
+  },{onConflict:'user_id,reel_id'});
+  if(error)console.warn('Watch signal not recorded:',error.message);
+ }catch(e){console.warn('Watch signal unavailable:',e.message||e)}
+}
+function syncTabs(uid){
+ const selected=getMode(uid);
+ document.querySelectorAll('#reels .pvSmartReelTab').forEach(b=>{
+  const active=b.dataset.mode===selected;
+  b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));b.tabIndex=active?0:-1;
+ });
 }
 async function notInterested(db,uid,reelId){
  const {error}=await db.from('pv_reel_preferences').upsert({user_id:uid,reel_id:reelId,not_interested:true,updated_at:new Date().toISOString()},{onConflict:'user_id,reel_id'});
@@ -83,5 +105,5 @@ const css=document.createElement('style');css.textContent=`
 #reels .pvSmartNotInterested:focus-visible,#reels .pvSmartReelTab:focus-visible{outline:2px solid #ddbbff}
 @media(max-width:700px){#reels .pvSmartReelTabs{top:8px;gap:3px}#reels .pvSmartReelTab{font-size:12px;padding:7px 12px}#reels .pvSmartNotInterested{top:51px;right:10px;font-size:10px;padding:6px 9px}}
 `;document.head.append(css);
-window.PAVORA_SMART_REELS={rank,getMode,setMode,notInterested,createTabs};
+window.PAVORA_SMART_REELS={rank,getMode,setMode,notInterested,createTabs,recordWatch,syncTabs};
 })();
