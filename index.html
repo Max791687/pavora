@@ -656,6 +656,50 @@ body.pvDrawerOpen aside.left button,body.pvDrawerOpen aside.left a{pointer-event
 body.pvDrawerOpen .pvDrawerScrim{z-index:10!important;pointer-events:auto!important}
 body.pvDrawerOpen .pvIconRail{z-index:14!important}
 
+
+/* v28.1 Android mobile DM layout: one pane at a time; keyboard-safe viewport. */
+@media(max-width:700px){
+ body.pvMessagesMode{overflow:hidden!important}
+ body.pvMessagesMode main{
+  position:fixed!important;inset:0!important;top:0!important;bottom:auto!important;
+  height:var(--pvDmViewportHeight,100dvh)!important;max-height:var(--pvDmViewportHeight,100dvh)!important;
+  width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;
+  overflow:hidden!important;display:block!important;
+ }
+ body.pvMessagesMode main>.feed{height:100%!important;max-height:100%!important;min-height:0!important;overflow:hidden!important}
+ body.pvMessagesMode #pvInboxView{height:100%!important;max-height:100%!important;overflow:hidden!important;padding:0!important}
+ body.pvMessagesMode #pvInboxView .pvInboxLayout{
+  display:block!important;height:calc(100% - 63px)!important;min-height:0!important;
+  max-height:none!important;overflow:hidden!important;
+ }
+ body.pvMessagesMode #pvInboxView .pvInboxSide{display:flex!important;height:100%!important;min-height:0!important;width:100%!important;overflow:hidden!important}
+ body.pvMessagesMode #pvInboxView .pvChatArea{display:none!important}
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvInboxLayout{height:100%!important}
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvInboxSide{display:none!important}
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatArea{
+  display:flex!important;flex-direction:column!important;height:100%!important;min-height:0!important;
+  width:100%!important;overflow:hidden!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatTop{
+  display:flex!important;visibility:visible!important;flex:0 0 63px!important;position:relative!important;z-index:2!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessages{
+  display:flex!important;flex:1 1 0!important;height:0!important;min-height:0!important;overflow-y:auto!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatComposerWrap{
+  display:block!important;flex:0 0 auto!important;padding:7px 10px max(9px,env(safe-area-inset-bottom,0px))!important;
+ }
+ body.pvMessagesMode:has(#pvInboxView.pvChatSelected) .pvIconRail{display:none!important}
+ #pvInboxView .pvChatContextMenu{
+  position:absolute!important;top:calc(100% + 4px)!important;right:0!important;
+  width:min(220px,calc(100vw - 38px))!important;max-height:min(50dvh,360px)!important;
+  overflow-y:auto!important;overscroll-behavior:contain!important;z-index:90!important;
+ }
+ #pvInboxView .pvThreadEntry{position:relative;overflow:visible!important}
+ #pvInboxView .pvThreadList{overflow-y:auto!important;overflow-x:hidden!important}
+ #pvInboxView .pvThreadEntry:has(.pvChatContextMenu:not(.hide)){z-index:30!important}
+}
+
 </style></head><body class="pvBooting pvFeedLoading"><div id="pvLaunchScreen" aria-label="PAVORA starting"><img class="pvLaunchLogo" src="./app-icon.svg" alt=""><div class="pvLaunchWord">PAVORA</div><div class="pvLaunchLine" aria-hidden="true"></div></div><header><div class="top"><div class="brand">PAVORA ✦</div><small>India Edition</small><button class="secondary" id="reset">Reset demo</button></div></header>
 <main><aside class="left panel"><div class="intro"><div class="row"><div class="profilepic">P</div><div><b>@pavora_user</b><div class="muted">Creator account</div></div></div><hr style="border:0;border-top:1px solid #34344a;margin:16px 0"></div><button class="nav active" data-view="home">⌂ Home</button><button class="nav" data-view="reels">▣ Reels</button><button class="nav" data-view="explore">⌕ Explore</button><button class="nav" data-view="profile">◉ Profile</button></aside>
 <section class="feed"><div id="home"><div class="story" id="stories"></div><div class="composer"><h2>Share a moment ✨</h2><textarea id="caption" maxlength="1200" placeholder="What's happening?"></textarea><div class="actions"><div><label for="photo" class="secondary" style="cursor:pointer">＋ Add photo</label><input class="upload" id="photo" type="file" accept="image/*"><span id="filename" class="hint"></span></div><button class="primary" id="publish">Publish</button></div><p class="hint">Share photos and moments with your PAVORA community.</p></div><div id="posts"></div></div><div id="reels" class="hide"><h2>Reels ▣</h2><div class="empty">Reels player is coming in the next version.</div></div><div id="explore" class="hide"><h2>Explore ✨</h2><div class="empty">Discover creators and trending posts — coming soon.</div></div><div id="profile" class="hide"><div class="panel"><div class="row"><div class="profilepic" style="width:70px;height:70px">P</div><div><h2 style="margin:0">@pavora_user</h2><p class="muted">Welcome to your PAVORA profile</p></div></div><p id="stats"></p><p class="muted">Your posts appear in Home Feed.</p></div></div></section><aside class="right panel"><h3>Welcome to PAVORA 💜</h3><p class="muted">A new space for creators to connect, share and grow.</p><hr style="border:0;border-top:1px solid #34344a"><p class="hint">This is an offline-first browser demo, not a live social network. Sign-in, cloud sync and calling are planned for later phases.</p></aside></main>
