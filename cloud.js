@@ -413,7 +413,7 @@ input.onkeydown=async e=>{
  finally{input.disabled=false;input.focus()}
 };
 comments.onclick=()=>{section.hidden=!section.hidden;if(!section.hidden)pvScheduleComments(50)};
-section.append(commentList,input);foot.append(like,comments,section);try{window.PVKit?.addPostSave?.(p,foot)}catch(e){console.warn('Post save:',e)}if(p.author_id===user.id){const del=node('button','','Delete');del.onclick=async()=>{if(!confirm('Delete your post?'))return;const {error}=await db.from('posts').delete().eq('id',p.id);if(error)alert(error.message);await refresh()};foot.append(del)}card.append(foot);root.append(card);pvRenderComments(p)});if(!feed.length)root.append(node('div','empty','No cloud posts yet. Share the first one!'));if(document.getElementById('stats'))document.getElementById('stats').textContent=feed.filter(p=>p.author_id===user.id).length+' posts · @'+(profile?.username||'creator')}
+section.append(commentList,input);foot.append(like,comments,section);try{window.PVKit?.addPostSave?.(p,foot)}catch(e){console.warn('Post save:',e)}if(p.author_id!==user.id){const report=node('button','pvPostReport','⚑ Report');report.type='button';report.onclick=()=>pvReportTarget('post',p.id);foot.append(report)}if(p.author_id===user.id){const del=node('button','','Delete');del.onclick=async()=>{if(!confirm('Delete your post?'))return;const {error}=await db.from('posts').delete().eq('id',p.id);if(error)alert(error.message);await refresh()};foot.append(del)}card.append(foot);root.append(card);pvRenderComments(p)});if(!feed.length)root.append(node('div','empty','No cloud posts yet. Share the first one!'));if(document.getElementById('stats'))document.getElementById('stats').textContent=feed.filter(p=>p.author_id===user.id).length+' posts · @'+(profile?.username||'creator')}
 document.getElementById('publish').onclick=async()=>{if(!user)return;const caption=document.getElementById('caption').value.trim(),file=document.getElementById('photo').files[0];if(!caption&&!file)return alert('Add a caption or photo');if(caption.length>2200)return alert('Caption too long');const btn=document.getElementById('publish');btn.disabled=true;btn.textContent='Posting…';try{let image_path=null;if(file){if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>5*1024*1024)throw Error('Only JPG, PNG or WebP under 5MB allowed');image_path=user.id+'/'+crypto.randomUUID()+'.'+({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[file.type]);const {error}=await db.storage.from('post-images').upload(image_path,file,{contentType:file.type});if(error)throw error}const {error}=await db.from('posts').insert({author_id:user.id,caption,image_path});if(error)throw error;document.getElementById('caption').value='';document.getElementById('photo').value='';document.getElementById('filename').textContent='';await refresh();await loadOwnPosts();if(status.textContent.startsWith('Cloud feed error'))alert('Post saved, but feed could not load: '+status.textContent)}catch(e){alert(e.message)}finally{btn.disabled=false;btn.textContent='Publish'}};
 
 /* Profile editor + creator discovery, using existing profiles/follows tables */
@@ -538,6 +538,48 @@ async function pvLoadBlockedAccounts(box){
   row.append(avatar,details,button);area.append(row);
  }
 }
+
+
+const pvReportStyles=document.createElement('style');
+pvReportStyles.textContent="#pvReportSheet{position:fixed;inset:0;z-index:200;background:#000c;display:flex;align-items:center;justify-content:center;padding:16px}#pvReportSheet[hidden]{display:none!important}.pvReportCard{width:min(460px,100%);max-height:90dvh;overflow:auto;border-radius:18px;background:#222129;border:1px solid #56425c;box-shadow:0 25px 70px #000b;padding:22px;display:grid;gap:13px}.pvReportCard h3{margin:0;font-size:19px}.pvReportCard p{margin:0;font-size:12px;color:#b7aabe;line-height:1.5}.pvReportCard label{font-size:13px;color:#ddd2e8;display:grid;gap:7px}.pvReportCard select,.pvReportCard textarea{box-sizing:border-box;width:100%;background:#302b38;color:#fff;border:1px solid #63536c;border-radius:10px;padding:12px;font:inherit}.pvReportButtons{display:flex;gap:8px;justify-content:flex-end}.pvReportButtons button{border-radius:10px;background:#49345f;color:#fff;padding:11px 17px;border:0;cursor:pointer}.pvReportButtons button:last-child{background:#8952cb}.pvReportError{font-size:12px;color:#ffadbb}";
+document.head.append(pvReportStyles);
+const pvReportSheet=node('div');pvReportSheet.id='pvReportSheet';pvReportSheet.hidden=true;
+document.body.append(pvReportSheet);
+function pvOpenActionMenu(options){
+ const sheet=node('div');sheet.className='pvActionSheet';sheet.style.cssText='position:fixed;inset:0;z-index:195;background:#000c;display:grid;place-items:center;padding:16px';
+ const card=node('div');card.style.cssText='width:min(420px,100%);border:1px solid #51405e;border-radius:17px;background:#25212d;overflow:hidden;box-shadow:0 22px 70px #000a';
+ for(const opt of options){
+  const button=node('button','',opt.title);button.type='button';
+  button.style.cssText='display:block;width:100%;padding:17px;border:0;border-bottom:1px solid #443649;background:transparent;color:'+(opt.danger?'#ff9eb3':'#fff')+';cursor:pointer;font:inherit;font-weight:700';
+  button.onclick=()=>{sheet.remove();if(opt.onClick)opt.onClick()};card.append(button);
+ }
+ const cancel=node('button','','Cancel');cancel.style.cssText='display:block;width:100%;padding:17px;border:0;background:#32283c;color:#fff;cursor:pointer;font-weight:700';cancel.onclick=()=>sheet.remove();
+ card.append(cancel);sheet.append(card);sheet.addEventListener('click',e=>{if(e.target===sheet)sheet.remove()});document.body.append(sheet);
+}
+function pvReportTarget(target_kind,target_id){
+ if(!user||!target_id)return;
+ pvReportSheet.replaceChildren();
+ const card=node('form','pvReportCard'),heading=node('h3','','Report '+target_kind),desc=node('p','','Tell us why you are reporting this content. Reports go to PAVORA moderation review; submitting does not automatically delete it.');
+ const reasonLabel=node('label','','Reason'),reason=node('select');
+ for(const [value,text] of [['spam','Spam or scam'],['harassment','Bullying or harassment'],['hate','Hate or abuse'],['violence','Violence or threats'],['nudity','Nudity or sexual content'],['impersonation','Impersonation'],['other','Something else']]){
+  const option=node('option','',text);option.value=value;reason.append(option)
+ }
+ reasonLabel.append(reason);
+ const detailsLabel=node('label','','Additional details (optional)'),details=node('textarea');
+ details.maxLength=1000;details.rows=3;details.placeholder='Describe the issue…';detailsLabel.append(details);
+ const error=node('p','pvReportError',''),buttons=node('div','pvReportButtons'),cancel=node('button','','Cancel'),submit=node('button','','Submit report');
+ cancel.type='button';submit.type='submit';cancel.onclick=()=>{pvReportSheet.hidden=true;pvReportSheet.replaceChildren()};
+ buttons.append(cancel,submit);card.append(heading,desc,reasonLabel,detailsLabel,error,buttons);
+ pvReportSheet.append(card);pvReportSheet.hidden=false;
+ card.onsubmit=async e=>{
+  e.preventDefault();submit.disabled=true;error.textContent='Submitting…';
+  const {error:failure}=await db.from('content_reports').insert({reporter_id:user.id,target_kind,target_id,reason:reason.value,details:details.value.trim()});
+  if(failure){error.textContent='Could not submit: '+failure.message;submit.disabled=false;return}
+  pvReportSheet.hidden=true;pvReportSheet.replaceChildren();alert('Report submitted for moderation review. Thank you.');
+ };
+}
+pvReportSheet.addEventListener('click',e=>{if(e.target===pvReportSheet){pvReportSheet.hidden=true;pvReportSheet.replaceChildren()}});
+window.PAVORAReport=pvReportTarget;
 
 const pvSettingsItems=[
  {key:'overview',icon:'◎',title:'Accounts Center',category:'Your account'},
@@ -1167,7 +1209,7 @@ const togglePlay=()=>{if(!video.hasAttribute('src')&&video.dataset.pvSrc)video.s
 const play=reelAction('Play or pause','<path d="m9 6 10 6-10 6z"/>',togglePlay);play.classList.add('pvReelPlay');screen.append(play);video.addEventListener('play',()=>play.classList.add('hide'));video.addEventListener('pause',()=>play.classList.remove('hide'));
 const sound=reelAction('Mute or unmute','<path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15 9a4 4 0 0 1 0 6"/>',()=>{video.muted=!video.muted;sound.classList.toggle('pvMuted',video.muted)});video.muted=true;sound.classList.add('pvMuted');sound.classList.add('pvReelSound');screen.append(sound);
 actions.append(reelAction('Share reel','<path d="m21 3-8.5 18-3.5-7.5L2 10z"/><path d="M21 3 9 13.5"/>',async()=>{const link=location.href.split('#')[0]+'#reel-'+reel.id;try{if(navigator.share)await navigator.share({title:'PAVORA Reel',url:link});else if(navigator.clipboard){await navigator.clipboard.writeText(link);alert('Reel link copied!')}else prompt('Copy reel link:',link)}catch(e){if(e.name!=='AbortError')alert('Unable to share reel')}}));
-actions.append(reelAction(reel.author_id!==user.id?'Block account':'More options','<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>',()=>{if(reel.author_id!==user.id){pvBlockAccount(reel.author_id,person.username||'creator');return}if(!confirm('Delete your Reel permanently?'))return;(async()=>{const result=await db.from('reels').delete().eq('id',reel.id).eq('author_id',user.id);if(result.error){alert(result.error.message);return}await db.storage.from('reel-videos').remove([reel.video_path]);await loadReels(true)})()}));
+actions.append(reelAction('More options','<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>',()=>{if(reel.author_id!==user.id){pvOpenActionMenu([{title:'Report Reel',onClick:()=>pvReportTarget('reel',reel.id)},{title:'Block @'+(person.username||'creator'),danger:true,onClick:()=>pvBlockAccount(reel.author_id,person.username||'creator')}]);return}if(!confirm('Delete your Reel permanently?'))return;(async()=>{const result=await db.from('reels').delete().eq('id',reel.id).eq('author_id',user.id);if(result.error){alert(result.error.message);return}await db.storage.from('reel-videos').remove([reel.video_path]);await loadReels(true)})()}));
 card.append(screen,actions);reelStack.append(card);cards.push(card);card.id='reel-'+reel.id;
 try{window.PVKit?.addReel?.(reel,actions,video)}catch(e){console.warn('Reel extras:',e)}
 }
@@ -1580,7 +1622,10 @@ follow.onclick=async()=>{follow.disabled=true;let result;
  else if(person.is_private)result=await db.from('follow_requests').insert({follower_id:user.id,following_id:id});
  else result=await db.from('follows').insert({follower_id:user.id,following_id:id});
  if(result.error)alert(result.error.message);await openCreator(id)};
-message.onclick=()=>openChat(id);const block=node('button','pvBlockAction','⊘ Block');block.onclick=()=>pvBlockAccount(id,person.username);actions.append(follow,message,block);publicView.append(actions);
+message.onclick=()=>openChat(id);
+const block=node('button','pvBlockAction','⊘ Block');block.onclick=()=>pvBlockAccount(id,person.username);
+const report=node('button','secondary','⚑ Report');report.type='button';report.onclick=()=>pvReportTarget('account',id);
+actions.append(follow,message,block,report);publicView.append(actions);
 if(privateLocked){const locked=node('div','pvPrivateLock');locked.append(node('div','','🔒'),node('strong','','This account is private'),node('p','','Follow this account to see its posts and reels.'));publicView.append(locked);return}
 publicView.append(node('h3','','Posts'));const grid=node('div','pvPublicGrid');publicView.append(grid);
 if(postError){grid.append(node('p','muted',postError.message));return}if(!posts?.length){grid.append(node('p','muted','No posts yet.'));return}
