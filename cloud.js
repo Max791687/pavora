@@ -1621,15 +1621,20 @@ async function pvShowDmMediaGallery(peer){
  const uid=user.id,{overlay,card}=pvDmOverlay('Shared photos & videos');
  const grid=node('div','pvDmGalleryGrid');card.append(grid);
  grid.append(node('p','pvDmGalleryEmpty','Loading shared media…'));
- const {data,error}=await db.from('direct_messages').select('id,media_path,media_type,created_at')
- .or('and(sender_id.eq.'+uid+',recipient_id.eq.'+peer+'),and(sender_id.eq.'+peer+',recipient_id.eq.'+uid+')')
- .not('media_path','is',null).order('created_at',{ascending:false}).limit(90);
+ const [{data,error},{data:hiddenData}]=await Promise.all([
+  db.from('direct_messages').select('id,media_path,media_type,created_at')
+  .or('and(sender_id.eq.'+uid+',recipient_id.eq.'+peer+'),and(sender_id.eq.'+peer+',recipient_id.eq.'+uid+')')
+  .not('media_path','is',null).order('created_at',{ascending:false}).limit(90),
+  db.from('dm_hidden_messages').select('message_id').eq('user_id',uid)
+ ]);
+ const hiddenMedia=new Set((hiddenData||[]).map(x=>x.message_id));
+ const visibleMedia=(data||[]).filter(item=>!hiddenMedia.has(item.id));
  if(!overlay.isConnected)return;
  grid.replaceChildren();
  if(error){grid.append(node('p','pvDmGalleryEmpty','Unable to load media: '+error.message));return}
- if(!data?.length){grid.append(node('p','pvDmGalleryEmpty','No photos or videos shared yet.'));return}
+ if(!visibleMedia.length){grid.append(node('p','pvDmGalleryEmpty','No photos or videos shared yet.'));return}
  // Signed links expire and are limited to media belonging to this chat.
- for(const m of data.slice(0,48)){
+ for(const m of visibleMedia.slice(0,48)){
   const tile=node('button','pvDmGalleryItem'),isVideo=m.media_type?.startsWith('video/');
   tile.type='button';tile.title=isVideo?'View video':'View photo';tile.append(node('span','',isVideo?'🎬':'▧'));
   grid.append(tile);
@@ -2269,7 +2274,7 @@ galleryButton.title='Shared photos & videos';galleryButton.setAttribute('aria-la
 chatTop.append(galleryButton);
 const infoButton=node('button','pvChatInfoButton');infoButton.type='button';infoButton.title='View profile';infoButton.setAttribute('aria-label','View profile');infoButton.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg>';infoButton.onclick=()=>openCreator(id);chatTop.append(infoButton);
 const pinnedBar=node('div','pvDmPinnedBar');pinnedBar.hidden=true;
-area.append(pinnedBar);pvDmRenderPinBanner(id,visibleMessages);
+pinnedBar.dataset.peer=id;
 const intro=node('div','pvChatIntro'),introAvatar=node('div','pvChatIntroAvatar');pvChatAvatar(introAvatar);
 intro.append(introAvatar,node('strong','',person.display_name||person.username),node('span','pvChatIntroHandle','@'+person.username+' · PAVORA'));
 const viewProfile=node('button','pvChatViewProfile','View profile');viewProfile.type='button';viewProfile.onclick=()=>openCreator(id);intro.append(viewProfile);
@@ -2385,7 +2390,7 @@ async function pvSendMessage(){
    if(document.activeElement!==input)input.focus({preventScroll:true});
  }
  pvCheckUnread().catch(err=>console.warn('Unread update:',err));
-}area.append(chatTop);
+}area.append(chatTop,pinnedBar);pvDmRenderPinBanner(id,visibleMessages);
 if(pendingIncoming){const banner=node('div','pvRequestBanner'),description=node('p','','Message request from someone who does not follow you.'),accept=node('button','pvAcceptRequest','Accept'),remove=node('button','pvDeclineRequest','Remove');accept.type=remove.type='button';accept.onclick=async()=>{accept.disabled=true;const {error}=await db.from('message_requests').update({accepted_at:new Date().toISOString()}).eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null);if(error){alert('Could not accept request: '+error.message);accept.disabled=false;return}pvInboxTab='Primary';await loadInbox();await pvCheckUnread()};remove.onclick=()=>pvRemoveChat(id);banner.append(description,accept,remove);area.append(banner)}
 if(pendingOutgoing){area.append(node('p','pvPendingRequestNote',alreadySent?'Request sent. Wait for acceptance, or follow this account to continue.':'You can send one message request. Follow this account to message freely.'))}
 const typingLabel=node('div','pvDmTypingLabel','● typing…');typingLabel.hidden=true;
