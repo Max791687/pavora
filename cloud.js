@@ -161,6 +161,94 @@ const explore=document.getElementById('explore');explore.replaceChildren();
 const pvExploreSearchWrap=node('div','pvExploreSearchWrap'),pvExploreSearch=node('input','pvExploreSearch'),pvExploreGrid=node('div','pvExploreGrid'),pvExploreResults=node('div','pvExploreResults hide');
 pvExploreSearch.type='search';pvExploreSearch.placeholder='Search creators, posts and reels';pvExploreSearch.setAttribute('aria-label','Search PAVORA');pvExploreSearch.autocomplete='off';pvExploreSearchWrap.append(node('span','pvExploreMagnify','⌕'),pvExploreSearch);explore.append(pvExploreSearchWrap,pvExploreResults,pvExploreGrid);
 const discover=document.createElement('div');discover.id='creatorDirectory';discover.className='panel';discover.style.display='none';explore.append(discover);
+
+/* PAVORA Virtual Creator discovery: editorial demo profiles, not Auth users.
+   They never write follows/likes or impersonate real people; their detail view
+   displays a subtle Virtual label and original sample content. */
+const pvVirtualNames=['Arohi','Vihaan','Meera','Kabir','Tara','Ritvik','Naina','Ishaan','Zoya','Ayaan','Siya','Dev','Anika','Reyansh','Kavya','Arjun','Riya','Neil','Myra','Advik'];
+const pvVirtualThemes=[
+ {key:'frames',label:'Visual Stories',bio:'Frames, color and everyday creative experiments.',posts:['A little color can change the whole story.','Three compositions to try on your next creative day.','Finding beautiful details in ordinary places.']},
+ {key:'tech',label:'Tech Notes',bio:'Simple digital ideas, design systems and useful tools.',posts:['A cleaner workspace starts with one useful shortcut.','Tiny product details make everyday tools feel better.','Exploring a fresh idea for a simple mobile experience.']},
+ {key:'travel',label:'City Trails',bio:'Imaginary city trails, places and creative travel notes.',posts:['A new route is sometimes all you need for inspiration.','Collecting little moments from a quiet city morning.','A travel moodboard for the weekend.']},
+ {key:'style',label:'Style Journal',bio:'Outfit palettes, textures and personal-style inspiration.',posts:['This week is all about soft colors and bold details.','Building a look with just three favorite pieces.','A moodboard for the next season.']},
+ {key:'studio',label:'Creative Studio',bio:'Original sketches, concepts and behind-the-scenes ideas.',posts:['Starting a new creative concept from a blank page.','A small sketch that became a bigger idea.','Sharing a fresh visual direction today.']}
+];
+const pvVirtualCreators=pvVirtualNames.flatMap((name,i)=>pvVirtualThemes.map((theme,j)=>({
+ id:'virtual-'+i+'-'+j,username:'pv_'+name.toLowerCase()+'_'+theme.key,
+ display_name:name+' · '+theme.label,initial:name[0],bio:theme.bio,
+ theme:theme.label,posts:theme.posts,shade:(i*2+j)%8
+})));
+const pvVirtualCss=document.createElement('style');
+pvVirtualCss.textContent=`
+#pvVirtualDiscovery{margin:16px 0 26px;padding:18px;background:#14121c;border:1px solid #302638;border-radius:17px}
+#pvVirtualDiscovery h3{margin:0;font-size:19px}
+#pvVirtualDiscovery .pvVirtualIntro{margin:7px 0 14px;color:#a9a1b8;font-size:12px;line-height:1.5}
+.pvVirtualGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.pvVirtualCard{display:flex;align-items:center;gap:10px;min-width:0;background:#201a2a;border:1px solid #382d48;border-radius:12px;padding:11px 9px;color:#fff;text-align:left;cursor:pointer}
+.pvVirtualCard:hover{background:#2b2137}
+.pvVirtualAvatar{width:43px;height:43px;flex:none;display:grid;place-items:center;border-radius:50%;font-size:19px;font-weight:800;color:white;background:linear-gradient(130deg,#884ee3,#d45e99)}
+.pvVirtualAvatar[data-shade="1"]{background:linear-gradient(135deg,#375dbb,#66bae9)}
+.pvVirtualAvatar[data-shade="2"]{background:linear-gradient(135deg,#cf704f,#eec06c)}
+.pvVirtualAvatar[data-shade="3"]{background:linear-gradient(135deg,#2e9f90,#6dbd8e)}
+.pvVirtualAvatar[data-shade="4"]{background:linear-gradient(135deg,#b34489,#ef8594)}
+.pvVirtualAvatar[data-shade="5"]{background:linear-gradient(135deg,#6357c9,#a597e0)}
+.pvVirtualAvatar[data-shade="6"]{background:linear-gradient(135deg,#b26035,#dc916a)}
+.pvVirtualAvatar[data-shade="7"]{background:linear-gradient(135deg,#3b78a1,#5fc5a9)}
+.pvVirtualCardText{min-width:0;display:flex;flex-direction:column;gap:3px}
+.pvVirtualCardText strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pvVirtualCardText small{font-size:10px;color:#b9afc8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pvVirtualDetail{position:fixed;inset:0;z-index:110;background:#000b;display:flex;align-items:center;justify-content:center;padding:18px}
+#pvVirtualDetail[hidden]{display:none!important}
+.pvVirtualDetailCard{width:min(560px,100%);max-height:85dvh;overflow:auto;background:#16131f;border:1px solid #443053;border-radius:18px;padding:23px}
+.pvVirtualDetailHead{display:flex;align-items:center;gap:14px}.pvVirtualDetailHead h2{margin:0;font-size:21px}
+.pvVirtualTag{display:inline-block;margin-top:5px;color:#a7a2b8;font-size:11px}
+.pvVirtualDetailBio{color:#d5cadc;margin:15px 0;line-height:1.5;font-size:14px}
+.pvVirtualSample{margin-top:9px;padding:15px;background:#231d2e;border-radius:11px;font-size:13px;color:#ddd2e8;line-height:1.5}
+.pvVirtualDetailClose{float:right;border:1px solid #554168;border-radius:9px;background:#30243e;color:#fff;padding:7px 11px;cursor:pointer}
+@media(max-width:1100px){.pvVirtualGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){#pvVirtualDiscovery{margin:12px 8px;padding:12px}.pvVirtualGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.pvVirtualCard{padding:8px 6px;gap:6px}.pvVirtualAvatar{width:34px;height:34px;font-size:15px}.pvVirtualCardText strong{font-size:11px}}
+`;
+document.head.append(pvVirtualCss);
+const pvVirtualSection=node('section');pvVirtualSection.id='pvVirtualDiscovery';
+const pvVirtualHeading=node('h3','','Discover creators');
+const pvVirtualIntro=node('p','pvVirtualIntro','Explore original creative concepts from the PAVORA virtual community.');
+const pvVirtualGrid=node('div','pvVirtualGrid');
+pvVirtualSection.append(pvVirtualHeading,pvVirtualIntro,pvVirtualGrid);
+explore.append(pvVirtualSection);
+const pvVirtualDetail=node('div');pvVirtualDetail.id='pvVirtualDetail';pvVirtualDetail.hidden=true;
+pvVirtualDetail.setAttribute('role','dialog');pvVirtualDetail.setAttribute('aria-modal','true');
+pvVirtualDetail.setAttribute('aria-label','Virtual creator profile');
+document.body.append(pvVirtualDetail);
+function pvCloseVirtual(){pvVirtualDetail.hidden=true;pvVirtualDetail.replaceChildren()}
+pvVirtualDetail.onclick=e=>{if(e.target===pvVirtualDetail)pvCloseVirtual()};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pvVirtualDetail.hidden)pvCloseVirtual()});
+function pvOpenVirtual(person){
+ const card=node('div','pvVirtualDetailCard'),close=node('button','pvVirtualDetailClose','Close');
+ close.type='button';close.onclick=pvCloseVirtual;card.append(close);
+ const head=node('div','pvVirtualDetailHead'),avatar=node('div','pvVirtualAvatar',person.initial);
+ avatar.dataset.shade=String(person.shade);
+ const title=node('div');title.append(node('h2','',person.display_name),node('div','', '@'+person.username),node('small','pvVirtualTag','Virtual · Creative concept profile'));
+ head.append(avatar,title);card.append(head,node('p','pvVirtualDetailBio',person.bio),node('h3','','Creative posts'));
+ for(const content of person.posts)card.append(node('div','pvVirtualSample',content));
+ pvVirtualDetail.replaceChildren(card);pvVirtualDetail.hidden=false;close.focus();
+}
+function pvRenderVirtual(){
+ const query=pvExploreSearch.value.trim().toLowerCase();
+ const list=pvVirtualCreators.filter(p=>!query||[p.username,p.display_name,p.bio,p.theme,...p.posts].join(' ').toLowerCase().includes(query));
+ pvVirtualGrid.replaceChildren();
+ pvVirtualHeading.textContent=query?'Virtual creators matching your search':'Discover virtual creators';
+ pvVirtualIntro.textContent=query?list.length+' creative profiles found':'100 creative concept profiles · Open any profile to browse original posts';
+ for(const person of list){
+  const card=node('button','pvVirtualCard');card.type='button';
+  const avatar=node('span','pvVirtualAvatar',person.initial);avatar.dataset.shade=String(person.shade);
+  const desc=node('span','pvVirtualCardText');desc.append(node('strong','',person.display_name),node('small','','@'+person.username));
+  card.append(avatar,desc);card.onclick=()=>pvOpenVirtual(person);pvVirtualGrid.append(card);
+ }
+ pvVirtualSection.hidden=!list.length;
+}
+pvExploreSearch.addEventListener('input',pvRenderVirtual);
+pvRenderVirtual();
+
 let pvExploreBusy=false,pvExploreTiles=[],pvExplorePeople=[],pvExploreLoadedAt=0;
 async function pvLoadExplore(){if(!user||pvExploreBusy)return;if(pvExploreLoadedAt&&Date.now()-pvExploreLoadedAt<90000&&pvExploreTiles.length)return;pvExploreBusy=true;try{
 const [postResult,reelResult,peopleResult]=await Promise.all([
