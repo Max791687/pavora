@@ -1324,6 +1324,7 @@ async function loadReels(force=false){
  if(!list.querySelector('.pvReelCard'))list.replaceChildren(node('p','muted','Loading reels…'));
 const {data:rawReels,error,count}=await db.from('reels').select('id,author_id,caption,video_path,created_at',{count:'exact'}).order('created_at',{ascending:false}).limit(120);
 if(error){reelDiscoveryText.textContent='Could not load reels';list.replaceChildren(node('p','muted','Reels unavailable: '+error.message));return}
+window.PAVORA_SMART_REELS?.syncTabs(user.id);
 const mode=window.PAVORA_SMART_REELS?.getMode(user.id)||'for-you';
 const data=await window.PAVORA_SMART_REELS?.rank(db,user,rawReels||[],mode)||rawReels||[];
 list.replaceChildren();
