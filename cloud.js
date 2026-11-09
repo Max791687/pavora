@@ -1306,7 +1306,7 @@ reelCreate.type='button';reelCreate.onclick=()=>{document.body.classList.add('pv
 reelDiscovery.append(reelDiscoveryText,reelRefresh,reelCreate);
 reelsView.append(reelDiscovery);
 const reelList=document.createElement('div');reelList.id='reelList';reelsView.append(reelList);
-window.PAVORA_SMART_REELS?.createTabs(reelsView,user?.id||'guest',()=>loadReels(true));
+window.PAVORA_SMART_REELS?.createTabs(reelsView,()=>user?.id||'guest',()=>loadReels(true));
 let reelObserver=null,pvReelsLoading=null,pvReelsLoadedAt=0,pvReelsLoadedFor=null;
 async function loadReels(force=false){
  if(!user)return;
