@@ -2008,13 +2008,35 @@ function pvSyncDesktopChatHeight(){
 window.addEventListener('resize',()=>{if(document.body.classList.contains('pvMessagesMode'))requestAnimationFrame(pvSyncDesktopChatHeight)},{passive:true});
 /* Keep the installed Android PWA DM within the visible viewport when the keyboard opens. */
 function pvSyncMobileDmViewport(){
- if(window.innerWidth>700){document.documentElement.style.removeProperty('--pvDmViewportHeight');return}
+ const root=document.documentElement;
+ if(window.innerWidth>700){
+  root.style.removeProperty('--pvDmViewportHeight');
+  root.style.removeProperty('--pvDmViewportTop');
+  document.body.classList.remove('pvDmKeyboardOpen');
+  return;
+ }
  const viewport=window.visualViewport;
- const height=viewport?viewport.height:window.innerHeight;
- if(Number.isFinite(height)&&height>200)document.documentElement.style.setProperty('--pvDmViewportHeight',Math.round(height)+'px');
+ const height=viewport?.height||window.innerHeight;
+ const top=viewport?.offsetTop||0;
+ if(Number.isFinite(height)&&height>200){
+  root.style.setProperty('--pvDmViewportHeight',Math.round(height)+'px');
+  root.style.setProperty('--pvDmViewportTop',Math.round(Math.max(0,top))+'px');
+ }
+ const focused=document.activeElement?.matches?.('#pvInboxView .pvMessageForm input');
+ const keyboardVisible=!!focused && !!viewport && viewport.height<window.innerHeight-110;
+ document.body.classList.toggle('pvDmKeyboardOpen',keyboardVisible);
 }
-window.visualViewport?.addEventListener('resize',pvSyncMobileDmViewport,{passive:true});
-window.addEventListener('resize',pvSyncMobileDmViewport,{passive:true});
+let pvMobileViewportPending=false;
+function pvScheduleMobileDmViewport(){
+ if(pvMobileViewportPending)return;
+ pvMobileViewportPending=true;
+ requestAnimationFrame(()=>{pvMobileViewportPending=false;pvSyncMobileDmViewport()});
+}
+window.visualViewport?.addEventListener('resize',pvScheduleMobileDmViewport,{passive:true});
+window.visualViewport?.addEventListener('scroll',pvScheduleMobileDmViewport,{passive:true});
+window.addEventListener('resize',pvScheduleMobileDmViewport,{passive:true});
+document.addEventListener('focusin',e=>{if(e.target.matches?.('#pvInboxView .pvMessageForm input'))pvScheduleMobileDmViewport()});
+document.addEventListener('focusout',e=>{if(e.target.matches?.('#pvInboxView .pvMessageForm input'))pvScheduleMobileDmViewport()});
 pvSyncMobileDmViewport();
 function pvNavigate(view){pvVirtualView.classList.add('hide');pvActiveVirtual=null;pvCloseVirtualChat();pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');document.body.classList.toggle('pvExploreMode',view==='explore');document.body.classList.toggle('pvReelsMode',view==='reels');try{window.PVKit?.onNavigate?.(view)}catch(e){console.warn('Feature navigation:',e)}if(view==='messages'){loadInbox();requestAnimationFrame(pvSyncDesktopChatHeight)}else{pvDmTypingLastSeen=0;pvClearTyping(selectedPeer)}if(view==='reels')loadReels();if(view==='explore')pvLoadExplore();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
 // Legacy demo's button.onclick only hides/shows HTML. Connect each section
@@ -2192,6 +2214,7 @@ async function loadInbox(){if(!user)return;
 const layout=node('div','pvInboxLayout'),side=node('div','pvInboxSide'),right=node('div','pvChatArea');right.id='pvChatArea';right.append(pvEmptyChat());layout.append(side,right);inboxView.replaceChildren(layout);
 inboxView.classList.toggle('pvChatSelected',!!selectedPeer);
 requestAnimationFrame(pvSyncDesktopChatHeight);
+requestAnimationFrame(pvSyncMobileDmViewport);
 const top=node('div','pvInboxTop'),name=node('strong','',profile?.username||'Messages'),compose=node('button','pvInboxCompose','✎');compose.title='New message';compose.setAttribute('aria-label','New message');compose.onclick=()=>pvNavigate('explore');const pvInboxBell=pvMakeBell('pvInboxBell');const pvInboxActions=node('div','pvInboxActions');pvInboxActions.append(pvInboxBell,compose);top.append(name,pvInboxActions);side.append(top);
 const tabs=node('div','pvInboxTabs');for(const t of ['Primary','General','Requests']){const tab=node('button',pvInboxTab===t?'active':'',t);tab.type='button';tab.onclick=()=>{pvInboxTab=t;selectedPeer=null;pvRememberInboxPosition();loadInbox()};tabs.append(tab)}side.append(tabs);
 const searchBox=node('div','pvInboxSearch'),searchIcon=node('span','','⌕'),search=node('input');search.type='search';search.placeholder='Search';search.setAttribute('aria-label','Search conversations');search.value=pvInboxSearch;searchBox.append(searchIcon,search);side.append(searchBox);
@@ -2372,6 +2395,9 @@ send.addEventListener('click',event=>{
  pvSendMessage();
 });
 const composerWrap=node('div','pvChatComposerWrap');
+// Keep the keyboard anchored to this composer without scrolling the entire fixed DM viewport.
+input.addEventListener('focus',pvScheduleMobileDmViewport);
+input.addEventListener('blur',pvScheduleMobileDmViewport);
 const attach=node('button','pvDmAttachButton','＋');attach.type='button';attach.title='Attach photo or video';attach.setAttribute('aria-label','Attach photo or video');
 const fileInput=node('input');fileInput.type='file';fileInput.accept='image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm';fileInput.hidden=true;
 let pvPendingMedia=null;
