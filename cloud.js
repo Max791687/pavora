@@ -420,9 +420,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pvSettingsScreen.h
 const pvSettingsDrawerButton=node('button','nav','⚙ Settings');pvSettingsDrawerButton.type='button';
 pvSettingsDrawerButton.id='pvOpenSettings';pvSettingsDrawerButton.onclick=()=>pvOpenSettings('overview');
 document.querySelector('aside.left').append(pvSettingsDrawerButton);
-const pvProfileSettingsButton=node('button','secondary pvEditButton','⚙ Settings');
-pvProfileSettingsButton.type='button';pvProfileSettingsButton.onclick=()=>pvOpenSettings('privacy');
-document.getElementById('profile').insertBefore(pvProfileSettingsButton,pvPrivacyBox);
+// Settings now lives in the slide-out More menu only; no duplicate profile button.
 pvPrivacyBox.hidden=true;
 
 let pvPrivacyBusy=false;
