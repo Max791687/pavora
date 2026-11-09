@@ -147,6 +147,14 @@ body.pvLaunchReady #pvLaunchScreen{opacity:0;visibility:hidden;pointer-events:no
 @keyframes pvLaunchProgress{from{transform:translateX(-100%)}to{transform:translateX(230%)}}
 body:not(.pvBooting) main,body:not(.pvBooting) header{animation:pvAppReveal 260ms ease-out both}
 @keyframes pvAppReveal{from{opacity:.75}to{opacity:1}}
+/* Android Chrome may keep the native launch icon visible briefly before HTML
+   exists. Once HTML is ready, show the app shell promptly instead of waiting
+   for Supabase SDK/auth/network. This is only an unauthenticated visual shell. */
+body.pvEarlyShell main,body.pvEarlyShell header,body.pvEarlyShell .pvIconRail{visibility:visible!important}
+body.pvEarlyShell #authOverlay{visibility:hidden!important}
+body.pvEarlyShell{overflow:auto!important}
+body.pvEarlyShell #pvLaunchScreen{opacity:0;visibility:hidden;pointer-events:none}
+body.pvEarlyShell #home #posts:empty::before{content:"";display:block;height:min(63vh,460px);border:1px solid #302737;border-radius:18px;background:linear-gradient(105deg,#19151e 15%,#292033 39%,#19151e 60%);background-size:220% 100%;animation:pvSkeletonPulse 1.8s ease-in-out infinite}
 /* Real cloud feed skeleton avoids displaying old local demo posts while loading. */
 body.pvFeedLoading #home #posts:empty::before{content:"";display:block;height:min(63vh,460px);border:1px solid #302737;border-radius:18px;background:linear-gradient(#21192b,#21192b) 18px 18px/44px 44px no-repeat,linear-gradient(#21192b,#21192b) 76px 21px/40% 14px no-repeat,linear-gradient(#21192b,#21192b) 76px 43px/25% 10px no-repeat,linear-gradient(105deg,#19151e 20%,#292033 37%,#19151e 54%) center/220% 100%;animation:pvSkeletonPulse 1.8s ease-in-out infinite}
 @keyframes pvSkeletonPulse{from{background-position:18px 18px,76px 21px,76px 43px,100% center}to{background-position:18px 18px,76px 21px,76px 43px,-100% center}}
@@ -622,4 +630,13 @@ document.querySelectorAll('[data-view]').forEach(btn=>btn.onclick=()=>{document.
 $('photo').onchange=()=>{$('filename').textContent=$('photo').files[0]?.name||''};
 $('publish').onclick=()=>{const caption=$('caption').value.trim(),file=$('photo').files[0];if(!caption&&!file)return alert('Add a caption or photo');const add=image=>{posts.unshift({id:Date.now(),time:Date.now(),caption,image,likes:0,liked:false,comments:[]});save();$('caption').value='';$('photo').value='';$('filename').textContent='';render()};if(!file)return add('');if(!file.type.startsWith('image/'))return alert('Please choose an image');const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{const scale=Math.min(1,1000/img.width,1000/img.height),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);add(canvas.toDataURL('image/jpeg',.72))};img.onerror=()=>alert('Unable to read image');img.src=reader.result};reader.readAsDataURL(file)};
 $('reset').onclick=()=>{if(confirm('Delete all demo posts from this browser?')){posts=[];save();render()}};/* Cloud app supplies the feed; do not render stale local demo posts. */
-</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="./cloud.js?v=20261109-launch-v2"></script><script src="./social-suite.js"></script><script src="./calls.js"></script><script src="./app-install.js" defer></script><script src="./push.js?v=20261109-push-diagnostics-v2" defer></script></body></html>
+</script><script>
+/* Independent visual timeout: SDK/Auth can be slow on a cold phone launch.
+   Show the real app shell while still waiting for authenticated cloud data.
+   The cloud script decides whether to show login and restores the saved route. */
+window.__pvLaunchVisualTimer=setTimeout(()=>{
+ if(!document.body.classList.contains('pvBooting'))return;
+ document.body.classList.add('pvEarlyShell','pvLaunchReady');
+ document.body.classList.remove('pvBooting');
+},540);
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="./cloud.js?v=20261109-launch-v3"></script><script src="./social-suite.js"></script><script src="./calls.js"></script><script src="./app-install.js" defer></script><script src="./push.js?v=20261109-push-diagnostics-v2" defer></script></body></html>
