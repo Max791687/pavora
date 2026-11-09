@@ -1092,8 +1092,74 @@ document.querySelectorAll('[data-view]:not([data-view="messages"])').forEach(btn
 /* PAVORA profile redesign: Instagram-inspired layout, original PAVORA colors */
 const pvCss=document.createElement('style');pvCss.textContent=`body.pvProfileMode main{max-width:1440px;grid-template-columns:190px minmax(0,1fr);gap:30px}body.pvProfileMode .feed{max-width:1050px;width:100%;margin:0 auto}body.pvProfileMode aside.right{display:none}body.pvProfileMode #cloudStatus{display:none}body.pvProfileMode #profile{padding:0 14px}body.pvProfileMode #pvProfileHead{grid-template-columns:180px minmax(0,1fr);gap:42px;padding:35px 12px}body.pvProfileMode .pvAvatar{width:160px;height:160px}body.pvProfileMode .pvEditButton{max-width:350px}body.pvProfileMode .pvGrid{gap:4px}@media(max-width:600px){body.pvProfileMode main{display:block}body.pvProfileMode #profile{padding:0}body.pvProfileMode #pvProfileHead{grid-template-columns:94px minmax(0,1fr);gap:12px;padding:18px 0}body.pvProfileMode .pvAvatar{width:88px;height:88px}body.pvProfileMode .pvEditButton{max-width:none}}
 #profile{width:100%;min-width:0}#profile .pvProfile{background:transparent;border:0;padding:0;overflow:visible}#pvProfileHead{display:grid;grid-template-columns:150px minmax(0,1fr);gap:28px;padding:25px 10px 22px;align-items:center}.pvAvatar{height:138px;width:138px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#895aff,#e86cb3);font-size:50px;font-weight:800;overflow:hidden;border:4px solid #27223a}.pvAvatar img{width:100%;height:100%;object-fit:cover}.pvTopLine{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.pvTopLine h2{margin:0;font-size:24px;overflow-wrap:anywhere}.pvCounts{display:flex;gap:22px;margin:20px 0;flex-wrap:wrap}.pvCounts span{white-space:nowrap}.pvCounts strong{font-size:16px}.pvBio{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0;color:#e7e3f2;font-size:14px;line-height:1.5}.pvDisplay{font-weight:700;margin-top:9px}.pvEditButton{width:100%;margin:16px 0 4px}.pvTabs{display:flex;justify-content:center;gap:8px;border-top:1px solid #353247;margin-top:24px}.pvTabs span{border-top:2px solid #bd91ff;margin-top:-1px;padding:14px 30px;font-weight:700;font-size:12px;letter-spacing:1.5px}.pvGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}.pvTile{border:0;padding:0;aspect-ratio:1;overflow:hidden;background:#242338;color:#f7f4ff;cursor:pointer}.pvTile img{width:100%;height:100%;object-fit:cover;transition:transform .2s}.pvTile:hover img{transform:scale(1.04)}.pvTextTile{display:grid;place-items:center;padding:12px;text-align:center;overflow-wrap:anywhere;font-size:13px}.pvNoPosts{grid-column:1/-1;text-align:center;padding:60px 10px;color:#bcb7cf}#profileEditor{margin-top:20px!important}#profileEditor[hidden]{display:none}@media(max-width:600px){#pvProfileHead{grid-template-columns:90px minmax(0,1fr);gap:12px;padding:16px 2px}.pvAvatar{width:86px;height:86px;font-size:34px}.pvTopLine h2{font-size:18px}.pvCounts{gap:12px;margin:10px 0;font-size:12px}.pvCounts strong{font-size:13px}.pvBio{font-size:13px}.pvGrid{gap:2px}}`;document.head.append(pvCss);
+
+/* Profile-photo action sheet: direct upload/remove without opening the full editor. */
+const pvPhotoSheetStyle=document.createElement('style');
+pvPhotoSheetStyle.textContent=[
+'#pvPhotoSheet{position:fixed;inset:0;z-index:180;background:#000b;display:grid;place-items:center;padding:16px}',
+'#pvPhotoSheet[hidden]{display:none!important}',
+'.pvPhotoSheetCard{background:#222329;color:#fff;width:min(430px,100%);border-radius:22px;overflow:hidden;box-shadow:0 28px 90px #000b;border:1px solid #373740}',
+'.pvPhotoSheetCard h3{font-size:18px;font-weight:800;text-align:center;padding:25px 16px;margin:0;border-bottom:1px solid #35363c}',
+'.pvPhotoOption{width:100%;padding:17px 16px;border:0;border-bottom:1px solid #363740;background:transparent;color:#c69bff;text-align:center;font-size:14px;font-weight:750;cursor:pointer}',
+'.pvPhotoOption:hover{background:#302b38}',
+'.pvPhotoOption.danger{color:#ff5e85}',
+'.pvPhotoOption.cancel{color:#f8f7fa;border-bottom:0;font-weight:500}',
+'#pvPhotoSheetStatus{padding:10px 18px;text-align:center;color:#d5bded;font-size:12px;line-height:1.5}',
+'#pvAvatar{cursor:pointer}',
+'#pvAvatar:focus-visible{outline:3px solid #b98cf9;outline-offset:3px}'
+].join('');
+document.head.append(pvPhotoSheetStyle);
+const pvPhotoSheet=document.createElement('div');pvPhotoSheet.id='pvPhotoSheet';pvPhotoSheet.hidden=true;
+const pvPhotoCard=document.createElement('div');pvPhotoCard.className='pvPhotoSheetCard';
+pvPhotoCard.innerHTML='<h3>Change Profile Photo</h3><button type="button" class="pvPhotoOption" data-photo-action="upload">Upload Photo</button><button type="button" class="pvPhotoOption danger" data-photo-action="remove">Remove Current Photo</button><button type="button" class="pvPhotoOption cancel" data-photo-action="cancel">Cancel</button><p id="pvPhotoSheetStatus" role="status" hidden></p>';
+const pvPhotoFile=document.createElement('input');pvPhotoFile.type='file';pvPhotoFile.accept='image/jpeg,image/png,image/webp';pvPhotoFile.hidden=true;
+pvPhotoSheet.append(pvPhotoCard,pvPhotoFile);document.body.append(pvPhotoSheet);
+let pvPhotoBusy=false;
+function pvClosePhotoSheet(){if(pvPhotoBusy)return;pvPhotoSheet.hidden=true}
+pvPhotoSheet.addEventListener('click',e=>{if(e.target===pvPhotoSheet)pvClosePhotoSheet()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pvPhotoSheet.hidden)pvClosePhotoSheet()});
+function pvPhotoStatus(message){const status=document.getElementById('pvPhotoSheetStatus');status.hidden=!message;status.textContent=message}
+async function pvSaveAvatar(avatar_url){
+ if(!user||!profile)return;
+ const {data,error}=await db.from('profiles').update({avatar_url}).eq('id',user.id).select().single();
+ if(error)throw error;profile=data;
+ await updateSocialProfile();
+ await refreshStoryAvatars();
+}
+pvPhotoCard.querySelector('[data-photo-action="upload"]').onclick=()=>{if(!pvPhotoBusy)pvPhotoFile.click()};
+pvPhotoCard.querySelector('[data-photo-action="cancel"]').onclick=pvClosePhotoSheet;
+pvPhotoCard.querySelector('[data-photo-action="remove"]').onclick=async()=>{
+ if(pvPhotoBusy||!user||!profile)return;
+ pvPhotoBusy=true;pvPhotoStatus('Removing profile photo…');
+ try{await pvSaveAvatar(null);pvPhotoSheet.hidden=true;pvPhotoStatus('')}
+ catch(e){pvPhotoStatus('Could not remove photo: '+e.message)}
+ finally{pvPhotoBusy=false}
+};
+pvPhotoFile.onchange=async()=>{
+ const file=pvPhotoFile.files?.[0];pvPhotoFile.value='';
+ if(!file||pvPhotoBusy||!user||!profile)return;
+ if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>5*1024*1024){pvPhotoStatus('Choose JPG, PNG or WebP under 5 MB.');return}
+ pvPhotoBusy=true;pvPhotoStatus('Uploading profile photo…');
+ try{
+  const ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[file.type];
+  const path=user.id+'/avatar-'+crypto.randomUUID()+'.'+ext;
+  const result=await db.storage.from('post-images').upload(path,file,{contentType:file.type});
+  if(result.error)throw result.error;
+  const url=db.storage.from('post-images').getPublicUrl(path).data.publicUrl;
+  await pvSaveAvatar(url);pvPhotoSheet.hidden=true;pvPhotoStatus('');
+ }catch(e){pvPhotoStatus('Could not upload photo: '+e.message)}
+ finally{pvPhotoBusy=false}
+};
+
 const pvPanel=document.querySelector('#profile > .panel');pvPanel.classList.add('pvProfile');
 pvPanel.innerHTML='<div id="pvProfileHead"><div class="pvAvatar" id="pvAvatar">P</div><div><div class="pvTopLine"><h2 id="pvUsername">creator</h2><span style="color:#b48bff">✦</span></div><div class="pvCounts"><span><strong id="pvPostCount">0</strong> posts</span><span><strong id="pvReelCount">0</strong> reels</span><span><strong id="pvFollowers">0</strong> followers</span><span><strong id="pvFollowing">0</strong> following</span></div><div id="pvOfficialType" hidden></div><div class="pvDisplay" id="pvDisplayName"></div><div class="pvBio" id="pvBio"></div></div></div><button class="secondary pvEditButton" id="pvEditToggle">Edit profile</button><section id="pvOfficialHub" hidden><div class="pvOfficialEyebrow">PAVORA • OFFICIAL CHANNEL</div><h3>Product updates & announcements</h3><p>The verified source for PAVORA releases, features, tools and community news. Publish updates from this account to reach the Home feed.</p><div class="pvOfficialLinks"><button type="button" id="pvOfficialPublish">＋ Create announcement</button></div></section><div class="pvTabs"><button type="button" class="active" id="pvAllMediaTab">▦ POSTS</button><button type="button" id="pvReelsMediaTab">▣ REELS</button></div><div class="pvGrid" id="pvPostGrid"></div>';
+
+const pvProfileAvatarTrigger=document.getElementById('pvAvatar');
+pvProfileAvatarTrigger.setAttribute('role','button');
+pvProfileAvatarTrigger.setAttribute('tabindex','0');
+pvProfileAvatarTrigger.setAttribute('aria-label','Change profile photo');
+pvProfileAvatarTrigger.onclick=()=>{if(!user||!profile)return;pvPhotoStatus('');pvPhotoSheet.hidden=false};
+pvProfileAvatarTrigger.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pvProfileAvatarTrigger.click()}};
 // These tabs are created by pvPanel.innerHTML above; bind only after they exist.
 document.getElementById('pvAllMediaTab').onclick=()=>{pvProfileMediaTab='posts';pvDrawOwnMedia()};
 document.getElementById('pvOfficialPublish').onclick=()=>{
