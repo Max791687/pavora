@@ -657,6 +657,20 @@ body.pvDrawerOpen .pvDrawerScrim{z-index:10!important;pointer-events:auto!import
 body.pvDrawerOpen .pvIconRail{z-index:14!important}
 
 
+/* Reels discovery: lightweight controls, original PAVORA UI. */
+#reels .pvReelDiscovery{display:flex;align-items:center;justify-content:flex-end;gap:8px;position:relative;z-index:5;width:100%;padding:5px 12px;min-height:39px;box-sizing:border-box}
+#reels .pvReelDiscoveryText{color:#d6cadd;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:auto;min-width:0}
+#reels .pvReelDiscoveryButton{border:1px solid #635075;border-radius:999px;background:#282033;color:#fff;font-size:11px;font-weight:700;padding:7px 12px;white-space:nowrap;cursor:pointer}
+#reels .pvReelDiscoveryButton:hover,#reels .pvReelDiscoveryButton:focus-visible{background:#49355d}
+#reels .pvReelRefreshAttention{border-color:#c799f2;box-shadow:0 0 0 2px #a468df3a}
+#reels .pvReelEmpty{width:min(450px,92%);margin:12dvh auto 0;padding:28px 22px;background:#221d2b;border:1px solid #41344f;border-radius:17px;text-align:center;color:#f4edff}
+#reels .pvReelEmpty strong{font-size:18px}
+#reels .pvReelEmpty p{font-size:13px;color:#c3b6ce;line-height:1.6;margin:12px auto 20px}
+#reels .pvReelEmpty button{padding:11px 15px;border-radius:10px;font-weight:750;border:0;margin:4px;cursor:pointer}
+#reels .pvReelEmptyButton{color:white;background:#8650e8}
+#reels .pvReelEmptySecondary{color:#f8ecff;background:#493852}
+@media(max-width:600px){#reels .pvReelDiscovery{padding:4px 9px;gap:6px;min-height:34px}#reels .pvReelDiscoveryButton{font-size:10px;padding:7px 9px}#reels .pvReelDiscoveryText{font-size:10px}}
+
 /* v28.2: isolate conversation from page scrolling and keyboard navigation. */
 @media(max-width:700px){
  body.pvMessagesMode:has(#pvInboxView.pvChatSelected) .pvIconRail,
@@ -720,4 +734,4 @@ body.pvDrawerOpen .pvIconRail{z-index:14!important}
 <main><aside class="left panel"><div class="intro"><div class="row"><div class="profilepic">P</div><div><b>@pavora_user</b><div class="muted">Creator account</div></div></div><hr style="border:0;border-top:1px solid #34344a;margin:16px 0"></div><button class="nav active" data-view="home">⌂ Home</button><button class="nav" data-view="reels">▣ Reels</button><button class="nav" data-view="explore">⌕ Explore</button><button class="nav" data-view="profile">◉ Profile</button></aside>
 <section class="feed"><div id="home"><div class="story" id="stories"></div><div class="composer"><h2>Share a moment ✨</h2><textarea id="caption" maxlength="1200" placeholder="What's happening?"></textarea><div class="actions"><div><label for="photo" class="secondary" style="cursor:pointer">＋ Add photo</label><input class="upload" id="photo" type="file" accept="image/*"><span id="filename" class="hint"></span></div><button class="primary" id="publish">Publish</button></div><p class="hint">Share photos and moments with your PAVORA community.</p></div><div id="posts"></div></div><div id="reels" class="hide"><h2>Reels ▣</h2><div class="empty">Reels player is coming in the next version.</div></div><div id="explore" class="hide"><h2>Explore ✨</h2><div class="empty">Discover creators and trending posts — coming soon.</div></div><div id="profile" class="hide"><div class="panel"><div class="row"><div class="profilepic" style="width:70px;height:70px">P</div><div><h2 style="margin:0">@pavora_user</h2><p class="muted">Welcome to your PAVORA profile</p></div></div><p id="stats"></p><p class="muted">Your posts appear in Home Feed.</p></div></div></section><aside class="right panel"><h3>Welcome to PAVORA 💜</h3><p class="muted">A new space for creators to connect, share and grow.</p><hr style="border:0;border-top:1px solid #34344a"><p class="hint">This is an offline-first browser demo, not a live social network. Sign-in, cloud sync and calling are planned for later phases.</p></aside></main>
 <!-- Legacy local demo handlers removed: PAVORA uses Supabase-backed cloud.js and social-suite.js. -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="./video-compress.js?v=20261109-video-opt-v29"></script><script src="./upload-reliable.js?v=20261109-uploads-v30"></script><script src="./chat-themes.js?v=20261110-themes-v32"></script><script src="./cloud.js?v=20261110-themes-v32"></script><script src="./social-suite.js?v=20261109-highlights-archive-v20"></script><script src="./calls.js"></script><script src="./app-install.js" defer></script><script src="./push.js?v=20261109-push-diagnostics-v2" defer></script></body></html>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="./video-compress.js?v=20261109-video-opt-v29"></script><script src="./upload-reliable.js?v=20261109-uploads-v30"></script><script src="./chat-themes.js?v=20261110-themes-v32"></script><script src="./cloud.js?v=20261110-reels-discovery-v33"></script><script src="./social-suite.js?v=20261109-highlights-archive-v20"></script><script src="./calls.js"></script><script src="./app-install.js" defer></script><script src="./push.js?v=20261109-push-diagnostics-v2" defer></script></body></html>
