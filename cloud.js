@@ -85,26 +85,95 @@ const style=document.createElement('style');style.textContent=`
 @media(max-width:850px){#authOverlay{display:block!important}#authOverlay .authShowcase{display:none}#authOverlay .authRight{min-height:100dvh}#authBox{max-width:440px}}
 `;document.head.append(style);
 const overlay=document.createElement('div');overlay.id='authOverlay';
-overlay.innerHTML=`<section class="authShowcase"><div class="authLogo">PAVORA ✦</div><h1>Share moments.<br><em>Make connections.</em></h1><p>Your space to share photos, discover creators, and stay close to the people who matter.</p><div class="authArt" aria-hidden="true"><div class="authArtCard">📷</div><div class="authArtCard">💜</div><div class="authArtCard">✨</div></div></section><section class="authRight"><div id="authBox"><div class="authLogo" style="margin-bottom:28px">PAVORA ✦</div><h2 id="authHeading">Log in to PAVORA</h2><p class="authSub" id="authSubtitle">Welcome back! Enter your details to continue.</p><form id="authForm"><div id="authNameWrap" hidden><label for="authName">Full name</label><input id="authName" type="text" placeholder="Your name" autocomplete="name" maxlength="60"></div><div id="authUsernameWrap" hidden><label for="authUsername">Username</label><input id="authUsername" type="text" placeholder="Choose a username" autocomplete="username" maxlength="24" pattern="[A-Za-z0-9_]{3,24}"></div><label for="authEmail">Email address</label><input id="authEmail" type="email" placeholder="you@example.com" required autocomplete="email"><label for="authPassword">Password</label><div class="authPasswordRow"><input id="authPassword" type="password" placeholder="At least 6 characters" required minlength="6" autocomplete="current-password"><button type="button" id="authTogglePassword">Show</button></div><div id="authConfirmWrap" hidden><label for="authConfirm">Confirm password</label><input id="authConfirm" type="password" placeholder="Enter password again" autocomplete="new-password"></div><button class="authMainBtn" id="authSubmit" type="submit">Log in</button></form><div class="authCenter"><button class="authLink" id="authForgot" type="button">Forgot password?</button></div><div class="authDivider">OR</div><button class="authSwitch" id="signup" type="button">Create new account</button><p id="authMsg" role="status" aria-live="polite"></p><p class="authTerms">By continuing, you agree to use PAVORA respectfully.</p></div></section>`;
+overlay.innerHTML=`<section class="authShowcase"><div class="authLogo">PAVORA ✦</div><h1>Share moments.<br><em>Make connections.</em></h1><p>Your space to share photos, discover creators, and stay close to the people who matter.</p><div class="authArt" aria-hidden="true"><div class="authArtCard">📷</div><div class="authArtCard">💜</div><div class="authArtCard">✨</div></div></section><section class="authRight"><div id="authBox"><div class="authLogo" style="margin-bottom:28px">PAVORA ✦</div><h2 id="authHeading">Log in to PAVORA</h2><p class="authSub" id="authSubtitle">Welcome back! Enter your details to continue.</p><form id="authForm"><div id="authNameWrap" hidden><label for="authName">Full name</label><input id="authName" type="text" placeholder="Your name" autocomplete="name" maxlength="60"></div><div id="authUsernameWrap" hidden><label for="authUsername">Username</label><input id="authUsername" type="text" placeholder="Choose a username" autocomplete="username" maxlength="24" pattern="[A-Za-z0-9_]{3,24}"></div><div class="pvAuthMethods" id="pvAuthMethods"><button type="button" class="pvAuthMethod active" id="pvMethodEmail" aria-pressed="true">✉ Email</button><button type="button" class="pvAuthMethod" id="pvMethodPhone" aria-pressed="false">📱 Phone</button></div><div id="pvEmailWrap"><label for="authEmail">Email address</label><input id="authEmail" type="email" placeholder="you@example.com" required autocomplete="email"></div><div id="pvPhoneWrap" hidden><label for="authPhone">Mobile number (India)</label><div class="pvPhoneInput"><span>+91</span><input id="authPhone" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="9876543210" maxlength="10" pattern="[6-9][0-9]{9}"></div><small>Phone signup requires SMS verification.</small></div><div id="pvOtpWrap" hidden><label for="pvOtp">SMS verification code</label><input id="pvOtp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{4,8}" placeholder="Enter the code sent by SMS"><button type="button" class="authLink" id="pvOtpResend">Resend code</button></div><label for="authPassword">Password</label><div class="authPasswordRow"><input id="authPassword" type="password" placeholder="At least 6 characters" required minlength="6" autocomplete="current-password"><button type="button" id="authTogglePassword">Show</button></div><div id="authConfirmWrap" hidden><label for="authConfirm">Confirm password</label><input id="authConfirm" type="password" placeholder="Enter password again" autocomplete="new-password"></div><button class="authMainBtn" id="authSubmit" type="submit">Log in</button></form><div class="authCenter"><button class="authLink" id="authForgot" type="button">Forgot password?</button></div><div class="authDivider">OR</div><button class="authSwitch" id="signup" type="button">Create new account</button><p id="authMsg" role="status" aria-live="polite"></p><p class="authTerms">By continuing, you agree to use PAVORA respectfully.</p></div></section>`;
 document.body.append(overlay);
 const status=document.createElement('p');status.id='cloudStatus';status.textContent='Connecting to PAVORA Cloud…';document.querySelector('.feed').prepend(status);
 const signout=document.createElement('button');signout.id='signout';signout.className='secondary';signout.textContent='Log out';document.querySelector('.top').append(signout);
 const msg=t=>document.getElementById('authMsg').textContent=t;
+const pvPhoneStyles=document.createElement('style');pvPhoneStyles.textContent=`
+#authOverlay .pvAuthMethods{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:2px 0 16px}
+#authOverlay .pvAuthMethod{border:1px solid #59506d;border-radius:12px;padding:11px;background:#211b32;color:#d9d2eb;cursor:pointer;font-weight:700}
+#authOverlay .pvAuthMethod.active{color:white;background:#6d40d5;border-color:#a58afa}
+#authOverlay .pvPhoneInput{display:flex;align-items:center;gap:9px;background:#1d172b;border:1px solid #514768;border-radius:10px;padding-left:12px}
+#authOverlay .pvPhoneInput span{font-weight:700;color:#e5ddf7}
+#authOverlay .pvPhoneInput input{min-width:0;flex:1;margin:0;border:0;background:transparent;outline:0}
+#authOverlay #pvPhoneWrap small{display:block;margin:7px 0 12px;color:#c7bfd9}
+#authOverlay #pvOtpResend{margin:8px 0 12px}
+`;document.head.append(pvPhoneStyles);
+let pvAuthMethod='email',pvPhonePending='';
+function pvSwitchMethod(method){pvAuthMethod=method;pvPhonePending='';document.getElementById('pvOtpWrap').hidden=true;document.getElementById('pvEmailWrap').hidden=method!=='email';document.getElementById('pvPhoneWrap').hidden=method!=='phone';document.getElementById('authEmail').required=method==='email';document.getElementById('authPhone').required=method==='phone';document.getElementById('pvMethodEmail').classList.toggle('active',method==='email');document.getElementById('pvMethodPhone').classList.toggle('active',method==='phone');document.getElementById('pvMethodEmail').setAttribute('aria-pressed',String(method==='email'));document.getElementById('pvMethodPhone').setAttribute('aria-pressed',String(method==='phone'));setAuthMode(authMode)}
+document.getElementById('pvMethodEmail').onclick=()=>pvSwitchMethod('email');
+document.getElementById('pvMethodPhone').onclick=()=>pvSwitchMethod('phone');
+document.getElementById('pvOtpResend').onclick=async()=>{if(!pvPhonePending)return;try{const {error}=await db.auth.resend({type:'sms',phone:pvPhonePending});if(error)throw error;msg('Fresh verification code sent to '+pvPhonePending)}catch(e){msg(e.message||'Could not resend SMS. Check SMS provider settings.')}};
+
 let authMode='login';
-function setAuthMode(mode){authMode=mode;msg('');const signup=mode==='signup',reset=mode==='reset';document.getElementById('authNameWrap').hidden=!signup;document.getElementById('authUsernameWrap').hidden=!signup;document.getElementById('authConfirmWrap').hidden=!signup;document.getElementById('authName').required=signup;document.getElementById('authUsername').required=signup;document.getElementById('authConfirm').required=signup;document.getElementById('authPassword').required=!reset;document.getElementById('authPassword').closest('.authPasswordRow').previousElementSibling.hidden=reset;document.getElementById('authPassword').closest('.authPasswordRow').hidden=reset;document.getElementById('authHeading').textContent=signup?'Create your account':reset?'Reset your password':'Log in to PAVORA';document.getElementById('authSubtitle').textContent=signup?'Join PAVORA in a few easy steps.':reset?'We will send you a password reset link.':'Welcome back! Enter your details to continue.';document.getElementById('authSubmit').textContent=signup?'Create account':reset?'Send reset link':'Log in';document.getElementById('signup').textContent=signup||reset?'Back to log in':'Create new account';document.getElementById('authForgot').hidden=signup||reset;document.getElementById('authPassword').autocomplete=signup?'new-password':'current-password'}
+function setAuthMode(mode){authMode=mode;pvPhonePending='';document.getElementById('pvOtpWrap').hidden=true;document.getElementById('pvAuthMethods').hidden=mode==='reset';document.getElementById('pvEmailWrap').hidden=mode!=='reset'&&pvAuthMethod==='phone';document.getElementById('pvPhoneWrap').hidden=mode==='reset'||pvAuthMethod==='email';document.getElementById('authEmail').required=mode==='reset'||pvAuthMethod==='email';document.getElementById('authPhone').required=mode!=='reset'&&pvAuthMethod==='phone';msg('');const signup=mode==='signup',reset=mode==='reset';document.getElementById('authNameWrap').hidden=!signup;document.getElementById('authUsernameWrap').hidden=!signup;document.getElementById('authConfirmWrap').hidden=!signup;document.getElementById('authName').required=signup;document.getElementById('authUsername').required=signup;document.getElementById('authConfirm').required=signup;document.getElementById('authPassword').required=!reset;document.getElementById('authPassword').closest('.authPasswordRow').previousElementSibling.hidden=reset;document.getElementById('authPassword').closest('.authPasswordRow').hidden=reset;document.getElementById('authHeading').textContent=signup?'Create your account':reset?'Reset your password':'Log in to PAVORA';document.getElementById('authSubtitle').textContent=signup?'Join PAVORA in a few easy steps.':reset?'We will send you a password reset link.':'Welcome back! Enter your details to continue.';document.getElementById('authSubmit').textContent=signup?'Create account':reset?'Send reset link':'Log in';document.getElementById('signup').textContent=signup||reset?'Back to log in':'Create new account';document.getElementById('authForgot').hidden=signup||reset||pvAuthMethod==='phone';document.getElementById('authPassword').autocomplete=signup?'new-password':'current-password'}
 document.getElementById('signup').onclick=()=>setAuthMode(authMode==='login'?'signup':'login');
 document.getElementById('authForgot').onclick=()=>setAuthMode('reset');
 document.getElementById('authTogglePassword').onclick=()=>{const input=document.getElementById('authPassword');input.type=input.type==='password'?'text':'password';document.getElementById('authTogglePassword').textContent=input.type==='password'?'Show':'Hide'};
-document.getElementById('authForm').onsubmit=async e=>{e.preventDefault();const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value,btn=document.getElementById('authSubmit');if(!email)return msg('Please enter your email.');if(authMode==='signup'&&password!==document.getElementById('authConfirm').value)return msg('Passwords do not match.');btn.disabled=true;msg(authMode==='login'?'Logging in…':authMode==='signup'?'Creating your account…':'Sending reset link…');try{if(authMode==='login'){const {data,error}=await pvAuthTimeout(db.auth.signInWithPassword({email,password}));if(error)throw error;if(data?.session){msg('Login successful! Opening PAVORA…');await setSession(data.session)}else throw Error('No session returned. Please try logging in again.')}else if(authMode==='reset'){const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:'https://max791687.github.io/pavora/'});if(error)throw error;msg('If this email has an account, a reset link will arrive shortly. Check spam too.')}else{const username=document.getElementById('authUsername').value.trim(),display_name=document.getElementById('authName').value.trim();if(!/^[a-zA-Z0-9_]{3,24}$/.test(username))throw Error('Username must be 3–24 letters, numbers or underscores.');const {data:existing,error:lookupError}=await db.from('profiles').select('id').eq('username',username).maybeSingle();if(lookupError)throw lookupError;if(existing)throw Error('This username is already taken. Try another.');const {data,error}=await db.auth.signUp({email,password,options:{emailRedirectTo:'https://max791687.github.io/pavora/',data:{username,display_name}}});if(error)throw error;msg(data.session?'Account created! Opening PAVORA…':'Account created! Check your email to confirm, then log in.')}}catch(err){const raw=String(err?.message||'Something went wrong. Please try again.');
-const code=String(err?.code||'').toLowerCase();
-if(code==='over_email_send_rate_limit'||/email rate limit exceeded/i.test(raw)){
- msg('PAVORA signup emails have reached the Supabase sending limit. Please try again after the email quota resets. App admin: configure Custom SMTP in Supabase → Authentication → SMTP Settings. Do not keep retrying.');
-}else if(err?.status===429||/rate limit/i.test(raw)){
- msg('Too many attempts right now. Please try again later instead of repeatedly submitting.');
-}else msg(raw);
-}finally{btn.disabled=false}};
+document.getElementById('authForm').onsubmit=async e=>{
+e.preventDefault();
+const email=document.getElementById('authEmail').value.trim();
+const phoneInput=document.getElementById('authPhone').value.trim();
+const phone='+91'+phoneInput;
+const usingPhone=pvAuthMethod==='phone'&&authMode!=='reset';
+const password=document.getElementById('authPassword').value;
+const btn=document.getElementById('authSubmit');
+if(pvPhonePending){
+ const token=document.getElementById('pvOtp').value.trim();
+ if(!/^[0-9]{4,8}$/.test(token))return msg('Enter the 6-digit SMS verification code.');
+ btn.disabled=true;msg('Verifying mobile number…');
+ try{const {data,error}=await pvAuthTimeout(db.auth.verifyOtp({phone:pvPhonePending,token,type:'sms'}));if(error)throw error;pvPhonePending='';msg('Mobile number verified! Opening PAVORA…');if(data?.session)await setSession(data.session);else setAuthMode('login')}catch(err){msg(err.message||'Invalid or expired code. Try again.')}finally{btn.disabled=false}
+ return;
+}
+if(usingPhone&&!/^[6-9][0-9]{9}$/.test(phoneInput))return msg('Enter a valid 10-digit Indian mobile number.');
+if(!usingPhone&&!email)return msg('Please enter your email.');
+if(authMode==='signup'&&password!==document.getElementById('authConfirm').value)return msg('Passwords do not match.');
+btn.disabled=true;msg(authMode==='login'?'Logging in…':authMode==='signup'?'Creating your account…':'Sending reset link…');
+try{
+ if(authMode==='login'){
+  const credentials=usingPhone?{phone,password}:{email,password};
+  const {data,error}=await pvAuthTimeout(db.auth.signInWithPassword(credentials));
+  if(error)throw error;
+  if(data?.session){msg('Login successful! Opening PAVORA…');await setSession(data.session)}
+  else throw Error('No session returned. Please try again.');
+ }else if(authMode==='reset'){
+  const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:'https://max791687.github.io/pavora/'});
+  if(error)throw error;msg('If this email has an account, a reset link will arrive shortly. Check spam too.');
+ }else{
+  const username=document.getElementById('authUsername').value.trim(),display_name=document.getElementById('authName').value.trim();
+  if(!/^[a-zA-Z0-9_]{3,24}$/.test(username))throw Error('Username must be 3–24 letters, numbers or underscores.');
+  const {data:existing,error:lookupError}=await db.from('profiles').select('id').eq('username',username).maybeSingle();
+  if(lookupError)throw lookupError;if(existing)throw Error('This username is already taken. Try another.');
+  const credentials=usingPhone?{phone,password,options:{data:{username,display_name}}}:{email,password,options:{emailRedirectTo:'https://max791687.github.io/pavora/',data:{username,display_name}}};
+  const {data,error}=await pvAuthTimeout(db.auth.signUp(credentials));
+  if(error)throw error;
+  if(data?.session){msg('Account created! Opening PAVORA…');await setSession(data.session)}
+  else if(usingPhone){
+   pvPhonePending=phone;document.getElementById('pvOtpWrap').hidden=false;
+   document.getElementById('pvOtp').required=true;
+   document.getElementById('pvOtp').value='';
+   document.getElementById('authNameWrap').hidden=true;document.getElementById('authUsernameWrap').hidden=true;document.getElementById('authConfirmWrap').hidden=true;
+   document.getElementById('authPassword').closest('.authPasswordRow').hidden=true;
+   document.getElementById('authPassword').required=false;
+   document.getElementById('pvPhoneWrap').hidden=true;
+   document.getElementById('pvAuthMethods').hidden=true;
+   document.getElementById('authSubmit').textContent='Verify phone';
+   msg('We sent a verification code to '+phone+'. Enter it to finish signup.');
+   document.getElementById('pvOtp').focus();
+  }else msg('Account created! Check your email to confirm, then log in.');
+ }
+}catch(err){
+ const raw=String(err?.message||'Something went wrong. Please try again.');
+ const code=String(err?.code||'').toLowerCase();
+ if(usingPhone&&(/sms provider|sms.*disabled|phone.*disabled|unsupported provider|provider is not enabled/i.test(raw)))msg('Phone signup needs an SMS provider. PAVORA admin: enable Phone in Supabase Authentication → Sign In / Providers and configure SMS delivery.');
+ else if(code==='over_email_send_rate_limit'||/email rate limit exceeded/i.test(raw))msg('Signup email sending limit reached. Try later or ask the admin to configure Custom SMTP.');
+ else if(err?.status===429||/rate limit/i.test(raw))msg('Too many attempts right now. Please try again later.');
+ else msg(raw);
+}finally{btn.disabled=false}
+};
 signout.onclick=async()=>{pvExplicitSignout=true;try{const {error}=await db.auth.signOut();if(error)throw error;await setSession(null)}catch(e){pvExplicitSignout=false;alert('Could not log out: '+e.message)}};
-async function ensureProfile(){if(!user)return;let {data,error}=await db.from('profiles').select('*').eq('id',user.id).maybeSingle();if(error)throw error;if(!data){const base=(user.email||'creator').split('@')[0].replace(/[^a-zA-Z0-9_]/g,'').slice(0,12)||'creator';const requested=user.user_metadata?.username;const username=/^[a-zA-Z0-9_]{3,24}$/.test(requested||'')?requested:(base+'_'+user.id.slice(0,7)).slice(0,24);const display_name=String(user.user_metadata?.display_name||base).slice(0,60);let created=await db.from('profiles').insert({id:user.id,username,display_name}).select().single();if(created.error?.code==='23505'&&username===requested){created=await db.from('profiles').insert({id:user.id,username:(base+'_'+user.id.slice(0,7)).slice(0,24),display_name}).select().single()}if(created.error)throw created.error;data=created.data}profile=data;document.querySelectorAll('.intro b').forEach(e=>e.textContent='@'+data.username);{const title=document.querySelector('#profile h2');if(title)title.textContent=data.username}}
+async function ensureProfile(){if(!user)return;let {data,error}=await db.from('profiles').select('*').eq('id',user.id).maybeSingle();if(error)throw error;if(!data){const base=(user.email||user.phone||'creator').split('@')[0].replace(/[^a-zA-Z0-9_]/g,'').slice(0,12)||'creator';const requested=user.user_metadata?.username;const username=/^[a-zA-Z0-9_]{3,24}$/.test(requested||'')?requested:(base+'_'+user.id.slice(0,7)).slice(0,24);const display_name=String(user.user_metadata?.display_name||base).slice(0,60);let created=await db.from('profiles').insert({id:user.id,username,display_name}).select().single();if(created.error?.code==='23505'&&username===requested){created=await db.from('profiles').insert({id:user.id,username:(base+'_'+user.id.slice(0,7)).slice(0,24),display_name}).select().single()}if(created.error)throw created.error;data=created.data}profile=data;document.querySelectorAll('.intro b').forEach(e=>e.textContent='@'+data.username);{const title=document.querySelector('#profile h2');if(title)title.textContent=data.username}}
 // Warm-start the public feed from a per-account snapshot on this device.
 // No messages, auth tokens or private activity are cached here.
 function pvFeedCacheKey(uid){return 'pavora-feed-snapshot-v1-'+uid}
