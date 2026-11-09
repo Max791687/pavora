@@ -41,10 +41,13 @@ like.onclick=async()=>{like.disabled=true;try{const existing=await db.from('reel
 comments.onclick=async()=>{const body=open('Reel comments'),list=el('div','pvSuiteCommentList'),form=el('form','pvSuiteCommentForm'),input=el('input'),send=el('button','','Post');input.required=true;input.maxLength=500;input.placeholder='Write a comment';form.append(input,send);body.append(list,form);const draw=async()=>{const result=await refresh();if(!result){list.textContent='Run supabase/social-suite.sql to enable comments.';return}list.replaceChildren();for(const comment of result.comments)list.append(el('div','pvSuiteComment',comment.body));if(!result.comments.length)list.append(el('p','','No comments yet.'))};form.onsubmit=async e=>{e.preventDefault();send.disabled=true;const result=await db.from('reel_comments').insert({reel_id:reel.id,user_id:user.id,body:input.value.trim()});send.disabled=false;if(result.error)return info(result.error);input.value='';draw()};draw()};
 // Only the currently playing Reel requests its statistics and saved status.
 // A feed of 40 reels previously triggered 160+ requests before playback.
-let seen=false;
+let seen=false,lastStatsRefresh=0;
 video.addEventListener('play',()=>{
- if(seen)return;
- seen=true;
+ // Re-check Reel engagement when a user returns, without polling every
+ // off-screen Reel or making network requests for all loaded cards.
+ const now=Date.now();
+ if(seen){if(now-lastStatsRefresh>10000){lastStatsRefresh=now;refresh().catch(e=>console.warn('Reel stats:',e))}return}
+ seen=true;lastStatsRefresh=now;
  db.from('saved_media').select('reel_id').eq('user_id',user.id).eq('reel_id',reel.id).maybeSingle().then(({data})=>setSaved(!!data)).catch(()=>{});
  db.from('reel_views').upsert({user_id:user.id,reel_id:reel.id,last_viewed_at:new Date().toISOString()},{onConflict:'user_id,reel_id'})
  .then(()=>refresh()).catch(e=>console.warn('Reel statistics:',e));
