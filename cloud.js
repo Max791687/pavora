@@ -1177,6 +1177,15 @@ reelsView.replaceChildren();
 const reelsStyles=document.createElement('style');reelsStyles.textContent=`
 .reelComposer{padding:16px;background:#171827;border:1px solid #303044;border-radius:16px;margin:12px 0}.reelComposer input,.reelComposer textarea{display:block;width:100%;padding:10px;margin:9px 0;background:#10111f;color:#fff;border:1px solid #39364f;border-radius:10px}.reelCard{background:#171827;border:1px solid #303044;border-radius:16px;margin:16px auto;overflow:hidden;max-width:470px}.reelCard video{width:100%;max-height:75vh;aspect-ratio:9/16;object-fit:contain;background:#000;display:block}.reelInfo{padding:12px 15px}.reelInfo p{white-space:pre-wrap;overflow-wrap:anywhere}.reelInfo button{margin-top:8px}`;document.head.append(reelsStyles);
 const reelForm=document.createElement('form');reelForm.className='reelComposer';reelForm.innerHTML='<h2>Reels ▣</h2><p class="muted">Upload an MP4 or WebM video. Upload size depends on your Supabase project limits. Videos are public.</p><input id="reelVideo" type="file" accept="video/mp4,video/webm" required><textarea id="reelCaption" maxlength="1000" placeholder="Write a reel caption…"></textarea><button class="primary" type="submit">Upload Reel</button><p id="reelFeedback" class="hint" role="status"></p>';reelsView.append(reelForm);reelForm.classList.add('hide');const reelUploadToggle=node('button','pvReelUploadToggle','＋ Create Reel');reelUploadToggle.type='button';reelUploadToggle.onclick=()=>{reelForm.classList.toggle('hide');if(!reelForm.classList.contains('hide'))reelForm.scrollIntoView({behavior:'smooth',block:'start'})};reelsView.insertBefore(reelUploadToggle,reelForm);
+const reelDiscovery=node('div','pvReelDiscovery');
+const reelDiscoveryText=node('span','pvReelDiscoveryText','Discover Reels from PAVORA creators');
+const reelRefresh=node('button','pvReelDiscoveryButton','↻ Refresh');
+reelRefresh.type='button';reelRefresh.title='Check for new reels';
+reelRefresh.onclick=()=>loadReels(true);
+const reelCreate=node('button','pvReelDiscoveryButton','＋ Upload');
+reelCreate.type='button';reelCreate.onclick=()=>{document.body.classList.add('pvComposeOpen')};
+reelDiscovery.append(reelDiscoveryText,reelRefresh,reelCreate);
+reelsView.append(reelDiscovery);
 const reelList=document.createElement('div');reelList.id='reelList';reelsView.append(reelList);
 let reelObserver=null,pvReelsLoading=null,pvReelsLoadedAt=0,pvReelsLoadedFor=null;
 async function loadReels(force=false){
@@ -1192,7 +1201,18 @@ async function loadReels(force=false){
  }
  if(pvReelsLoading)return pvReelsLoading;
  pvReelsLoading=(async()=>{
- if(!list.querySelector('.pvReelCard'))list.replaceChildren(node('p','muted','Loading reels…'));const {data,error}=await db.from('reels').select('id,author_id,caption,video_path,created_at').order('created_at',{ascending:false}).limit(40);if(error){list.replaceChildren(node('p','muted','Reels unavailable: '+error.message));return}list.replaceChildren();if(!data?.length){list.append(node('div','empty','No Reels yet. Upload your first video with ＋ Create Reel.'));return}
+ if(!list.querySelector('.pvReelCard'))list.replaceChildren(node('p','muted','Loading reels…'));
+const {data,error,count}=await db.from('reels').select('id,author_id,caption,video_path,created_at',{count:'exact'}).order('created_at',{ascending:false}).limit(120);
+if(error){reelDiscoveryText.textContent='Could not load reels';list.replaceChildren(node('p','muted','Reels unavailable: '+error.message));return}
+list.replaceChildren();
+reelDiscoveryText.textContent=(count??data?.length??0)+' Reels available';
+if(!data?.length){
+ const empty=node('div','pvReelEmpty');
+ empty.append(node('strong','','No public Reels yet'),node('p','','Creators have not uploaded public Reels here yet. Be the first to share a video, or discover people to follow.'));
+ const create=node('button','pvReelEmptyButton','＋ Create first Reel');create.type='button';create.onclick=()=>document.body.classList.add('pvComposeOpen');
+ const people=node('button','pvReelEmptySecondary','Discover creators');people.type='button';people.onclick=()=>pvNavigate('explore');
+ empty.append(create,people);list.append(empty);return
+}
 const {data:authors}=await db.from('profiles').select('id,username,display_name,avatar_url').in('id',[...new Set(data.map(r=>r.author_id))]);const people=new Map((authors||[]).map(p=>[p.id,p]));if(reelObserver)reelObserver.disconnect();
 if(window.pvReelsWheelCleanup)window.pvReelsWheelCleanup();
 const reelStage=node('div','pvReelStage'),reelStack=node('div','pvReelStack'),arrows=node('div','pvReelArrows'),up=node('button','pvReelArrow','↑'),down=node('button','pvReelArrow','↓');up.type=down.type='button';up.title='Previous reel';down.title='Next reel';arrows.append(up,down);reelStage.append(reelStack,arrows);list.append(reelStage);
@@ -1282,7 +1302,10 @@ function goTo(index,behavior='smooth'){
 function stepReel(direction){
  if(gestureLocked||!direction)return;
  const next=Math.max(0,Math.min(cards.length-1,current+direction));
- if(next===current)return;
+ if(next===current){
+  if(direction>0){reelDiscoveryText.textContent='You are caught up · Refresh for new Reels';reelRefresh.classList.add('pvReelRefreshAttention')}
+  return;
+ }
  gestureLocked=true;goTo(next,'smooth');
 }
 up.onclick=()=>stepReel(-1);down.onclick=()=>stepReel(1);
