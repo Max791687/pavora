@@ -290,6 +290,7 @@ function pvShowSettingsPage(page){
  }
 }
 pvSettingsBack.onclick=pvCloseSettings;
+document.getElementById('signout')?.addEventListener('click',pvCloseSettings);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pvSettingsScreen.hidden)pvCloseSettings()});
 const pvSettingsDrawerButton=node('button','nav','⚙ Settings');pvSettingsDrawerButton.type='button';
 pvSettingsDrawerButton.id='pvOpenSettings';pvSettingsDrawerButton.onclick=()=>pvOpenSettings('overview');
