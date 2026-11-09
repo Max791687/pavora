@@ -38,6 +38,20 @@ Implemented: live message updates for authenticated senders and recipients via S
 
 Typing indicators, reply threads, media attachments and reactions are not yet implemented; they are planned later.
 
+## Branded Android push notifications
+
+The service worker uses PNG PAVORA logo and a monochrome status-bar badge instead of SVG,
+plus cleaner sender-specific titles and an "Open chat" / "View on PAVORA" action.
+The notifications remain native Android OS cards: a webpage cannot override the
+system notification shade with a custom neon-purple card or force custom sounds.
+
+The client assets are deployed through GitHub Pages. To activate the improved
+server-supplied notification titles, redeploy the latest
+[supabase/functions/send-push/index.ts](supabase/functions/send-push/index.ts) via
+Supabase Edge Functions > send-push > Code > Deploy. Do not change the existing
+secrets or database webhook. Refresh/reopen installed PAVORA so the updated
+service worker is installed. Test by sending a new DM.
+
 ## Lock-screen phone push notifications (setup required)
 
 This is a **Web Push** implementation, not just in-app badges. Once deployed and opted in,
