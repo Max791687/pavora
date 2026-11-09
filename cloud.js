@@ -227,7 +227,7 @@ function pvUpdateRenderedFeedStats(){
    const count=(post.likes||[]).length;
    likes.textContent=((post.likes||[]).some(l=>l.user_id===user?.id)?'♥':'♡')+' '+count+' Likes';
   }
-  if(comments&&!comments.disabled)comments.textContent='💬 '+(post.comments||[]).length+' Comments';
+  if(comments&&!comments.disabled)pvRenderComments(post);
  }
 }
 
@@ -279,6 +279,60 @@ function pvStartLikesRealtime(){
  pvLikesTimer=setInterval(()=>{if(user?.id===uid&&!document.hidden)pvSyncVisibleLikes()},12000);
 }
 
+
+/* Live comment counters and discussion list: never redraw a post image. */
+let pvCommentsChannel=null,pvCommentsUid=null,pvCommentsTimer=null,pvCommentsDebounce=null,pvCommentsBusy=false;
+function pvRenderComments(post){
+ const card=document.getElementById('pv-post-'+post.id);
+ if(!card)return;
+ const button=card.querySelector('[data-pv-comment-post]');
+ if(button)button.textContent='💬 '+(post.comments||[]).length+' Comments';
+ const list=card.querySelector('[data-pv-comment-list]');
+ if(!list)return;
+ const signature=JSON.stringify((post.comments||[]).map(c=>[c.id,c.body]));
+ if(list.dataset.signature===signature)return;
+ const frag=document.createDocumentFragment();
+ for(const c of post.comments||[])frag.append(node('div','commentline',c.body));
+ list.replaceChildren(frag);list.dataset.signature=signature;
+}
+async function pvSyncComments(){
+ if(!user||pvCommentsBusy||document.hidden||!feed.length)return;
+ const uid=user.id,ids=feed.map(p=>p.id);
+ pvCommentsBusy=true;
+ try{
+  const {data,error}=await db.from('comments').select('id,post_id,user_id,body').in('post_id',ids);
+  if(error)throw error;
+  if(user?.id!==uid)return;
+  const byPost=new Map();
+  for(const c of data||[]){if(!byPost.has(c.post_id))byPost.set(c.post_id,[]);byPost.get(c.post_id).push(c)}
+  for(const post of feed){
+   if(document.querySelector('#pv-post-'+post.id+' [data-pv-comment-input]')?.disabled)continue;
+   post.comments=byPost.get(post.id)||[];
+   pvRenderComments(post);
+  }
+ }catch(e){console.warn('Comment sync unavailable:',e.message)}
+ finally{pvCommentsBusy=false}
+}
+function pvScheduleComments(delay=170){
+ if(pvCommentsDebounce)clearTimeout(pvCommentsDebounce);
+ pvCommentsDebounce=setTimeout(()=>{pvCommentsDebounce=null;pvSyncComments()},delay);
+}
+function pvStopComments(){
+ if(pvCommentsTimer)clearInterval(pvCommentsTimer);
+ if(pvCommentsDebounce)clearTimeout(pvCommentsDebounce);
+ if(pvCommentsChannel){try{db.removeChannel(pvCommentsChannel).catch(()=>{})}catch(e){}}
+ pvCommentsTimer=null;pvCommentsDebounce=null;pvCommentsChannel=null;pvCommentsUid=null;pvCommentsBusy=false;
+}
+function pvStartComments(){
+ if(!user||!db.channel||pvCommentsUid===user.id)return;
+ pvStopComments();const uid=user.id;pvCommentsUid=uid;
+ const channel=db.channel('pavora-comments-'+uid);
+ for(const event of ['INSERT','DELETE'])channel.on('postgres_changes',{event,schema:'public',table:'comments'},()=>{if(user?.id===uid)pvScheduleComments()});
+ channel.subscribe(status=>{if(status==='SUBSCRIBED'&&user?.id===uid)pvScheduleComments()});
+ pvCommentsChannel=channel;
+ pvCommentsTimer=setInterval(()=>{if(user?.id===uid&&!document.hidden)pvSyncComments()},12000);
+}
+
 async function refresh(){if(!user)return;try{status.textContent='Loading cloud posts…';const {data,error}=await db.from('posts').select('id,author_id,caption,image_path,created_at').order('created_at',{ascending:false}).limit(50);if(error){status.textContent='Cloud feed error: '+error.message;return}const freshFeed=data||[];const previousFeed=feed;const oldIds=feed.map(p=>p.id).join(',');const newIds=freshFeed.map(p=>p.id).join(',');const hasRenderedFeed=oldIds===newIds&&freshFeed.length>0&&!!document.getElementById('posts')?.children.length;feed=freshFeed;const ids=feed.map(p=>p.id);if(ids.length){const [profiles,likes,comments]=await Promise.all([db.from('profiles').select('id,username,display_name,avatar_url').in('id',[...new Set(feed.map(p=>p.author_id))]),db.from('likes').select('post_id,user_id').in('post_id',ids),db.from('comments').select('id,post_id,user_id,body').in('post_id',ids)]);if(profiles.error||likes.error||comments.error){status.textContent='Cloud posts loaded; some social details unavailable: '+[profiles.error,likes.error,comments.error].filter(Boolean).map(e=>e.message).join('; ')}const names=new Map((profiles.data||[]).map(p=>[p.id,p]));feed.forEach(p=>{p.profiles=names.get(p.author_id)||null;p.likes=(likes.data||[]).filter(x=>x.post_id===p.id);p.comments=(comments.data||[]).filter(x=>x.post_id===p.id)})}if(hasRenderedFeed){
  // Keep the post objects captured by each like/comment handler in sync.
  const previous=new Map(previousFeed.map(p=>[p.id,p]));
@@ -304,7 +358,22 @@ like.onclick=async()=>{
   like.textContent=(liked?'♥':'♡')+' '+p.likes.length+' Likes';
   alert('Could not update Like: '+e.message);
  }finally{like.disabled=false}
-};const comments=node('button','', '💬 '+(p.comments||[]).length+' Comments');const section=node('div');section.hidden=true;(p.comments||[]).forEach(c=>section.append(node('div','commentline',c.body)));const input=node('input','comment');input.placeholder='Write a comment and press Enter';input.maxLength=500;input.onkeydown=async e=>{if(e.key==='Enter'&&input.value.trim()){input.disabled=true;const {error}=await db.from('comments').insert({post_id:p.id,user_id:user.id,body:input.value.trim()});if(error)alert(error.message);await refresh()}};comments.onclick=()=>{section.hidden=!section.hidden};section.append(input);foot.append(like,comments,section);try{window.PVKit?.addPostSave?.(p,foot)}catch(e){console.warn('Post save:',e)}if(p.author_id===user.id){const del=node('button','','Delete');del.onclick=async()=>{if(!confirm('Delete your post?'))return;const {error}=await db.from('posts').delete().eq('id',p.id);if(error)alert(error.message);await refresh()};foot.append(del)}card.append(foot);root.append(card)});if(!feed.length)root.append(node('div','empty','No cloud posts yet. Share the first one!'));if(document.getElementById('stats'))document.getElementById('stats').textContent=feed.filter(p=>p.author_id===user.id).length+' posts · @'+(profile?.username||'creator')}
+};const comments=node('button','', '💬 '+(p.comments||[]).length+' Comments');comments.dataset.pvCommentPost=p.id;
+const section=node('div');section.hidden=true;
+const commentList=node('div');commentList.dataset.pvCommentList=p.id;
+const input=node('input','comment');input.dataset.pvCommentInput=p.id;input.placeholder='Write a comment and press Enter';input.maxLength=500;
+input.onkeydown=async e=>{
+ if(e.key!=='Enter'||!input.value.trim()||input.disabled)return;
+ input.disabled=true;const body=input.value.trim();
+ try{
+  const {data,error}=await db.from('comments').insert({post_id:p.id,user_id:user.id,body}).select('id,post_id,user_id,body').single();
+  if(error)throw error;
+  p.comments=[...(p.comments||[]),data];input.value='';pvRenderComments(p);pvScheduleComments(250);
+ }catch(err){alert('Could not add comment: '+err.message)}
+ finally{input.disabled=false;input.focus()}
+};
+comments.onclick=()=>{section.hidden=!section.hidden;if(!section.hidden)pvScheduleComments(50)};
+section.append(commentList,input);foot.append(like,comments,section);try{window.PVKit?.addPostSave?.(p,foot)}catch(e){console.warn('Post save:',e)}if(p.author_id===user.id){const del=node('button','','Delete');del.onclick=async()=>{if(!confirm('Delete your post?'))return;const {error}=await db.from('posts').delete().eq('id',p.id);if(error)alert(error.message);await refresh()};foot.append(del)}card.append(foot);root.append(card);pvRenderComments(p)});if(!feed.length)root.append(node('div','empty','No cloud posts yet. Share the first one!'));if(document.getElementById('stats'))document.getElementById('stats').textContent=feed.filter(p=>p.author_id===user.id).length+' posts · @'+(profile?.username||'creator')}
 document.getElementById('publish').onclick=async()=>{if(!user)return;const caption=document.getElementById('caption').value.trim(),file=document.getElementById('photo').files[0];if(!caption&&!file)return alert('Add a caption or photo');if(caption.length>2200)return alert('Caption too long');const btn=document.getElementById('publish');btn.disabled=true;btn.textContent='Posting…';try{let image_path=null;if(file){if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>5*1024*1024)throw Error('Only JPG, PNG or WebP under 5MB allowed');image_path=user.id+'/'+crypto.randomUUID()+'.'+({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[file.type]);const {error}=await db.storage.from('post-images').upload(image_path,file,{contentType:file.type});if(error)throw error}const {error}=await db.from('posts').insert({author_id:user.id,caption,image_path});if(error)throw error;document.getElementById('caption').value='';document.getElementById('photo').value='';document.getElementById('filename').textContent='';await refresh();await loadOwnPosts();if(status.textContent.startsWith('Cloud feed error'))alert('Post saved, but feed could not load: '+status.textContent)}catch(e){alert(e.message)}finally{btn.disabled=false;btn.textContent='Publish'}};
 
 /* Profile editor + creator discovery, using existing profiles/follows tables */
@@ -1110,7 +1179,6 @@ function pvScheduleLiveDmRefresh(){
 function pvStartDmRealtime(){
  if(!user||!db.channel||pvDmRealtimeUser===user.id)return;
  pvStopDmRealtime();
- pvStopLikesRealtime();
  const uid=user.id;
  pvDmRealtimeUser=uid;
  const channel=db.channel('pavora-dm-'+uid);
@@ -1738,6 +1806,7 @@ if(user){
    pvSessionReadyForUser=user.id;
    pvStartDmRealtime();
    pvStartLikesRealtime();
+   pvStartComments();
    const pvSafeSetup=async(label,fn)=>{try{await fn()}catch(err){console.warn('PAVORA '+label+' setup failed:',err);status.textContent=label+' temporarily unavailable: '+err.message}};
    pvHiddenChats=new Map();pvConversationSettings=new Map();
    // The first visible frame should contain the real feed and real stories.
@@ -1771,6 +1840,8 @@ if(user){
 }else{
  document.body.classList.remove('pvFeedLoading');
  pvStopDmRealtime();
+ pvStopLikesRealtime();
+ pvStopComments();
  pvSessionReadyForUser=null;pvSessionInitUser=null;pvSessionInitializing=null;
  window.PVKit?.cleanup?.();pvCloseActivity();
  if(pvActivityTimer){clearInterval(pvActivityTimer);pvActivityTimer=null}
@@ -1783,7 +1854,7 @@ if(user){
 }
 pvRevealApp();
 }
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&user){pvCheckUnread();pvCheckActivity();pvScheduleLikesSync(100)}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&user){pvCheckUnread();pvCheckActivity();pvScheduleLikesSync(100);pvScheduleComments(100)}});
 // Restore a saved session before considering the user logged out. Supabase can
 // emit INITIAL_SESSION while refresh and token recovery are still in progress.
 db.auth.onAuthStateChange((event,session)=>{
