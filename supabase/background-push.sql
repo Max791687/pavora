@@ -37,6 +37,10 @@ create table if not exists public.push_jobs (
 create index if not exists push_jobs_pending_idx on public.push_jobs(created_at) where processed_at is null;
 alter table public.push_jobs enable row level security;
 revoke all on public.push_jobs from anon,authenticated;
+-- Service role bypasses RLS but still needs SQL table privileges for REST access.
+grant select,update on public.push_jobs to service_role;
+grant select,delete on public.push_subscriptions to service_role;
+grant select on public.profiles to service_role;
 
 create or replace function public.pv_queue_push() returns trigger
 language plpgsql security definer set search_path=public,pg_temp as $$
