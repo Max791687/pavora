@@ -71,7 +71,7 @@ const launch=async()=>{
  const body=open('Create story');
  modal.classList.add('pvStoryComposerModal');
  const input=el('input','pvStoryHiddenInput');
- input.type='file';input.accept='image/jpeg,image/png,image/webp,video/mp4,video/webm';
+ input.type='file';input.accept='image/jpeg,image/png,image/webp,video/*';
  const picker=el('div','pvStoryUploadDrop'),glyph=el('span','pvStoryUploadGlyph','▧');
  picker.tabIndex=0;picker.setAttribute('role','button');picker.setAttribute('aria-label','Choose photo or video');
  picker.append(glyph,el('strong','','Choose photo or video'),el('small','','Share your moment · Large videos automatically optimized'));
@@ -98,7 +98,7 @@ const launch=async()=>{
  modal.addEventListener('click',onBackdrop);
  input.onchange=()=>{
   const file=input.files?.[0];if(!file)return;
-  if(!['image/jpeg','image/png','image/webp','video/mp4','video/webm'].includes(file.type)){feedback.textContent='Choose a JPG, PNG, WebP, MP4 or WebM file.';return}
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type)&&!file.type.startsWith('video/')){feedback.textContent='Choose JPG, PNG, WebP or a browser-supported video.';return}
   if(objectUrl)URL.revokeObjectURL(objectUrl);
   objectUrl=URL.createObjectURL(file);selected=file;
   const preview=el(file.type.startsWith('video/')?'video':'img','pvStoryPreview');
