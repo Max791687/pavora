@@ -137,7 +137,7 @@ body.pvBooting main,body.pvBooting header,body.pvBooting .pvIconRail{visibility:
 body.pvBooting{background:#0c0d12;overflow:hidden}
 body.pvBooting #authOverlay{visibility:hidden!important}
 body.pvBooting::before,body.pvBooting::after{content:none!important}
-#pvLaunchScreen{position:fixed;inset:0;z-index:210;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;background:radial-gradient(ellipse at 50% 44%,#29163c 0%,#15111e 49%,#0b0c12 95%);opacity:1;transition:opacity 360ms cubic-bezier(.2,.7,.2,1),visibility 360ms;pointer-events:all}
+#pvLaunchScreen{position:fixed;inset:0;z-index:210;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;background:radial-gradient(ellipse at 50% 44%,#29163c 0%,#15111e 49%,#0b0c12 95%);opacity:1;transition:opacity 460ms cubic-bezier(.22,1,.36,1),visibility 460ms;pointer-events:all}
 body.pvLaunchReady #pvLaunchScreen{opacity:0;visibility:hidden;pointer-events:none}
 #pvLaunchScreen .pvLaunchLogo{width:96px;height:96px;object-fit:contain;filter:drop-shadow(0 0 27px #c158dc55);animation:pvLaunchAppear 450ms cubic-bezier(.18,.8,.3,1) both}
 #pvLaunchScreen .pvLaunchWord{font-size:23px;font-weight:900;letter-spacing:3.5px;color:#f4d7ff;text-shadow:0 0 26px #ad50f366}
@@ -145,8 +145,8 @@ body.pvLaunchReady #pvLaunchScreen{opacity:0;visibility:hidden;pointer-events:no
 #pvLaunchScreen .pvLaunchLine::after{content:"";display:block;height:100%;width:45%;background:linear-gradient(90deg,#a950ff,#f16eae);border-radius:10px;animation:pvLaunchProgress 950ms ease-in-out infinite alternate}
 @keyframes pvLaunchAppear{from{opacity:.1;transform:scale(.84)}to{opacity:1;transform:scale(1)}}
 @keyframes pvLaunchProgress{from{transform:translateX(-100%)}to{transform:translateX(230%)}}
-body:not(.pvBooting) main,body:not(.pvBooting) header{animation:pvAppReveal 260ms ease-out both}
-@keyframes pvAppReveal{from{opacity:.75}to{opacity:1}}
+body.pvLaunchReady main,body.pvLaunchReady header,body.pvLaunchReady .pvIconRail{animation:pvAppReveal 420ms cubic-bezier(.22,1,.36,1) both}
+@keyframes pvAppReveal{from{opacity:.12;filter:blur(5px)}to{opacity:1;filter:blur(0)}}
 /* Android Chrome may keep the native launch icon visible briefly before HTML
    exists. Once HTML is ready, show the app shell promptly instead of waiting
    for Supabase SDK/auth/network. This is only an unauthenticated visual shell. */
@@ -158,7 +158,7 @@ body.pvEarlyShell #home #posts:empty::before{content:"";display:block;height:min
 /* Real cloud feed skeleton avoids displaying old local demo posts while loading. */
 body.pvFeedLoading #home #posts:empty::before{content:"";display:block;height:min(63vh,460px);border:1px solid #302737;border-radius:18px;background:linear-gradient(#21192b,#21192b) 18px 18px/44px 44px no-repeat,linear-gradient(#21192b,#21192b) 76px 21px/40% 14px no-repeat,linear-gradient(#21192b,#21192b) 76px 43px/25% 10px no-repeat,linear-gradient(105deg,#19151e 20%,#292033 37%,#19151e 54%) center/220% 100%;animation:pvSkeletonPulse 1.8s ease-in-out infinite}
 @keyframes pvSkeletonPulse{from{background-position:18px 18px,76px 21px,76px 43px,100% center}to{background-position:18px 18px,76px 21px,76px 43px,-100% center}}
-@media(prefers-reduced-motion:reduce){#pvLaunchScreen .pvLaunchLogo,#pvLaunchScreen .pvLaunchLine::after,body.pvFeedLoading #home #posts:empty::before,body:not(.pvBooting) main,body:not(.pvBooting) header{animation:none!important}#pvLaunchScreen{transition:none}}
+@media(prefers-reduced-motion:reduce){#pvLaunchScreen .pvLaunchLogo,#pvLaunchScreen .pvLaunchLine::after,body.pvFeedLoading #home #posts:empty::before,body.pvLaunchReady main,body.pvLaunchReady header,body.pvLaunchReady .pvIconRail{animation:none!important}#pvLaunchScreen{transition:none}}
 /* Social activity bell + notification inbox */
 .pvActivityBell{position:relative;display:grid;place-items:center;cursor:pointer}
 .pvActivityBell svg{width:26px;height:26px;pointer-events:none}
@@ -635,8 +635,10 @@ $('reset').onclick=()=>{if(confirm('Delete all demo posts from this browser?')){
    Show the real app shell while still waiting for authenticated cloud data.
    The cloud script decides whether to show login and restores the saved route. */
 window.__pvLaunchVisualTimer=setTimeout(()=>{
+ // Never reveal the unauthenticated demo shell while Supabase restores login.
+ // A fast timer caused a visible splash -> demo -> real-feed jump on Android.
  if(!document.body.classList.contains('pvBooting'))return;
- document.body.classList.add('pvEarlyShell','pvLaunchReady');
- document.body.classList.remove('pvBooting');
-},540);
-</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="./cloud.js?v=20261109-launch-v3"></script><script src="./social-suite.js"></script><script src="./calls.js"></script><script src="./app-install.js" defer></script><script src="./push.js?v=20261109-push-diagnostics-v2" defer></script></body></html>
+ const line=document.querySelector('#pvLaunchScreen .pvLaunchLine');
+ if(line)line.setAttribute('aria-label','Connecting to PAVORA');
+},1200);
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="./cloud.js?v=20261109-launch-v4"></script><script src="./social-suite.js"></script><script src="./calls.js"></script><script src="./app-install.js" defer></script><script src="./push.js?v=20261109-push-diagnostics-v2" defer></script></body></html>
