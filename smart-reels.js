@@ -56,16 +56,17 @@ async function notInterested(db,uid,reelId){
  const {error}=await db.from('pv_reel_preferences').upsert({user_id:uid,reel_id:reelId,not_interested:true,updated_at:new Date().toISOString()},{onConflict:'user_id,reel_id'});
  if(error)throw error;
 }
-function createTabs(parent,uid,onChange){
+function createTabs(parent,uidSource,onChange){
+ const uid=()=>typeof uidSource==='function'?uidSource():uidSource;
  const wrap=document.createElement('div');wrap.className='pvSmartReelTabs';wrap.setAttribute('role','tablist');wrap.setAttribute('aria-label','Reels feed');
  const buttons=[];
  function render(){
-  const current=getMode(uid);
+  const current=getMode(uid());
   for(const b of buttons){const active=b.dataset.mode===current;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));b.tabIndex=active?0:-1}
  }
  for(const [id,label] of [['for-you','For You'],['following','Following']]){
   const b=document.createElement('button');b.type='button';b.className='pvSmartReelTab';b.dataset.mode=id;b.setAttribute('role','tab');b.textContent=label;
-  b.onclick=()=>{if(getMode(uid)===id)return;setMode(uid,id);render();onChange(id)};
+  b.onclick=()=>{if(getMode(uid())===id)return;setMode(uid(),id);render();onChange(id)};
   wrap.append(b);buttons.push(b);
  }
  render();parent.append(wrap);return wrap;
