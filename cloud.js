@@ -1590,6 +1590,7 @@ function pvStartDmExtras(){
 const pvDmMediaCSS=document.createElement('style');
 pvDmMediaCSS.textContent=".pvDmReplyPreview{font-size:11px;color:#e1c7f9;background:#553776;border-left:3px solid #d2a6ff;padding:7px 10px;border-radius:7px;max-width:270px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px}.pvDmAttachment{display:block;max-width:min(260px,67vw);max-height:320px;object-fit:contain;border-radius:11px;margin:7px 0;background:#110e19}.pvDmAttachment.video{width:min(260px,67vw);max-height:300px}.pvDmReplyButton{border:0!important;background:transparent!important;color:#c9b1df!important;font-size:12px!important;padding:4px!important}.pvDmSendPreview{display:flex;align-items:center;gap:8px;padding:9px 12px;margin:6px 0;border-left:3px solid #bc95ea;background:#392747;border-radius:9px;color:#f6eaff;font-size:12px}.pvDmSendPreview strong{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pvDmSendPreview button{border:0!important;background:#57436a!important;color:#fff;border-radius:7px;padding:5px 10px}.pvDmAttachButton{border:0;background:transparent;color:#e0c4ff;font-size:24px;cursor:pointer;padding:5px 10px}.pvDmUploadNote{font-size:11px;color:#b8a9cb}.pvDmMediaError{color:#ffb3ba;font-size:12px}";
 document.head.append(pvDmMediaCSS);
+const pvDmComposerPolish=document.createElement('style');pvDmComposerPolish.textContent="\n/* DM composer: keep previews compact and truly hidden when not needed. */\n#pvInboxView .pvDmSendPreview[hidden],#pvInboxView .pvDmReplyCompose[hidden]{display:none!important}\n#pvInboxView .pvDmSendPreview{box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;min-width:0;min-height:0;margin:0 0 8px;padding:9px 11px;border:1px solid #37313f;border-left:2px solid #aa75ed;border-radius:10px;background:#1b1922;box-shadow:none;color:#f2eaf8;font-size:12px}\n#pvInboxView .pvDmSendPreview strong{display:block;min-width:0;flex:1;font-size:12px;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#pvInboxView .pvDmSendPreview button{display:grid;place-items:center;flex:none;width:25px;height:25px;padding:0!important;border:0!important;border-radius:50%!important;background:#37323e!important;color:#eee!important;font-size:16px;cursor:pointer}\n#pvInboxView .pvDmReplyCompose{background:#191820;border-color:#322b3d;border-left-color:#9369c2}\n#pvInboxView .pvDmSendPreview .pvDmPreviewThumb{display:grid;place-items:center;flex:none;width:35px;height:35px;border-radius:7px;background:#292534;overflow:hidden;font-size:18px}\n#pvInboxView .pvDmSendPreview .pvDmPreviewThumb img{width:100%;height:100%;object-fit:cover}\n#pvInboxView .pvDmPreviewTitle{font-size:10px;color:#ab91c5;font-weight:700;display:block;margin-bottom:2px}\n#pvInboxView .pvDmPreviewText{min-width:0;flex:1}\n#pvInboxView .pvDmPreviewText strong{color:#e5dce9}\n#pvInboxView .pvDmAttachButton{font-size:22px;line-height:1;flex:none;display:grid;place-items:center;width:31px;height:34px;padding:0!important;color:#dbcee8!important}\n@media(max-width:600px){#pvInboxView .pvDmSendPreview{margin-bottom:6px;padding:7px 9px}#pvInboxView .pvChatComposerWrap{padding:6px 10px 12px!important}}\n";document.head.append(pvDmComposerPolish);
 function pvDmMessageSummary(message){
  if(!message)return 'Original message unavailable';
  const content=(message.body||'').trim();
@@ -1602,7 +1603,7 @@ function pvDmSetReply(id,message){
  if(!wrap)return;
  form.dataset.replyTo=message.id;
  wrap.hidden=false;
- wrap.querySelector('strong').textContent='Replying to: '+pvDmMessageSummary(message);
+ wrap.querySelector('strong').textContent=pvDmMessageSummary(message);
  form.querySelector('input[aria-label="Message"]')?.focus({preventScroll:true});
 }
 function pvDmDecorateContent(list,messages,peer){
@@ -2046,20 +2047,26 @@ const attach=node('button','pvDmAttachButton','＋');attach.type='button';attach
 const fileInput=node('input');fileInput.type='file';fileInput.accept='image/jpeg,image/png,image/webp,video/mp4,video/webm';fileInput.hidden=true;
 let pvPendingMedia=null;
 const mediaSelection=node('div','pvDmSendPreview');mediaSelection.hidden=true;
-const fileLabel=node('strong','',''),removeFile=node('button','','Remove');removeFile.type='button';
-removeFile.onclick=()=>{pvPendingMedia=null;fileInput.value='';mediaSelection.hidden=true;fileLabel.textContent=''};
-mediaSelection.append(fileLabel,removeFile);
+const thumb=node('span','pvDmPreviewThumb','📷'),fileSummary=node('div','pvDmPreviewText'),fileTitle=node('span','pvDmPreviewTitle','Attachment'),fileLabel=node('strong',''),removeFile=node('button','','×');
+let pvPreviewObjectUrl=null;
+removeFile.type='button';removeFile.title='Remove attachment';removeFile.setAttribute('aria-label','Remove attachment');
+const revokePreview=()=>{if(pvPreviewObjectUrl){URL.revokeObjectURL(pvPreviewObjectUrl);pvPreviewObjectUrl=null}};
+removeFile.onclick=()=>{pvPendingMedia=null;fileInput.value='';mediaSelection.hidden=true;fileLabel.textContent='';thumb.replaceChildren();revokePreview()};
+fileSummary.append(fileTitle,fileLabel);mediaSelection.append(thumb,fileSummary,removeFile);
 fileInput.onchange=()=>{
  const file=fileInput.files?.[0];if(!file)return;
  const accepted=['image/jpeg','image/png','image/webp','video/mp4','video/webm'];
  if(!accepted.includes(file.type)||file.size>30*1024*1024){alert('Choose JPG, PNG, WebP, MP4 or WebM under 30 MB.');fileInput.value='';return}
- pvPendingMedia=file;mediaSelection.hidden=false;fileLabel.textContent=(file.type.startsWith('video/')?'🎬 ':'📷 ')+file.name;
+ revokePreview();pvPendingMedia=file;mediaSelection.hidden=false;fileLabel.textContent=file.name;
+ thumb.replaceChildren();
+ if(file.type.startsWith('image/')){const img=node('img');pvPreviewObjectUrl=URL.createObjectURL(file);img.src=pvPreviewObjectUrl;img.alt='Selected photo';thumb.append(img)}
+ else thumb.textContent='🎬';
 };
 attach.onclick=()=>fileInput.click();
 const replyCompose=node('div','pvDmSendPreview pvDmReplyCompose');replyCompose.hidden=true;
-const replyText=node('strong','',''),cancelReply=node('button','','×');cancelReply.type='button';
-cancelReply.title='Cancel reply';cancelReply.onclick=()=>{form.dataset.replyTo='';replyCompose.hidden=true};
-replyCompose.append(replyText,cancelReply);
+const replyInfo=node('div','pvDmPreviewText'),replyHeading=node('span','pvDmPreviewTitle','REPLYING TO'),replyText=node('strong','',''),cancelReply=node('button','','×');cancelReply.type='button';
+cancelReply.title='Cancel reply';cancelReply.setAttribute('aria-label','Cancel reply');cancelReply.onclick=()=>{form.dataset.replyTo='';replyCompose.hidden=true};
+replyInfo.append(replyHeading,replyText);replyCompose.append(replyInfo,cancelReply);
 form.append(attach,emojiButton,input,send);
 composerWrap.append(replyCompose,mediaSelection,fileInput,emojiTray,form);
 input.addEventListener('input',()=>{if(input.value.trim()&&!input.disabled)pvOnChatInput(id);else pvClearTyping(id)});
@@ -2092,7 +2099,7 @@ async function pvSendMessage(){
   input.focus({preventScroll:true});send.disabled=false;
   alert('Unable to send message: '+error.message);return;
  }
- if(mediaFile){pvPendingMedia=null;fileInput.value='';mediaSelection.hidden=true}
+ if(mediaFile)removeFile.click();
  form.dataset.replyTo='';replyCompose.hidden=true;
  if(selectedPeer!==id||!list.isConnected)return;
  const today=new Date(sentMessage.created_at),dayKey=today.toDateString();
