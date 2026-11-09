@@ -46,6 +46,10 @@ assert.ok(reliable.includes('maxRetries')&&reliable.includes('uncertain&&conflic
 assert.ok(cloud.includes("window.PAVORA_UPLOAD.upload(db,'reel-videos'")&&cloud.includes("window.PAVORA_UPLOAD.upload(db,'post-images'"), 'Post/Reel retry handling missing');
 assert.ok(suite.includes('window.PAVORA_UPLOAD.upload(db,bucket'), 'Story retry handling missing');
 assert.ok(sw.includes('upload-reliable.js'), 'Upload helper missing from offline shell');
+assert.ok(cloud.includes('pvReadableAuthError')&&cloud.includes('pvNotifyAuth')&&cloud.includes('pvAuthBusy'), 'Visible login status logic missing');
+assert.ok(cloud.includes("insertAdjacentElement('afterend',document.getElementById('authMsg'))"), 'Login feedback must be near submit button');
+assert.ok(cloud.includes("pvNotifyAuth('✓ Login successful!")&&cloud.includes('Login failed. Email or password is incorrect.'), 'Login success/error messaging missing');
+assert.ok(html.includes('auth-feedback-v31')&&sw.includes('auth-feedback-v31'), 'PWA auth cache version mismatch');
 assert.ok(suite.includes('story_views'), 'Story viewer tracking missing');
 assert.ok(sw.includes("event.respondWith"), 'PWA offline fallback missing');
 console.log('PAVORA static smoke checks passed. Browser integration tests are still required.');
