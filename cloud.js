@@ -1306,6 +1306,7 @@ reelCreate.type='button';reelCreate.onclick=()=>{document.body.classList.add('pv
 reelDiscovery.append(reelDiscoveryText,reelRefresh,reelCreate);
 reelsView.append(reelDiscovery);
 const reelList=document.createElement('div');reelList.id='reelList';reelsView.append(reelList);
+window.PAVORA_SMART_REELS?.createTabs(reelsView,user?.id||'guest',()=>loadReels(true));
 let reelObserver=null,pvReelsLoading=null,pvReelsLoadedAt=0,pvReelsLoadedFor=null;
 async function loadReels(force=false){
  if(!user)return;
@@ -1321,10 +1322,18 @@ async function loadReels(force=false){
  if(pvReelsLoading)return pvReelsLoading;
  pvReelsLoading=(async()=>{
  if(!list.querySelector('.pvReelCard'))list.replaceChildren(node('p','muted','Loading reels…'));
-const {data,error,count}=await db.from('reels').select('id,author_id,caption,video_path,created_at',{count:'exact'}).order('created_at',{ascending:false}).limit(120);
+const {data:rawReels,error,count}=await db.from('reels').select('id,author_id,caption,video_path,created_at',{count:'exact'}).order('created_at',{ascending:false}).limit(120);
 if(error){reelDiscoveryText.textContent='Could not load reels';list.replaceChildren(node('p','muted','Reels unavailable: '+error.message));return}
+const mode=window.PAVORA_SMART_REELS?.getMode(user.id)||'for-you';
+const data=await window.PAVORA_SMART_REELS?.rank(db,user,rawReels||[],mode)||rawReels||[];
 list.replaceChildren();
 reelDiscoveryText.textContent=(count??data?.length??0)+' Reels available';
+if(!data?.length&&mode==='following'){
+ const empty=node('div','pvSmartReelEmpty');
+ empty.append(node('strong','','No Reels from followed creators yet'),node('p','','Follow creators who upload Reels, or switch back to For You to discover videos.'));
+ const discover=node('button','','Explore creators');discover.type='button';discover.onclick=()=>pvNavigate('explore');
+ empty.append(discover);list.append(empty);pvReelsLoadedAt=Date.now();pvReelsLoadedFor=user.id;return;
+}
 if(!data?.length){
  const empty=node('div','pvReelEmpty');
  empty.append(node('strong','','No public Reels yet'),node('p','','Creators have not uploaded public Reels here yet. Be the first to share a video, or discover people to follow.'));
@@ -1517,6 +1526,17 @@ actions.append(reelAction('Share reel','<path d="m21 3-8.5 18-3.5-7.5L2 10z"/><p
 actions.append(reelAction('More options','<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>',()=>{if(reel.author_id!==user.id){pvOpenActionMenu([{title:'Report Reel',onClick:()=>pvReportTarget('reel',reel.id)},{title:'Block @'+(person.username||'creator'),danger:true,onClick:()=>pvBlockAccount(reel.author_id,person.username||'creator')}]);return}if(!confirm('Delete your Reel permanently?'))return;(async()=>{const result=await db.from('reels').delete().eq('id',reel.id).eq('author_id',user.id);if(result.error){alert(result.error.message);return}await db.storage.from('reel-videos').remove([reel.video_path]);await loadReels(true)})()}));
 card.append(screen,actions);reelStack.append(card);cards.push(card);card.id='reel-'+reel.id;
 try{window.PVKit?.addReel?.(reel,actions,video)}catch(e){console.warn('Reel extras:',e)}
+const dismiss=node('button','pvSmartNotInterested','⋯ Not interested');
+dismiss.type='button';dismiss.title='Show fewer Reels like this';
+dismiss.onclick=async()=>{
+ if(!user||dismiss.disabled)return;
+ dismiss.disabled=true;
+ try{
+  await window.PAVORA_SMART_REELS?.notInterested(db,user.id,reel.id);
+  await loadReels(true);
+ }catch(e){dismiss.disabled=false;alert('Could not update recommendations: '+e.message)}
+};
+screen.append(dismiss);
 }
 // Single playback controller above owns play/pause: no IntersectionObserver races.
 if(reelObserver){reelObserver.disconnect();reelObserver=null}
