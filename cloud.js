@@ -1342,7 +1342,7 @@ messagesView.innerHTML='<h2>Private Messages ✉</h2><p class="muted">Text messa
 let chatRecipient=null,chatLoading=false;
 async function loadChatPeople(){if(!user)return;const root=document.getElementById('chatPeople');root.replaceChildren(node('h3','','People'));const {data,error}=await db.from('profiles').select('id,username,display_name').neq('id',user.id).order('username').limit(100);if(error){root.append(node('p','muted','Messages setup required: '+error.message));return}if(!data?.length)root.append(node('p','muted','Invite a friend to join PAVORA.'));for(const p of data||[]){const btn=node('button','secondary','@'+p.username);btn.onclick=()=>openChat(p);root.append(btn)}}
 async function openChat(person){chatRecipient=person;document.getElementById('chatTitle').textContent='@'+person.username;await loadChatHistory()}
-async function loadChatHistory(){if(!user||!chatRecipient||chatLoading)return;chatLoading=true;const partner=chatRecipient.id,root=document.getElementById('chatHistory');try{const {data,error}=await db.from('direct_messages').select('id,sender_id,recipient_id,body,created_at,read_at').or('and(sender_id.eq.'+user.id+',recipient_id.eq.'+partner+'),and(sender_id.eq.'+partner+',recipient_id.eq.'+user.id+')').order('created_at',{ascending:false}).limit(100);if(error)throw error;if(chatRecipient?.id!==partner)return;root.replaceChildren();for(const m of (data||[]).reverse()){const bubble=node('div','bubble'+(m.sender_id===user.id?' mine':''),m.body);bubble.append(node('small','',new Date(m.created_at).toLocaleString()));root.append(bubble)}if(!data?.length)root.append(node('p','muted','No messages yet. Say hello!'));root.scrollTop=root.scrollHeight;document.getElementById('chatFeedback').textContent=''}catch(e){document.getElementById('chatFeedback').textContent='Chat unavailable: '+e.message+' — run supabase/messages.sql in Supabase SQL Editor.'}finally{chatLoading=false}}
+async function loadChatHistory(){if(!user||!chatRecipient||chatLoading)return;chatLoading=true;const partner=chatRecipient.id,root=document.getElementById('chatHistory');try{const {data,error}=await db.from('direct_messages').select('id,sender_id,recipient_id,body,created_at,read_at,reply_to,media_path,media_type').or('and(sender_id.eq.'+user.id+',recipient_id.eq.'+partner+'),and(sender_id.eq.'+partner+',recipient_id.eq.'+user.id+')').order('created_at',{ascending:false}).limit(100);if(error)throw error;if(chatRecipient?.id!==partner)return;root.replaceChildren();for(const m of (data||[]).reverse()){const bubble=node('div','bubble'+(m.sender_id===user.id?' mine':''),m.body);bubble.append(node('small','',new Date(m.created_at).toLocaleString()));root.append(bubble)}if(!data?.length)root.append(node('p','muted','No messages yet. Say hello!'));root.scrollTop=root.scrollHeight;document.getElementById('chatFeedback').textContent=''}catch(e){document.getElementById('chatFeedback').textContent='Chat unavailable: '+e.message+' — run supabase/messages.sql in Supabase SQL Editor.'}finally{chatLoading=false}}
 document.getElementById('chatForm').onsubmit=async e=>{e.preventDefault();if(!user||!chatRecipient){document.getElementById('chatFeedback').textContent='Select a person first.';return}const input=document.getElementById('chatText'),body=input.value.trim(),button=e.currentTarget.querySelector('button');if(!body)return;button.disabled=true;const recipient_id=chatRecipient.id;const {error}=await db.from('direct_messages').insert({sender_id:user.id,recipient_id,body});button.disabled=false;if(error){document.getElementById('chatFeedback').textContent=error.message;return}input.value='';await loadChatHistory()};
 chatNav.onclick=async()=>{document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b===chatNav));['home','reels','explore','profile','messages'].forEach(v=>document.getElementById(v).classList.toggle('hide',v!=='messages'));await loadChatPeople();if(chatRecipient)await loadChatHistory()};
 document.querySelectorAll('[data-view]:not([data-view="messages"])').forEach(btn=>btn.addEventListener('click',()=>messagesView.classList.add('hide')));
@@ -1985,7 +1985,7 @@ if(silent&&area.querySelector('.pvMessageForm')){
    list.append(row);
   }
   pvDmUpdateReceipt(list,messages);
-  pvDmDecorateRows(list);pvScheduleDmReactionRefresh(70);
+  pvDmDecorateRows(list);pvDmDecorateContent(list,messages,id);pvScheduleDmReactionRefresh(70);
   if(received.length)list.scrollTop=list.scrollHeight;
  }
  return;
@@ -2041,27 +2041,59 @@ send.addEventListener('click',event=>{
  if(Date.now()-pvLastTouchSend<900)return;
  pvSendMessage();
 });
-const composerWrap=node('div','pvChatComposerWrap');form.append(emojiButton,input,send);composerWrap.append(emojiTray,form);
+const composerWrap=node('div','pvChatComposerWrap');
+const attach=node('button','pvDmAttachButton','＋');attach.type='button';attach.title='Attach photo or video';attach.setAttribute('aria-label','Attach photo or video');
+const fileInput=node('input');fileInput.type='file';fileInput.accept='image/jpeg,image/png,image/webp,video/mp4,video/webm';fileInput.hidden=true;
+let pvPendingMedia=null;
+const mediaSelection=node('div','pvDmSendPreview');mediaSelection.hidden=true;
+const fileLabel=node('strong','',''),removeFile=node('button','','Remove');removeFile.type='button';
+removeFile.onclick=()=>{pvPendingMedia=null;fileInput.value='';mediaSelection.hidden=true;fileLabel.textContent=''};
+mediaSelection.append(fileLabel,removeFile);
+fileInput.onchange=()=>{
+ const file=fileInput.files?.[0];if(!file)return;
+ const accepted=['image/jpeg','image/png','image/webp','video/mp4','video/webm'];
+ if(!accepted.includes(file.type)||file.size>30*1024*1024){alert('Choose JPG, PNG, WebP, MP4 or WebM under 30 MB.');fileInput.value='';return}
+ pvPendingMedia=file;mediaSelection.hidden=false;fileLabel.textContent=(file.type.startsWith('video/')?'🎬 ':'📷 ')+file.name;
+};
+attach.onclick=()=>fileInput.click();
+const replyCompose=node('div','pvDmSendPreview pvDmReplyCompose');replyCompose.hidden=true;
+const replyText=node('strong','',''),cancelReply=node('button','','×');cancelReply.type='button';
+cancelReply.title='Cancel reply';cancelReply.onclick=()=>{form.dataset.replyTo='';replyCompose.hidden=true};
+replyCompose.append(replyText,cancelReply);
+form.append(attach,emojiButton,input,send);
+composerWrap.append(replyCompose,mediaSelection,fileInput,emojiTray,form);
 input.addEventListener('input',()=>{if(input.value.trim()&&!input.disabled)pvOnChatInput(id);else pvClearTyping(id)});
 input.addEventListener('blur',()=>{if(input.value.trim())pvClearTyping(id)});
 if(pendingOutgoing&&alreadySent){input.disabled=true;send.disabled=true;input.placeholder='Request pending — waiting for acceptance';}
 form.addEventListener('submit',event=>{event.preventDefault();pvSendMessage()});
 async function pvSendMessage(){
- const body=input.value.trim();if(!body||send.disabled)return;
+ const body=input.value.trim(),mediaFile=pvPendingMedia,replyTo=form.dataset.replyTo||null;
+ if((!body&&!mediaFile)||send.disabled)return;
  pvClearTyping(id);
  // Keep the original input element mounted. Rebuilding renderChat() here
  // makes iOS/Android close the soft keyboard after every message.
  input.value='';
  input.focus({preventScroll:true});
  send.disabled=true;
- const {data:sentMessage,error}=await db.from('direct_messages').insert({sender_id:user.id,recipient_id:id,body}).select('id,created_at').single();
- if(error){
-   input.value=body+(input.value?' '+input.value:'');
-   input.focus({preventScroll:true});
-   send.disabled=false;
-   alert(error.message);
-   return;
+ let sentMessage=null,uploadedPath=null;
+ try{
+  if(mediaFile){
+   uploadedPath=user.id+'/'+crypto.randomUUID()+(mediaFile.type==='video/mp4'?'.mp4':mediaFile.type==='video/webm'?'.webm':mediaFile.type==='image/png'?'.png':mediaFile.type==='image/webp'?'.webp':'.jpg');
+   const uploaded=await db.storage.from('pv-dm-media').upload(uploadedPath,mediaFile,{contentType:mediaFile.type});
+   if(uploaded.error)throw uploaded.error;
+  }
+  const payload={sender_id:user.id,recipient_id:id,body,reply_to:replyTo||null,media_path:uploadedPath,media_type:mediaFile?.type||null};
+  const response=await db.from('direct_messages').insert(payload).select('id,created_at,body,reply_to,media_path,media_type,sender_id,recipient_id').single();
+  if(response.error)throw response.error;
+  sentMessage=response.data;
+ }catch(error){
+  if(uploadedPath)await db.storage.from('pv-dm-media').remove([uploadedPath]).catch(()=>{});
+  input.value=body+(input.value?' '+input.value:'');
+  input.focus({preventScroll:true});send.disabled=false;
+  alert('Unable to send message: '+error.message);return;
  }
+ if(mediaFile){pvPendingMedia=null;fileInput.value='';mediaSelection.hidden=true}
+ form.dataset.replyTo='';replyCompose.hidden=true;
  if(selectedPeer!==id||!list.isConnected)return;
  const today=new Date(sentMessage.created_at),dayKey=today.toDateString();
  if(dayKey!==pvLastMessageDay){
@@ -2069,10 +2101,10 @@ async function pvSendMessage(){
    const marker=node('div','pvChatDayDivider',today.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}));marker.dataset.dayKey=dayKey;list.append(marker);
  }
  list.querySelector('.pvChatEmptyMessage')?.remove();
- const row=node('div','pvMessageRow mine'),bubble=node('div','pvBubble mine',body);
+ const row=node('div','pvMessageRow mine'),bubble=node('div','pvBubble mine',body||'');
  row.dataset.messageId=String(sentMessage.id);bubble.title=today.toLocaleString();row.append(bubble);
  if(!list.querySelector('.pvMessageRow[data-message-id="'+String(sentMessage.id)+'"]'))list.append(row);
- pvDmDecorateRows(list);pvScheduleDmReactionRefresh(120);
+ pvDmDecorateRows(list);pvDmDecorateContent(list,[sentMessage],id);pvScheduleDmReactionRefresh(120);
  pvDmUpdateReceipt(list,[{id:sentMessage.id,read_at:null}]);
  list.scrollTop=list.scrollHeight;
  if(pendingOutgoing){
@@ -2092,7 +2124,7 @@ async function pvSendMessage(){
 if(pendingIncoming){const banner=node('div','pvRequestBanner'),description=node('p','','Message request from someone who does not follow you.'),accept=node('button','pvAcceptRequest','Accept'),remove=node('button','pvDeclineRequest','Remove');accept.type=remove.type='button';accept.onclick=async()=>{accept.disabled=true;const {error}=await db.from('message_requests').update({accepted_at:new Date().toISOString()}).eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null);if(error){alert('Could not accept request: '+error.message);accept.disabled=false;return}pvInboxTab='Primary';await loadInbox();await pvCheckUnread()};remove.onclick=()=>pvRemoveChat(id);banner.append(description,accept,remove);area.append(banner)}
 if(pendingOutgoing){area.append(node('p','pvPendingRequestNote',alreadySent?'Request sent. Wait for acceptance, or follow this account to continue.':'You can send one message request. Follow this account to message freely.'))}
 const typingLabel=node('div','pvDmTypingLabel','● typing…');typingLabel.hidden=true;
-area.append(list,typingLabel,composerWrap);emojiButton.disabled=input.disabled;pvDmUpdateReceipt(list,messages);pvDmDecorateRows(list);pvScheduleDmReactionRefresh(90);pvCheckTyping();list.scrollTop=list.scrollHeight}
+area.append(list,typingLabel,composerWrap);emojiButton.disabled=input.disabled;pvDmUpdateReceipt(list,messages);pvDmDecorateRows(list);pvDmDecorateContent(list,messages,id);pvScheduleDmReactionRefresh(90);pvCheckTyping();list.scrollTop=list.scrollHeight}
 
 
 // Slide-out navigation and separate Create Post dialog; retain existing publish handlers.
