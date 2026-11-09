@@ -1,11 +1,11 @@
 /* PAVORA: Cache only public application shell. Auth / Supabase API always network. */
-const CACHE='pavora-shell-2026-11-09-live-story-viewers-v11';
+const CACHE='pavora-shell-2026-11-09-story-view-receipt-v12';
 const SHELL=['./','./index.html','./cloud.js','./social-suite.js','./calls.js','./app-install.js','./push.js','./manifest.webmanifest','./app-icon.svg','./app-icon-maskable.svg','./notify-icon.png','./notify-badge.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).catch(err=>console.warn('Shell cache unavailable',err)));self.skipWaiting()});
 self.addEventListener('activate',event=>{event.waitUntil(Promise.all([caches.keys().then(names=>Promise.all(names.filter(n=>n.startsWith('pavora-shell-')&&n!==CACHE).map(n=>caches.delete(n)))),self.clients.claim()]))});
-/* Installed PWA: serve the cached public app shell immediately and refresh it
-   in the background. This avoids a GitHub Pages round-trip on every launch.
-   Supabase requests, auth, uploads, and private user content are never cached. */
+/* Public shell: network first when online, offline cache fallback.
+   Avoid returning outdated HTML/JS after a new GitHub deployment, which
+   previously left some devices running old Story view recording code. */
 self.addEventListener('fetch',event=>{
  const req=event.request;
  if(req.method!=='GET')return;
@@ -16,20 +16,19 @@ self.addEventListener('fetch',event=>{
  if(!isNavigation&&!shellFile)return;
  event.respondWith((async()=>{
   const cache=await caches.open(CACHE);
-  const fallback=isNavigation?new URL('./index.html',self.registration.scope).href:req;
-  const cached=await cache.match(req,{ignoreSearch:true})||await cache.match(fallback,{ignoreSearch:true});
-  const update=fetch(req).then(async response=>{
-   if(response.ok&&response.type==='basic')await cache.put(req,response.clone());
-   return response;
-  });
-  if(cached){
-   event.waitUntil(update.catch(err=>console.warn('Shell refresh unavailable',err)));
-   return cached;
-  }
-  try{return await update}catch(err){
-   const older=await caches.match(fallback,{ignoreSearch:true});
-   return older||Response.error();
-  }
+  const fallback=new URL('./index.html',self.registration.scope).href;
+  try{
+   const response=await fetch(req);
+   if(response.ok&&response.type==='basic'){
+    event.waitUntil(cache.put(req,response.clone()).catch(()=>{}));
+    return response;
+   }
+   if(!isNavigation)return response;
+  }catch(err){/* Offline: use last known public shell. */}
+  const cached=await cache.match(req,{ignoreSearch:true})
+   ||await cache.match(isNavigation?fallback:req,{ignoreSearch:true})
+   ||await caches.match(isNavigation?fallback:req,{ignoreSearch:true});
+  return cached||Response.error();
  })());
 });
 
