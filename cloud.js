@@ -333,31 +333,36 @@ function pvStartComments(){
  pvCommentsTimer=setInterval(()=>{if(user?.id===uid&&!document.hidden)pvSyncComments()},12000);
 }
 
-async function refresh(){if(!user)return;try{status.textContent='Loading cloud posts…';const {data,error}=await db.from('posts').select('id,author_id,caption,image_path,created_at').order('created_at',{ascending:false}).limit(50);if(error){status.textContent='Cloud feed error: '+error.message;return}const freshFeed=data||[];const previousFeed=feed;const oldIds=feed.map(p=>p.id).join(',');const newIds=freshFeed.map(p=>p.id).join(',');const hasRenderedFeed=oldIds===newIds&&freshFeed.length>0&&!!document.getElementById('posts')?.children.length;feed=freshFeed;const ids=feed.map(p=>p.id);if(ids.length){const [profiles,likes,comments]=await Promise.all([db.from('profiles').select('id,username,display_name,avatar_url').in('id',[...new Set(feed.map(p=>p.author_id))]),db.from('likes').select('post_id,user_id').in('post_id',ids),db.from('comments').select('id,post_id,user_id,body').in('post_id',ids)]);if(profiles.error||likes.error||comments.error){status.textContent='Cloud posts loaded; some social details unavailable: '+[profiles.error,likes.error,comments.error].filter(Boolean).map(e=>e.message).join('; ')}const names=new Map((profiles.data||[]).map(p=>[p.id,p]));feed.forEach(p=>{p.profiles=names.get(p.author_id)||null;p.likes=(likes.data||[]).filter(x=>x.post_id===p.id);p.comments=(comments.data||[]).filter(x=>x.post_id===p.id)})}if(hasRenderedFeed){
+let pvFeedRequestNumber=0;
+async function refresh(){if(!user)return;
+ const activeUser=user.id,requestNumber=++pvFeedRequestNumber;
+ try{status.textContent='Loading cloud posts…';const {data,error}=await db.from('posts').select('id,author_id,caption,image_path,created_at').order('created_at',{ascending:false}).limit(50);if(user?.id!==activeUser||requestNumber!==pvFeedRequestNumber)return;if(error){status.textContent='Cloud feed error: '+error.message;return}const freshFeed=data||[];const previousFeed=feed;const oldIds=feed.map(p=>p.id).join(',');const newIds=freshFeed.map(p=>p.id).join(',');const hasRenderedFeed=oldIds===newIds&&freshFeed.length>0&&!!document.getElementById('posts')?.children.length;feed=freshFeed;const ids=feed.map(p=>p.id);if(ids.length){const [profiles,likes,comments]=await Promise.all([db.from('profiles').select('id,username,display_name,avatar_url').in('id',[...new Set(feed.map(p=>p.author_id))]),db.from('likes').select('post_id,user_id').in('post_id',ids),db.from('comments').select('id,post_id,user_id,body').in('post_id',ids)]);if(profiles.error||likes.error||comments.error){status.textContent='Cloud posts loaded; some social details unavailable: '+[profiles.error,likes.error,comments.error].filter(Boolean).map(e=>e.message).join('; ')}if(user?.id!==activeUser||requestNumber!==pvFeedRequestNumber)return;const names=new Map((profiles.data||[]).map(p=>[p.id,p]));feed.forEach(p=>{p.profiles=names.get(p.author_id)||null;p.likes=(likes.data||[]).filter(x=>x.post_id===p.id);p.comments=(comments.data||[]).filter(x=>x.post_id===p.id)})}if(hasRenderedFeed){
  // Keep the post objects captured by each like/comment handler in sync.
  const previous=new Map(previousFeed.map(p=>[p.id,p]));
  feed=feed.map(post=>{const existing=previous.get(post.id);if(!existing)return post;Object.assign(existing,post);return existing});
 }
 if(!status.textContent.startsWith('Cloud posts loaded'))status.textContent='☁ Cloud feed · '+feed.length+' posts';if(!hasRenderedFeed)draw();else pvUpdateRenderedFeedStats();pvRememberFeed()}finally{document.body.classList.remove('pvFeedLoading')}}
 function node(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e}
-function draw(){const root=document.getElementById('posts');root.replaceChildren();feed.forEach((p,postIndex)=>{const card=node('article','post'),head=node('div','posthead');card.id='pv-post-'+p.id;const authorAvatar=node('div','profilepic');const authorName=p.profiles?.display_name||p.profiles?.username||'P';if(p.profiles?.avatar_url){const avatarImg=node('img');avatarImg.src=p.profiles.avatar_url;avatarImg.alt=authorName+' profile photo';avatarImg.loading='lazy';avatarImg.onerror=()=>{authorAvatar.replaceChildren();authorAvatar.textContent=authorName[0].toUpperCase()};authorAvatar.append(avatarImg)}else authorAvatar.textContent=authorName[0].toUpperCase();head.append(authorAvatar);const who=node('div');who.append(pvProfileButton({id:p.author_id,username:p.profiles?.username||'creator'}),node('div','muted',new Date(p.created_at).toLocaleString()));if(p.author_id===pvOfficialId)who.querySelector('.pvPersonButton')?.after(pvOfficialBadge());head.append(who);card.append(head);if(p.caption)card.append(node('div','postbody',p.caption));if(p.image_path){const image=node('img');image.src=db.storage.from('post-images').getPublicUrl(p.image_path).data.publicUrl;image.alt='Post photo';image.loading=postIndex<2?'eager':'lazy';image.decoding='async';if(postIndex===0)image.fetchPriority='high';card.append(image)}const foot=node('div','postfoot');let liked=(p.likes||[]).some(l=>l.user_id===user.id);
-const like=node('button','',(liked?'♥':'♡')+' '+(p.likes||[]).length+' Likes');
+function draw(){const root=document.getElementById('posts');root.replaceChildren();feed.forEach((p,postIndex)=>{const card=node('article','post'),head=node('div','posthead');card.id='pv-post-'+p.id;const authorAvatar=node('div','profilepic');const authorName=p.profiles?.display_name||p.profiles?.username||'P';if(p.profiles?.avatar_url){const avatarImg=node('img');avatarImg.src=p.profiles.avatar_url;avatarImg.alt=authorName+' profile photo';avatarImg.loading='lazy';avatarImg.onerror=()=>{authorAvatar.replaceChildren();authorAvatar.textContent=authorName[0].toUpperCase()};authorAvatar.append(avatarImg)}else authorAvatar.textContent=authorName[0].toUpperCase();head.append(authorAvatar);const who=node('div');who.append(pvProfileButton({id:p.author_id,username:p.profiles?.username||'creator'}),node('div','muted',new Date(p.created_at).toLocaleString()));if(p.author_id===pvOfficialId)who.querySelector('.pvPersonButton')?.after(pvOfficialBadge());head.append(who);card.append(head);if(p.caption)card.append(node('div','postbody',p.caption));if(p.image_path){const image=node('img');image.src=db.storage.from('post-images').getPublicUrl(p.image_path).data.publicUrl;image.alt='Post photo';image.loading=postIndex<2?'eager':'lazy';image.decoding='async';if(postIndex===0)image.fetchPriority='high';card.append(image)}const foot=node('div','postfoot');const like=node('button','',((p.likes||[]).some(l=>l.user_id===user.id)?'♥':'♡')+' '+(p.likes||[]).length+' Likes');
 like.dataset.pvLikePost=p.id;
 like.onclick=async()=>{
- if(like.disabled)return;
- const previousLikes=[...(p.likes||[])],wasLiked=liked;
- liked=!wasLiked;
- p.likes=wasLiked?previousLikes.filter(l=>l.user_id!==user.id):[...previousLikes,{post_id:p.id,user_id:user.id}];
- like.textContent=(liked?'♥':'♡')+' '+p.likes.length+' Likes';
+ if(like.disabled||!user)return;
+ // Derive the state at click time, never from a stale closure: realtime may
+ // have updated likes after this post button was first rendered.
+ const currentUser=user.id;
+ const previousLikes=[...(p.likes||[])];
+ const wasLiked=previousLikes.some(l=>l.user_id===currentUser);
+ p.likes=wasLiked?previousLikes.filter(l=>l.user_id!==currentUser):[...previousLikes,{post_id:p.id,user_id:currentUser}];
+ like.textContent=(wasLiked?'♡':'♥')+' '+p.likes.length+' Likes';
  like.disabled=true;
  try{
-  const result=wasLiked?await db.from('likes').delete().eq('post_id',p.id).eq('user_id',user.id):await db.from('likes').insert({post_id:p.id,user_id:user.id});
+  const result=wasLiked?await db.from('likes').delete().eq('post_id',p.id).eq('user_id',currentUser):await db.from('likes').insert({post_id:p.id,user_id:currentUser});
   if(result.error)throw result.error;
  }catch(e){
-  liked=wasLiked;p.likes=previousLikes;
-  like.textContent=(liked?'♥':'♡')+' '+p.likes.length+' Likes';
+  p.likes=previousLikes;
+  like.textContent=(wasLiked?'♥':'♡')+' '+p.likes.length+' Likes';
   alert('Could not update Like: '+e.message);
- }finally{like.disabled=false}
+ }finally{like.disabled=false;pvScheduleLikesSync(250)}
 };const comments=node('button','', '💬 '+(p.comments||[]).length+' Comments');comments.dataset.pvCommentPost=p.id;
 const section=node('div');section.hidden=true;
 const commentList=node('div');commentList.dataset.pvCommentList=p.id;
