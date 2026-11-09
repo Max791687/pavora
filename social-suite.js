@@ -129,9 +129,21 @@ const showStory=async story=>{
  body.append(media);
  if(story.caption)body.append(el('p','',story.caption));
  if(story.author_id!==viewer.id){
-  // One unique view per viewer; INSERT does not require UPDATE permission.
-  try{const {error}=await db.from('story_views').insert({story_id:story.id,viewer_id:viewer.id});if(error&&error.code!=='23505')console.warn('Story view failed:',error.message)}
-  catch(err){console.warn('Story view error:',err)}
+  // Each signed-in account counts once. Keep a visible result so failures
+  // aren't silently hidden in DevTools and mistaken for a recorded view.
+  const indicator=el('p','pvStoryViewReceipt','Recording your view…');
+  indicator.style.cssText='font-size:12px;color:#c4b6d6;text-align:center;margin:4px 0';
+  body.append(indicator);
+  try{
+   const {error}=await db.from('story_views').insert({story_id:story.id,viewer_id:viewer.id});
+   if(error&&error.code!=='23505')throw error;
+   indicator.textContent='✓ View recorded';
+   indicator.style.color='#a6dfbd';
+  }catch(err){
+   indicator.textContent='View not recorded: '+(err?.message||'Network issue')+'. Please try again.';
+   indicator.style.color='#ff9caf';
+   console.warn('Story view could not be recorded:',err);
+  }
   return;
  }
  const panel=el('section','pvLiveViews'),top=el('div','pvLiveViewsTop');
@@ -178,7 +190,7 @@ const showStory=async story=>{
   channel.on('postgres_changes',{event:'INSERT',schema:'public',table:'story_views',filter:'story_id=eq.'+story.id},schedule);
   channel.subscribe(state=>{if(!active())return;if(state==='SUBSCRIBED')schedule();else if(state==='CHANNEL_ERROR'||state==='TIMED_OUT')status.textContent='Reconnecting…'});
  }
- timer=setInterval(()=>{if(active()&&!document.hidden)sync()},8000);
+ timer=setInterval(()=>{if(active()&&!document.hidden)sync()},5000);
  sync();
  const del=el('button','pvSuiteSave','Delete story');del.onclick=async()=>{
   if(!confirm('Delete this story?'))return;
