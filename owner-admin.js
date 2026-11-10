@@ -134,12 +134,23 @@ const css=E('style');css.textContent=`
 #pvOwnerViewer video,#pvOwnerViewer img{max-width:100%;max-height:min(65dvh,610px);width:auto;object-fit:contain}
 #pvOwnerViewer .pvoViewerInfo{font-size:12px;color:#cbbfd9;overflow-wrap:anywhere;margin:12px 2px 0}
 @media(max-width:700px){#pvOwnerRoot .pvoMediaRow{flex-wrap:wrap}#pvOwnerRoot .pvoMediaRow>.pvoActions{width:100%;min-width:0}#pvOwnerRoot .pvoMediaThumb{width:62px;height:62px}}
+
+/* v56 owner presence filters and readable last-seen timestamps */
+#pvOwnerRoot .pvoUserFilters{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 13px}
+#pvOwnerRoot .pvoFilter{border:1px solid #574367;border-radius:10px;padding:9px 17px;min-width:82px;background:#261e32;color:#c8bad7;font-weight:750;font-size:12px;cursor:pointer;white-space:nowrap}
+#pvOwnerRoot .pvoFilter.active{border-color:#a07be4;background:linear-gradient(135deg,#7943cd,#6030a7);color:#fff;box-shadow:0 3px 16px #7145c44a}
+#pvOwnerRoot .pvoFilter .pvoFilterDot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;background:#aaa}
+#pvOwnerRoot .pvoFilter .pvoFilterDot.online{background:#4ee7a3}
+#pvOwnerRoot .pvoFilter .pvoFilterDot.offline{background:#a49bb6}
+#pvOwnerRoot .pvoLastSeen{margin-top:7px;color:#b9aecd;font-size:12px}
+#pvOwnerRoot .pvoLastSeen.online{color:#62e3a3}
+#pvOwnerRoot .pvoUserHint{line-height:1.6;margin-bottom:11px}
 `;document.head.append(css);
 const launcher=E('button','','🛡 Owner Dashboard');launcher.id='pvOwnerLauncher';launcher.type='button';launcher.hidden=true;document.querySelector('#profile > .panel')?.prepend(launcher);
 const overlay=E('section');overlay.id='pvOwnerRoot';overlay.hidden=true;overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','PAVORA Owner Admin Dashboard');
 const panel=E('div','pvoPanel'),head=E('div','pvoHead'),heading=E('div'),tabs=E('nav','pvoTabs'),main=E('div','pvoMain'),close=E('button','pvoClose','Close ×');
-heading.append(E('h2','','🛡 PAVORA Owner'),E('small','','LIVE ADMIN CONSOLE · v55 · Access logged'));head.append(heading,close);panel.append(head,tabs,main);overlay.append(panel);document.body.append(overlay);
-let active='overview',allowed=false,seq=0,search='',page=0;
+heading.append(E('h2','','🛡 PAVORA Owner'),E('small','','LIVE ADMIN CONSOLE · v56 · Access logged'));head.append(heading,close);panel.append(head,tabs,main);overlay.append(panel);document.body.append(overlay);
+let active='overview',allowed=false,seq=0,search='',page=0,statusFilter='all';
 const names={overview:'Overview',users:'Users',reports:'Reports',posts:'Posts',reels:'Reels',audit:'Audit Logs',recovery:'Recovery Support'};
 const current=()=>kit.getUser()?.id;
 async function api(action,more={}){
@@ -208,9 +219,18 @@ async function render(){
    sections.append(left,right,bottom);main.append(sections);
    line('All figures and actions come from live Supabase data. No sample analytics or fake reports are displayed.');
   }else if(active==='users'){
-   const d=await api('users',{search,page});if(ticket!==seq)return;clear();
+   const d=await api('users',{search,page,status:statusFilter});if(ticket!==seq)return;clear();
    const bar=toolbar('Users · '+d.total),input=E('input','pvoSearch');input.placeholder='Search username or display name';input.value=search;input.setAttribute('aria-label','Search users');const go=makeButton('Search',async()=>{search=input.value.trim();page=0;await render()});input.addEventListener('keydown',e=>{if(e.key==='Enter')go.click()});bar.append(input,go);
-   main.append(E('p','pvoUserHint','Showing '+d.users.length+' of '+d.total+' users · Suspension blocks new sign-ins; existing sessions can remain until token expiry.'));
+   const filters=E('div','pvoUserFilters');filters.setAttribute('role','group');filters.setAttribute('aria-label','Filter users by online status');
+   for(const [state,label] of [['all','All users'],['online','Online'],['offline','Offline']]){
+    const button=E('button','pvoFilter'+(statusFilter===state?' active':''));button.type='button';button.setAttribute('aria-pressed',String(statusFilter===state));
+    if(state!=='all')button.append(E('span','pvoFilterDot '+state));
+    button.append(document.createTextNode(label));
+    button.onclick=()=>{if(statusFilter===state)return;statusFilter=state;page=0;render()};
+    filters.append(button);
+   }
+   const refresh=E('button','pvoFilter','↻ Refresh');refresh.type='button';refresh.title='Refresh online status from Supabase';refresh.onclick=()=>render();filters.append(refresh);main.append(filters);
+   main.append(E('p','pvoUserHint','Showing '+d.users.length+' of '+d.total+' '+(statusFilter==='all'?'users':statusFilter+' users')+' · Online means active within the last 75 seconds. Last seen comes from the last recorded activity.'));
    const userList=E('div','pvoUserList');main.append(userList);
    if(!d.users.length)userList.append(E('div','pvoSectionEmpty','No matching users found.'));
    for(const u of d.users){
@@ -218,11 +238,16 @@ async function render(){
     const identity=E('div','pvoIdentity');identity.append(E('strong','', '@'+(u.username||'unknown')+(u.display_name?' · '+u.display_name:'')),E('small','',u.email||'No email'));
     const badges=E('div','pvoUserMeta');
     const lastActive=u.last_active_at?new Date(u.last_active_at):null;
-    const lastLabel=lastActive&&!Number.isNaN(lastActive.getTime())?'Last active '+lastActive.toLocaleString('en-IN'):'No recent activity recorded';
+    let lastLabel='Last seen unavailable (no activity recorded)';
+    if(lastActive&&!Number.isNaN(lastActive.getTime())){
+      const seconds=Math.max(0,Math.floor((Date.now()-lastActive.getTime())/1000));
+      const relative=seconds<60?'just now':seconds<3600?Math.floor(seconds/60)+' min ago':seconds<86400?Math.floor(seconds/3600)+' hr ago':Math.floor(seconds/86400)+' days ago';
+      lastLabel=(u.online?'Online now · Last heartbeat ':'Last seen ')+relative+' · '+lastActive.toLocaleString('en-IN');
+    }
     for(const [value,cls] of [[u.online?'Online now':'Offline',u.online?'pvoOnline':''],[u.confirmed?'Verified':'Unverified',''],[u.suspended?'Suspended':'Active',u.suspended?'isSuspended':''],[u.is_official?'Official':'',''],[u.created_at?new Date(u.created_at).toLocaleDateString('en-IN'):'','']]){
       if(value)badges.append(E('span',cls,value));
     }
-    identity.append(badges,E('small','',lastLabel));entry.append(identity);
+    identity.append(badges,E('div','pvoLastSeen'+(u.online?' online':''),lastLabel));entry.append(identity);
     if(!u.is_official){
       const opts=E('div','pvoActions');
       opts.append(makeButton(u.suspended?'Unban':'Suspend',()=>actionConfirm(u.suspended?'unban user':'suspend user',u.suspended?'user.unban':'user.suspend',{id:u.id}),u.suspended?'secondary':'danger'));
