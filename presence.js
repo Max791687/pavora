@@ -1,9 +1,9 @@
-/* PAVORA v37: public-only Online / Offline / Last Seen.
+/* PAVORA v67: best-effort foreground and background Online / Offline / Last Seen.
    Database RLS protects private and blocked profiles, even from direct API reads.
-   Backgrounded tabs become offline. Heartbeats use server-generated timestamps. */
+   Background tabs remain active while JavaScript can run. Heartbeats use server timestamps; suspended apps expire after a short grace window. */
 (function(){
 'use strict';
-const REFRESH_MS=20000,HEARTBEAT_MS=25000,ONLINE_AGE_MS=75000;
+const REFRESH_MS=20000,HEARTBEAT_MS=25000,ONLINE_AGE_MS=300000;
 let db=null,uid=null,timer=null,heartbeatTimer=null,inFlight=null,busy=false,request=0;
 const fmt=t=>{
  const ms=Date.now()-new Date(t).getTime();
@@ -68,7 +68,7 @@ async function heartbeat(active){
  }catch(e){console.warn('PAVORA presence heartbeat:',e.message)}
 }
 function stop(){
- const was=db&&uid&&!document.hidden;
+ const was=db&&uid;
  clearInterval(timer);clearInterval(heartbeatTimer);
  timer=null;heartbeatTimer=null;request++;
  if(was)heartbeat(false);
@@ -79,8 +79,8 @@ function start(client,userId){
  if(!client||!userId)return;
  if(uid===userId&&timer)return;
  stop();db=client;uid=userId;
- heartbeat(!document.hidden);
- heartbeatTimer=setInterval(()=>{if(!document.hidden)heartbeat(true)},HEARTBEAT_MS);
+ heartbeat(true);
+ heartbeatTimer=setInterval(()=>heartbeat(true),HEARTBEAT_MS);
  timer=setInterval(refresh,REFRESH_MS);
  refresh();
 }
@@ -96,11 +96,12 @@ function attach(parent,peerId,style='inline'){
 }
 function onVisible(){
  if(!uid)return;
- if(document.hidden)heartbeat(false);
- else{heartbeat(true);refresh()}
+ heartbeat(true);
+ if(!document.hidden)refresh()
 }
 document.addEventListener('visibilitychange',onVisible);
-window.addEventListener('pagehide',()=>{if(uid)heartbeat(false)});
+// Do not mark offline on pagehide: mobile PWA may be backgrounded or frozen instead of closed.
+// The server automatically stops considering an account online after 5 min without heartbeats.
 const css=document.createElement('style');
 css.textContent=`
 .pvPresenceLabel{display:inline-flex;align-items:center;gap:5px;color:#a9a4b3;font-size:11px;font-weight:600;line-height:1.4;white-space:nowrap}
