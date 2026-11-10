@@ -119,19 +119,20 @@ const cards=E('div','pvDailyCards');
 const footer=E('div','pvDailyFooter'),more=E('button','pvDailyMore','Show 12 more demo posts');
 more.type='button';footer.append(more);
 container.append(heading,cards,footer);
-realPosts.before(container);
+// Keep all real uploaded posts first, then append scheduled virtual posts in the same Home feed.
+realPosts.after(container);
 const style=E('style');
 style.textContent=`
 .pvDailyShowcase{margin:20px auto 28px;max-width:710px;min-width:0}
 .pvDailyHead{padding:14px 16px 10px;border:1px solid #3c2c4b;border-radius:15px 15px 0 0;background:#21172d}
 .pvDailyHead h2{font-size:19px;margin:0 0 5px;color:#fff}
 .pvDailyIntro{font-size:12px;color:#c1b5cd;line-height:1.6;margin:0}
-.pvDailyCards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px 0}
-.pvDailyCard{min-width:0;border:1px solid #393048;background:#17131f;border-radius:14px;overflow:hidden}
+.pvDailyCards{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;padding:12px 0}
+.pvDailyCard{min-width:0;border:1px solid #393048;background:#17131f;border-radius:14px;overflow:hidden;max-width:620px;width:100%;margin-inline:auto}
 .pvDailyWho{display:flex;align-items:center;gap:7px;padding:11px 12px;min-width:0}
 .pvDailyWho strong{font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pvDailyBadge{font-size:9px;border:1px solid #71538c;color:#dfc5ff;border-radius:999px;padding:3px 5px;white-space:nowrap}
-.pvDailyArt{padding:20px 15px;min-height:145px;display:flex;flex-direction:column;justify-content:center;gap:10px;background:linear-gradient(135deg,#443167,#242038)}
+.pvDailyArt{padding:22px 18px;min-height:155px;display:flex;flex-direction:column;justify-content:center;gap:10px;background:linear-gradient(135deg,#443167,#242038)}
 .pvDailyCard[data-theme=tech] .pvDailyArt{background:linear-gradient(135deg,#19435a,#252341)}
 .pvDailyCard[data-theme=travel] .pvDailyArt{background:linear-gradient(135deg,#285749,#38304f)}
 .pvDailyCard[data-theme=style] .pvDailyArt{background:linear-gradient(135deg,#633947,#42294f)}
@@ -164,16 +165,26 @@ function drawNext(){
  for(let i=shown;i<next;i++)frag.append(cardFor(entries[i]));
  cards.append(frag);shown=next;
  more.hidden=shown>=entries.length;
- more.textContent='Show 12 more demo posts ('+shown+'/'+entries.length+')';
+ more.textContent='Load more creator posts ('+shown+'/'+entries.length+')';
 }
 more.addEventListener('click',drawNext);
+// When visitors scroll Home Feed, load every scheduled post progressively.
+// All 100 are ready immediately; rendering is chunked to preserve phone performance.
+if('IntersectionObserver' in window){
+ const observer=new IntersectionObserver(items=>{
+  if(items.some(item=>item.isIntersecting)&&!more.hidden&&shown<entries.length&&!container.closest('.hide')){
+   drawNext();
+  }
+ },{rootMargin:'850px 0px',threshold:0});
+ observer.observe(footer);
+}
 function sync(force=false){
  const day=dayIndex();
  if(!force&&renderedDay===day)return;
  renderedDay=day;shown=0;cards.replaceChildren();
  // Rotate the starting creator so the same accounts don't dominate the screen daily.
  entries=creators.map(person=>postFor(person,day)).sort((a,b)=>((nameIdx(a.creator)*37+day*17)%101)-((nameIdx(b.creator)*37+day*17)%101));
- meta.textContent='100 curated fictional creator posts · '+dateLabel(day)+' · One curated demo post per profile per day at 9 AM IST (60-day editorial rotation). No real users, fake likes, or automated DMs. Real uploads remain separate below.';
+ meta.textContent='100 virtual creators published 1 curated DEMO post each today · '+dateLabel(day)+' · One curated demo post per profile per day at 9 AM IST (60-day editorial rotation). Clearly labeled virtual content; real uploaded posts appear above. No fake likes or automated DMs.';
  drawNext();
 }
 sync(true);
