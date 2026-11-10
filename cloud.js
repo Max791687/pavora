@@ -2322,7 +2322,7 @@ function pvRememberInboxPosition(){pvRememberView('messages')}
 async function pvRestoreView(){const key=pvRouteKey();if(!key||pvRestoredForUser===user.id)return;pvRestoredForUser=user.id;let saved=null;try{saved=JSON.parse(sessionStorage.getItem(key)||'null')}catch(e){}if(!saved||!['home','reels','explore','profile','messages','creator'].includes(saved.view))return;
 if(saved.view==='creator'&&saved.creatorId){openCreator(saved.creatorId).catch(e=>console.warn('Creator profile restore:',e));return}
 if(saved.view==='messages'){pvInboxTab=['Primary','General','Requests'].includes(saved.tab)?saved.tab:'Primary';selectedPeer=typeof saved.peer==='string'&&/^[0-9a-f-]{36}$/i.test(saved.peer)?saved.peer:null;pvNavigate('messages');if(selectedPeer&&!chatPoll)chatPoll=setInterval(()=>{if(!inboxView.classList.contains('hide')&&selectedPeer)renderChat(selectedPeer,true)},2500);return}
-const b=document.querySelector('aside.left [data-view="'+saved.view+'"]');if(b)b.click();else pvNavigate(saved.view)}
+pvNavigate(saved.view);if(saved.view==='profile')updateSocialProfile().catch(e=>console.warn('Profile restore:',e))}
 function pvSyncDesktopChatHeight(){
  if(!document.body.classList.contains('pvMessagesMode')||window.innerWidth<=700)return;
  const main=document.querySelector('main'),view=document.getElementById('pvInboxView');
