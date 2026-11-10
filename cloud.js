@@ -1800,6 +1800,8 @@ async function refreshStoryAvatars(){
 }
 
 let selectedPeer=null,chatPoll=null,pvChatPollBusy=false;let pvHiddenChats=new Map();
+// Expose only which chat window is open; never expose messages or message contents.
+window.PVKit.getActiveChatPeer=()=>user&&selectedPeer&&!document.hidden&&!inboxView.classList.contains('hide')?selectedPeer:null;
 
 const pvDmExtrasCss=document.createElement('style');pvDmExtrasCss.textContent="\n.pvMsgReactionWrap{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:3px 0}\n.pvMsgReactButton{border:0!important;background:transparent!important;color:#b9a9ce!important;padding:3px 6px!important;cursor:pointer;font-size:17px!important;border-radius:999px!important}\n.pvMsgReactButton:hover{background:#524065!important}\n.pvMsgReactionBadge{font-size:13px;padding:4px 8px;border-radius:999px;border:1px solid #594a70;background:#2d2339;color:#fff}\n.pvMsgReactionBadge.mine{border-color:#bf8ef0;background:#503466}\n.pvMsgReactionPalette{display:flex;gap:4px;padding:7px;background:#292332;border:1px solid #625075;border-radius:30px;box-shadow:0 8px 22px #0008}\n.pvMsgReactionPalette[hidden]{display:none!important}\n.pvMsgReactionPalette button{border:0;background:transparent;font-size:20px;cursor:pointer;padding:4px;border-radius:50%}\n.pvMsgReactionPalette button:hover{background:#5a4972}\n.pvDmTypingLabel{font-size:12px;color:#d1adef;min-height:18px;padding:3px 16px 5px}\n.pvDmTypingLabel[hidden]{display:none!important}\n";document.head.append(pvDmExtrasCss);
 const pvDmReactionEmoji=['❤️','😂','👍','🔥','😮','😢'];
