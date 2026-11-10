@@ -8,7 +8,7 @@ const send=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:
 const fail=(message,status=400)=>send({error:message},status);
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const compact=e=>String(e?.message||'Server error').slice(0,250);
-const read=async(q)=>{if(q.error)throw q.error;return q.data};
+const read=async(q)=>{const r=await q;if(r.error)throw r.error;return r.data||[]};
 async function log(actor,action,kind,id,reason,detail={}) {
  const {error}=await admin.from('pv_admin_audit').insert({actor_id:actor,action,target_kind:kind,target_id:id,reason,detail});
  if(error)throw new Error('Audit trail failed: '+error.message);
