@@ -179,7 +179,7 @@ realPosts.after(container);
 const style=E('style');
 style.textContent=`
 /* Reuse the exact existing PAVORA .post, .posthead, .postbody and .postfoot layout. */
-.pvFeedModeTabs{display:flex;gap:8px;margin:8px 0 14px;padding:0 3px}
+#posts > article.post[hidden],#pvDailyShowcase[hidden]{display:none!important}\n.pvFeedModeTabs{display:flex;gap:8px;margin:8px 0 14px;padding:0 3px}
 .pvFeedModeTabs button{background:transparent;border:0;border-bottom:2px solid transparent;color:#aaa4b6;font-size:14px;padding:10px 15px;cursor:pointer;font-weight:750}
 .pvFeedModeTabs button[aria-pressed=true]{border-bottom-color:#a76ce5;color:#fff}
 .pvFeedModeTabs button:focus-visible{outline:2px solid #d6b2ff;outline-offset:2px}
