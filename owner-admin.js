@@ -91,5 +91,7 @@ close.onclick=closePanel;overlay.addEventListener('click',e=>{if(e.target===over
 launcher.onclick=()=>{if(!allowed)return;overlay.hidden=false;active='overview';tabsRender();render()};
 async function verify(){const id=current();if(!id){allowed=false;launcher.hidden=true;closePanel();return}const {data,error}=await db.from('pv_app_admins').select('user_id').eq('user_id',id).maybeSingle();if(id!==current())return;allowed=!error&&!!data;launcher.hidden=!allowed;if(!allowed)closePanel()}
 db.auth.onAuthStateChange(()=>setTimeout(verify,100));setTimeout(verify,800);
+// Cloud session restoration can complete after INITIAL_SESSION; recheck hidden owner entry safely.
+setInterval(()=>{if(current()&&!allowed)verify();else if(!current()&&allowed)verify()},10000);
 window.PAVORA_OWNER={open:()=>{if(allowed)launcher.click()}};
 })();
