@@ -181,8 +181,8 @@ async function moderation(token){
   select.onchange=async()=>{
    select.disabled=true;
    const previous=report.status||'pending';
-   const {error}=await db.from('content_reports').update({status:select.value}).eq('id',report.id);
-   if(error){alert('Could not update review status: '+error.message);select.value=previous}
+   const {data,error}=await db.functions.invoke('pavora-owner-admin',{body:{action:'report.set',id:report.id,status:select.value,reason:'Moderation status reviewed in Creator Hub'}});
+   if(error||data?.error){alert('Could not update review status: '+(data?.error||error?.message));select.value=previous}
    else report.status=select.value;
    select.disabled=false;
   };
