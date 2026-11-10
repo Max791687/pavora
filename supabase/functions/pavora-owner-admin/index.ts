@@ -47,12 +47,25 @@ Deno.serve(async req=>{
    if(term)q=q.or('username.ilike.%'+term+'%,display_name.ilike.%'+term+'%');
    const {data,error,count}=await q.range(page*20,page*20+19);
    if(error)throw error;
+   const userIds=(data||[]).map(p=>p.id);
+   let onlineState=new Map();
+   if(userIds.length){
+    const {data:presence,error:presenceError}=await admin.from('pv_user_presence')
+      .select('user_id,is_active,last_active_at').in('user_id',userIds);
+    if(presenceError)throw presenceError;
+    onlineState=new Map((presence||[]).map(row=>[row.user_id,row]));
+   }
    const users=await Promise.all((data||[]).map(async p=>{
     const r=await admin.auth.admin.getUserById(p.id);
     const account=r.data?.user;
-    return {...p,email:account?.email||null,confirmed:!!account?.email_confirmed_at,suspended:!!(account?.banned_until&&new Date(account.banned_until)>new Date())};
+    const last=onlineState.get(p.id);
+    const age=last?.last_active_at?Date.now()-new Date(last.last_active_at).getTime():Infinity;
+    return {...p,email:account?.email||null,confirmed:!!account?.email_confirmed_at,
+      suspended:!!(account?.banned_until&&new Date(account.banned_until)>new Date()),
+      online:!!last?.is_active&&age>=0&&age<75000,
+      last_active_at:last?.last_active_at||null};
    }));
-   return send({users,total:count||0,page});
+   return send({users,total:count||0,page,onlineCount:users.filter(u=>u.online).length});
   }
   if(action==='recovery.list'){
    const entries=await read(admin.from('pv_recovery_requests').select('id,email,issue,status,created_at').order('created_at',{ascending:false}).limit(100));
@@ -103,11 +116,14 @@ Deno.serve(async req=>{
    if(!kind)return fail('Unknown content type');
    const table=kind==='post'?'posts':'reels';
    const [items,moderated]=await Promise.all([
-    read(admin.from(table).select('id,author_id,caption,created_at').order('created_at',{ascending:false}).limit(100)),
+    read(admin.from(table).select(kind==='reel'?'id,author_id,caption,video_path,created_at':'id,author_id,caption,image_path,created_at').order('created_at',{ascending:false}).limit(100)),
     read(admin.from('pv_content_moderation').select('kind,content_id,hidden,reason,updated_at').eq('kind',kind))
    ]);
+   const authorIds=[...new Set(items.map(item=>item.author_id).filter(Boolean))];
+   const people=authorIds.length?await read(admin.from('profiles').select('id,username,display_name,avatar_url').in('id',authorIds)):[];
+   const authors=new Map(people.map(person=>[person.id,{username:person.username,display_name:person.display_name,avatar_url:person.avatar_url}]));
    const statuses=new Map(moderated.map(m=>[m.content_id,m]));
-   return send({items:items.map(item=>({...item,moderation:statuses.get(item.id)||null}))});
+   return send({items:items.map(item=>({...item,author:authors.get(item.author_id)||null,moderation:statuses.get(item.id)||null}))});
   }
   if(action==='audit'){
    const entries=await read(admin.from('pv_admin_audit').select('id,actor_id,action,target_kind,target_id,reason,created_at').order('created_at',{ascending:false}).limit(100));
