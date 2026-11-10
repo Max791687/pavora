@@ -82,7 +82,7 @@ assert.ok(cloud.includes('<p id="authMsg" role="status" aria-live="polite" hidde
 assert.ok(cloud.includes('db.auth.resetPasswordForEmail(email')&&cloud.includes('setAuthMode(\'reset\')')&&cloud.includes('db.auth.getSession()')&&cloud.includes("event==='SIGNED_OUT'"), 'Reset-password, session restore and logout handlers must remain wired');
 assert.ok(cloud.includes("insertAdjacentElement('afterend',document.getElementById('authMsg'))"), 'Login feedback must be near submit button');
 assert.ok(cloud.includes("pvNotifyAuth('✓ Login successful!")&&cloud.includes('Login failed. Email or password is incorrect.'), 'Login success/error messaging missing');
-assert.ok(html.includes('20261110-recovery-support-v49')&&sw.includes('pavora-shell-2026-11-10-login-hidden-v51'), 'PWA latest version mismatch');
+assert.ok(html.includes('20261110-login-hidden-fields-v51')&&sw.includes('pavora-shell-2026-11-10-login-hidden-v51'), 'PWA latest version mismatch');
 assert.ok(html.indexOf('chat-themes.js')<html.indexOf('cloud.js?v='), 'Chat themes engine must load before cloud.js');
 assert.ok(sw.includes('chat-themes.js')&&themes.includes('PAVORA_CHAT_THEMES'), 'Chat themes shell integration missing');
 assert.ok(cloud.includes('pvChatThemeTrigger')&&cloud.includes('PAVORA_CHAT_THEMES?.apply')&&cloud.includes('PAVORA_CHAT_THEMES?.open'), 'Chat theme picker hookup missing');
