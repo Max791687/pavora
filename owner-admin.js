@@ -232,7 +232,62 @@ async function refreshChatsLive(force=false){
   if(pvChatsLayout&&active==='chats')pvChatsLayout.status.textContent='Sync interrupted: '+(e.message||'Network error')+' · retrying';
  }finally{pvChatsRequestBusy=false}
 }
+
+let pvUsersLiveUI=null,pvUsersLiveBusy=false,pvUsersLiveSignature='';
+function renderLiveUserRows(d){
+ if(!pvUsersLiveUI)return;
+ const {userList}=pvUsersLiveUI;
+ const signature=JSON.stringify([d.users,d.total,statusFilter,page]);
+ if(signature===pvUsersLiveSignature)return;
+ pvUsersLiveSignature=signature;
+ const listScroll=main.scrollTop;
+ userList.replaceChildren();
+   if(!d.users.length)userList.append(E('div','pvoSectionEmpty','No matching users found.'));
+   for(const u of d.users){
+    const entry=E('div','pvoCard');
+    const identity=E('div','pvoIdentity');identity.append(E('strong','', '@'+(u.username||'unknown')+(u.display_name?' · '+u.display_name:'')),E('small','',u.email||'No email'));
+    const badges=E('div','pvoUserMeta');
+    const lastActive=u.last_active_at?new Date(u.last_active_at):null;
+    let lastLabel='Last seen unavailable (no activity recorded)';
+    if(lastActive&&!Number.isNaN(lastActive.getTime())){
+      const seconds=Math.max(0,Math.floor((Date.now()-lastActive.getTime())/1000));
+      const relative=seconds<60?'just now':seconds<3600?Math.floor(seconds/60)+' min ago':seconds<86400?Math.floor(seconds/3600)+' hr ago':Math.floor(seconds/86400)+' days ago';
+      lastLabel=(u.online?'Online now · Last heartbeat ':'Last seen ')+relative+' · '+lastActive.toLocaleString('en-IN');
+    }
+    for(const [value,cls] of [[u.online?'Online now':'Offline',u.online?'pvoOnline':''],[u.confirmed?'Verified':'Unverified',''],[u.suspended?'Suspended':'Active',u.suspended?'isSuspended':''],[u.is_official?'Official':'',''],[u.created_at?new Date(u.created_at).toLocaleDateString('en-IN'):'','']]){
+      if(value)badges.append(E('span',cls,value));
+    }
+    identity.append(badges,E('div','pvoLastSeen'+(u.online?' online':''),lastLabel));entry.append(identity);
+    if(!u.is_official){
+      const opts=E('div','pvoActions');
+      opts.append(makeButton(u.suspended?'Unban':'Suspend',()=>actionConfirm(u.suspended?'unban user':'suspend user',u.suspended?'user.unban':'user.suspend',{id:u.id}),u.suspended?'secondary':'danger'));
+      entry.append(opts);
+    }
+    userList.append(entry);
+   }
+
+ pvUsersLiveUI.heading.textContent='Users · '+d.total;
+ pvUsersLiveUI.hint.textContent='Showing '+d.users.length+' of '+d.total+' '+(statusFilter==='all'?'users':statusFilter+' users')+' · Live auto-sync · Online means active within 75 seconds. Last seen is the last recorded activity.';
+ pvUsersLiveUI.prev.disabled=page===0;
+ pvUsersLiveUI.next.disabled=(page+1)*20>=d.total;
+ main.scrollTop=listScroll;
+}
+async function refreshUsersLive(){
+ if(!allowed||overlay.hidden||active!=='users'||document.hidden||!pvUsersLiveUI||pvUsersLiveBusy)return;
+ pvUsersLiveBusy=true;
+ const ui=pvUsersLiveUI,seenPage=page,seenFilter=statusFilter,seenSearch=search;
+ try{
+  const d=await api('users',{search:seenSearch,page:seenPage,status:seenFilter});
+  if(active==='users'&&!overlay.hidden&&pvUsersLiveUI===ui&&page===seenPage&&statusFilter===seenFilter&&search===seenSearch){
+    renderLiveUserRows(d);
+    ui.live.textContent='● Live · Updated '+new Date().toLocaleTimeString('en-IN');
+  }
+ }catch(e){
+  if(pvUsersLiveUI===ui)ui.live.textContent='Sync interrupted · Retrying automatically';
+ }finally{pvUsersLiveBusy=false}
+}
 async function render(){
+ pvUsersLiveUI=null;pvUsersLiveSignature='';
  pvChatsLayout=null;pvChatsSignature='';
  const ticket=++seq;clear();if(!allowed||!current()){closePanel();return}
  if(active==='chats'){buildChatsLayout();pvChatsLayout.status.textContent='Connecting live activity…';}
@@ -276,7 +331,7 @@ async function render(){
    line('All figures and actions come from live Supabase data. No sample analytics or fake reports are displayed.');
   }else if(active==='users'){
    const d=await api('users',{search,page,status:statusFilter});if(ticket!==seq)return;clear();
-   const bar=toolbar('Users · '+d.total),input=E('input','pvoSearch');input.placeholder='Search username or display name';input.value=search;input.setAttribute('aria-label','Search users');const go=makeButton('Search',async()=>{search=input.value.trim();page=0;await render()});input.addEventListener('keydown',e=>{if(e.key==='Enter')go.click()});bar.append(input,go);
+   const bar=toolbar('Users · '+d.total),heading=bar.querySelector('h3'),input=E('input','pvoSearch');input.placeholder='Search username or display name';input.value=search;input.setAttribute('aria-label','Search users');const go=makeButton('Search',async()=>{search=input.value.trim();page=0;await render()});input.addEventListener('keydown',e=>{if(e.key==='Enter')go.click()});bar.append(input,go);
    const filters=E('div','pvoUserFilters');filters.setAttribute('role','group');filters.setAttribute('aria-label','Filter users by online status');
    for(const [state,label] of [['all','All users'],['online','Online'],['offline','Offline']]){
     const button=E('button','pvoFilter'+(statusFilter===state?' active':''));button.type='button';button.setAttribute('aria-pressed',String(statusFilter===state));
@@ -286,33 +341,12 @@ async function render(){
     filters.append(button);
    }
    const refresh=E('button','pvoFilter','↻ Refresh');refresh.type='button';refresh.title='Refresh online status from Supabase';refresh.onclick=()=>render();filters.append(refresh);main.append(filters);
-   main.append(E('p','pvoUserHint','Showing '+d.users.length+' of '+d.total+' '+(statusFilter==='all'?'users':statusFilter+' users')+' · Online means active within the last 75 seconds. Last seen comes from the last recorded activity.'));
+   const hint=E('p','pvoUserHint','Live users loading…');main.append(hint);
    const userList=E('div','pvoUserList');main.append(userList);
-   if(!d.users.length)userList.append(E('div','pvoSectionEmpty','No matching users found.'));
-   for(const u of d.users){
-    const entry=E('div','pvoCard');
-    const identity=E('div','pvoIdentity');identity.append(E('strong','', '@'+(u.username||'unknown')+(u.display_name?' · '+u.display_name:'')),E('small','',u.email||'No email'));
-    const badges=E('div','pvoUserMeta');
-    const lastActive=u.last_active_at?new Date(u.last_active_at):null;
-    let lastLabel='Last seen unavailable (no activity recorded)';
-    if(lastActive&&!Number.isNaN(lastActive.getTime())){
-      const seconds=Math.max(0,Math.floor((Date.now()-lastActive.getTime())/1000));
-      const relative=seconds<60?'just now':seconds<3600?Math.floor(seconds/60)+' min ago':seconds<86400?Math.floor(seconds/3600)+' hr ago':Math.floor(seconds/86400)+' days ago';
-      lastLabel=(u.online?'Online now · Last heartbeat ':'Last seen ')+relative+' · '+lastActive.toLocaleString('en-IN');
-    }
-    for(const [value,cls] of [[u.online?'Online now':'Offline',u.online?'pvoOnline':''],[u.confirmed?'Verified':'Unverified',''],[u.suspended?'Suspended':'Active',u.suspended?'isSuspended':''],[u.is_official?'Official':'',''],[u.created_at?new Date(u.created_at).toLocaleDateString('en-IN'):'','']]){
-      if(value)badges.append(E('span',cls,value));
-    }
-    identity.append(badges,E('div','pvoLastSeen'+(u.online?' online':''),lastLabel));entry.append(identity);
-    if(!u.is_official){
-      const opts=E('div','pvoActions');
-      opts.append(makeButton(u.suspended?'Unban':'Suspend',()=>actionConfirm(u.suspended?'unban user':'suspend user',u.suspended?'user.unban':'user.suspend',{id:u.id}),u.suspended?'secondary':'danger'));
-      entry.append(opts);
-    }
-    userList.append(entry);
-   }
+   const live=E('small','pvoMuted','● Live · Automatically syncing');live.style.display='block';live.style.margin='8px 0';main.append(live);
    const foot=E('div','pvoFoot'),label=E('span','pvoMuted','Page '+(page+1)),prev=makeButton('Previous',async()=>{page--;await render()},'secondary'),next=makeButton('Next',async()=>{page++;await render()},'secondary');
-   prev.disabled=page===0;next.disabled=(page+1)*20>=d.total;foot.append(prev,label,next);main.append(foot);
+   foot.append(prev,label,next);main.append(foot);
+   pvUsersLiveUI={heading,hint,userList,prev,next,live};renderLiveUserRows(d);
   }else if(active==='reports'){
    const d=await api('reports');if(ticket!==seq)return;clear();toolbar('Reported content and accounts');
    if(!d.reports.length)line('No reports to review.');
@@ -412,5 +446,6 @@ db.auth.onAuthStateChange(()=>setTimeout(verify,100));setTimeout(verify,800);
 // Cloud session restoration can complete after INITIAL_SESSION; recheck hidden owner entry safely.
 setInterval(()=>{if(current()&&!allowed)verify();else if(!current()&&allowed)verify()},10000);
 setInterval(()=>{refreshChatsLive()},2000);
+setInterval(()=>{refreshUsersLive()},2500);
 window.PAVORA_OWNER={open:()=>{if(allowed)launcher.click()}};
 })();
