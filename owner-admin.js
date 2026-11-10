@@ -145,13 +145,19 @@ const css=E('style');css.textContent=`
 #pvOwnerRoot .pvoLastSeen{margin-top:7px;color:#b9aecd;font-size:12px}
 #pvOwnerRoot .pvoLastSeen.online{color:#62e3a3}
 #pvOwnerRoot .pvoUserHint{line-height:1.6;margin-bottom:11px}
+
+/* v57 active chat metadata only, no message content */
+#pvOwnerRoot .pvoActiveChat{border-left:3px solid #a677ea;background:linear-gradient(110deg,#261e35,#1b1727)}
+#pvOwnerRoot .pvoActiveChat strong{font-size:15px}
+#pvOwnerRoot .pvoActiveChat small{font-size:12px;color:#6fe1ac}
+#pvOwnerRoot .pvoSectionEmpty{border:1px dashed #544363;background:#241a30;color:#cbbbd9;border-radius:12px;padding:25px;margin:15px 0;font-size:13px}
 `;document.head.append(css);
 const launcher=E('button','','🛡 Owner Dashboard');launcher.id='pvOwnerLauncher';launcher.type='button';launcher.hidden=true;document.querySelector('#profile > .panel')?.prepend(launcher);
 const overlay=E('section');overlay.id='pvOwnerRoot';overlay.hidden=true;overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','PAVORA Owner Admin Dashboard');
 const panel=E('div','pvoPanel'),head=E('div','pvoHead'),heading=E('div'),tabs=E('nav','pvoTabs'),main=E('div','pvoMain'),close=E('button','pvoClose','Close ×');
-heading.append(E('h2','','🛡 PAVORA Owner'),E('small','','LIVE ADMIN CONSOLE · v56 · Access logged'));head.append(heading,close);panel.append(head,tabs,main);overlay.append(panel);document.body.append(overlay);
+heading.append(E('h2','','🛡 PAVORA Owner'),E('small','','LIVE ADMIN CONSOLE · v57 · Access logged'));head.append(heading,close);panel.append(head,tabs,main);overlay.append(panel);document.body.append(overlay);
 let active='overview',allowed=false,seq=0,search='',page=0,statusFilter='all';
-const names={overview:'Overview',users:'Users',reports:'Reports',posts:'Posts',reels:'Reels',audit:'Audit Logs',recovery:'Recovery Support'};
+const names={overview:'Overview',users:'Users',chats:'Active Chats',reports:'Reports',posts:'Posts',reels:'Reels',audit:'Audit Logs',recovery:'Recovery Support'};
 const current=()=>kit.getUser()?.id;
 async function api(action,more={}){
  const r=await db.functions.invoke('pavora-owner-admin',{body:{action,...more}});
@@ -285,6 +291,23 @@ async function render(){
     actions.append(makeButton(hidden?'Restore':'Hide',()=>actionConfirm(hidden?'restore '+kind:'hide '+kind,action,{kind,id:p.id}),hidden?'secondary':'danger'));
     row.append(thumb,detail,actions);main.append(row);
    }
+  }else if(active==='chats'){
+   const d=await api('chat.activity');if(ticket!==seq)return;clear();
+   const bar=toolbar('Active conversations · '+(d.pairs?.length||0));
+   const refresh=makeButton('↻ Refresh',async()=>render(),'secondary');bar.append(refresh);
+   line('Shows only pairs where BOTH people currently have each other’s chat open. This does not prove they are typing or exchanging messages. Private message content is never read.');
+   if(!d.pairs?.length){
+    const empty=E('div','pvoSectionEmpty','No two-way open chats right now. A pair appears only while both chat windows are active.');main.append(empty);
+   }
+   for(const pair of d.pairs||[]){
+    const first=pair.first?.username?'@'+pair.first.username:pair.first?.display_name||'User';
+    const second=pair.second?.username?'@'+pair.second.username:pair.second?.display_name||'User';
+    const when=pair.last_active_at?new Date(pair.last_active_at).toLocaleString('en-IN'):'just now';
+    const item=E('div','pvoCard pvoActiveChat');
+    const info=E('div');info.append(E('strong','',first+' ↔ '+second),E('small','','● Both viewing this conversation · Updated '+when));
+    item.append(info);main.append(item);
+   }
+   line('Live status refreshes about every 15 seconds while this tab is open. Activity expires automatically when chat windows close or stop sending heartbeats.');
   }else if(active==='recovery'){
    const d=await api('recovery.list');if(ticket!==seq)return;clear();toolbar('Account recovery support');
    line('Review access requests without ever asking for passwords, OTPs or ID documents. Verify account ownership using a trusted channel before assisting with a reset.');
@@ -335,5 +358,6 @@ async function verify(){const id=current();if(!id){allowed=false;launcher.hidden
 db.auth.onAuthStateChange(()=>setTimeout(verify,100));setTimeout(verify,800);
 // Cloud session restoration can complete after INITIAL_SESSION; recheck hidden owner entry safely.
 setInterval(()=>{if(current()&&!allowed)verify();else if(!current()&&allowed)verify()},10000);
+setInterval(()=>{if(allowed&&!overlay.hidden&&active==='chats'&&!document.hidden)render()},15000);
 window.PAVORA_OWNER={open:()=>{if(allowed)launcher.click()}};
 })();
