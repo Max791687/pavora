@@ -39,7 +39,7 @@
  function sync(){
   const id=who();
   if(id===owner&&hasLoaded)return;
-  clearTimeout(saveTimeout);owner=id;hasLoaded=true;lastKnown='';
+  clearTimeout(saveTimeout);const priorOwner=owner;owner=id;hasLoaded=true;lastKnown='';if(priorOwner&&priorOwner!==id)input.value='';
   if(!id){input.value='';status.textContent='Sign in to save a private draft';save.disabled=discard.disabled=true;updateCount();return}
   save.disabled=discard.disabled=false;
   try{
@@ -66,5 +66,5 @@
  });
  window.addEventListener('pagehide',()=>{if(saveTimeout)store()});
  kit.db.auth.onAuthStateChange(()=>setTimeout(sync,0));
- sync();setInterval(sync,400);
+ sync();setInterval(sync,1000);
 })();
