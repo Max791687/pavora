@@ -38,7 +38,7 @@ const overlay=E('section');overlay.id='pvOwnerRoot';overlay.hidden=true;overlay.
 const panel=E('div','pvoPanel'),head=E('div','pvoHead'),heading=E('div'),tabs=E('nav','pvoTabs'),main=E('main','pvoMain'),close=E('button','pvoClose','Close ×');
 heading.append(E('h2','','🛡 PAVORA Owner'),E('small','','Secure administration · Access logged'));head.append(heading,close);panel.append(head,tabs,main);overlay.append(panel);document.body.append(overlay);
 let active='overview',allowed=false,seq=0,search='',page=0;
-const names={overview:'Overview',users:'Users',reports:'Reports',posts:'Posts',reels:'Reels',audit:'Audit Logs'};
+const names={overview:'Overview',users:'Users',reports:'Reports',posts:'Posts',reels:'Reels',audit:'Audit Logs',recovery:'Recovery Support'};
 const current=()=>kit.getUser()?.id;
 async function api(action,more={}){const r=await db.functions.invoke('pavora-owner-admin',{body:{action,...more}});if(r.error)throw new Error(r.data?.error||r.error.message||'Admin request failed');if(r.data?.error)throw new Error(r.data.error);return r.data}
 function clear(){main.replaceChildren()}
@@ -78,6 +78,14 @@ async function render(){
    const kind=active==='posts'?'post':'reel',d=await api('content',{kind});if(ticket!==seq)return;clear();toolbar(kind==='post'?'Post moderation':'Reel moderation');
    line('Hide removes content from regular feeds but preserves database rows and media. Restore reverses the action.');
    for(const p of d.items){const hidden=!!p.moderation?.hidden;const action=hidden?'content.restore':'content.hide';card((p.caption||'Untitled '+kind).slice(0,100),(hidden?'Hidden · ':'Visible · ')+new Date(p.created_at).toLocaleString('en-IN')+' · Author '+p.author_id,[makeButton(hidden?'Restore':'Hide',()=>actionConfirm(hidden?'restore '+kind:'hide '+kind,action,{kind,id:p.id}),hidden?'secondary':'danger')])}
+  }else if(active==='recovery'){
+   const d=await api('recovery.list');if(ticket!==seq)return;clear();toolbar('Account recovery support');
+   line('Review access requests without ever asking for passwords, OTPs or ID documents. Verify account ownership using a trusted channel before assisting with a reset.');
+   if(!d.entries.length)line('No recovery requests yet.');
+   for(const r of d.entries){
+    const acts=['reviewing','closed'].filter(s=>s!==r.status).map(s=>makeButton(s,()=>actionConfirm('mark recovery '+s,'recovery.review',{id:r.id,status:s}),'secondary'));
+    card(r.email+' · '+r.status,(r.issue||'Account access request')+' · '+new Date(r.created_at).toLocaleString('en-IN'),acts);
+   }
   }else{
    const d=await api('audit');if(ticket!==seq)return;clear();toolbar('Owner action audit');
    line('Latest 100 administrative actions, newest first. Audit entries cannot be changed from the app.');
