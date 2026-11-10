@@ -54,6 +54,13 @@ assert.ok(recoverySql.includes('enable row level security')&&recoverySql.include
 assert.ok(recoveryFn.includes('pv_recovery_requests')&&recoveryFn.includes('count'), 'Support intake or throttle missing');
 
 const owner=read('owner-admin.js'),ownerFunction=read('supabase/functions/pavora-owner-admin/index.ts');
+const passwordHelp=read('password-help.js'),hintSql=read('supabase/password-hints-v50.sql');
+try {new Function(passwordHelp)}catch(err){throw Error('Password help syntax: '+err.message)}
+assert.ok(html.includes('password-help.js?v=20261110-password-help-v50')&&sw.includes('./password-help.js'),'Password hint UI must ship in PWA');
+assert.ok(hintSql.includes('pv_password_hints')&&hintSql.includes('enable row level security')&&hintSql.includes('user_id=(select auth.uid())'),'Password hints must be private');
+assert.ok(passwordHelp.includes('pvHintLauncher')&&passwordHelp.includes('pv_password_hints')&&passwordHelp.includes("event==='PASSWORD_RECOVERY'")&&passwordHelp.includes('db.auth.updateUser({password})'),'User-managed hint and verified reset support missing');
+assert.ok(owner.includes('recovery.send_reset')&&ownerFunction.includes("action==='recovery.send_reset'")&&ownerFunction.includes('resetPasswordForEmail')&&ownerFunction.includes('pv_admin_audit'),'Admin-assisted reset must be audited and never expose tokens');
+
 assert.ok(owner.includes("recovery.list")&&owner.includes("recovery.review")&&ownerFunction.includes("recovery.list")&&ownerFunction.includes("recovery.review"), 'Owner support recovery review not wired');
 assert.ok(html.includes('owner-admin.js?v=20261110-owner-dashboard-v47')&&sw.includes('./owner-admin.js'), 'Owner dashboard not included in PWA');
 assert.ok(owner.includes("db.functions.invoke('pavora-owner-admin'")&&owner.includes('pvOwnerLauncher')&&owner.includes('pvOwnerRoot'), 'Owner UI not securely calling Edge Function');
@@ -74,7 +81,7 @@ assert.ok(cloud.includes('<p id="authMsg" role="status" aria-live="polite" hidde
 assert.ok(cloud.includes('db.auth.resetPasswordForEmail(email')&&cloud.includes('setAuthMode(\'reset\')')&&cloud.includes('db.auth.getSession()')&&cloud.includes("event==='SIGNED_OUT'"), 'Reset-password, session restore and logout handlers must remain wired');
 assert.ok(cloud.includes("insertAdjacentElement('afterend',document.getElementById('authMsg'))"), 'Login feedback must be near submit button');
 assert.ok(cloud.includes("pvNotifyAuth('✓ Login successful!")&&cloud.includes('Login failed. Email or password is incorrect.'), 'Login success/error messaging missing');
-assert.ok(html.includes('20261110-recovery-support-v49')&&sw.includes('pavora-shell-2026-11-10-recovery-v49'), 'PWA latest version mismatch');
+assert.ok(html.includes('20261110-recovery-support-v49')&&sw.includes('pavora-shell-2026-11-10-password-help-v50'), 'PWA latest version mismatch');
 assert.ok(html.indexOf('chat-themes.js')<html.indexOf('cloud.js?v='), 'Chat themes engine must load before cloud.js');
 assert.ok(sw.includes('chat-themes.js')&&themes.includes('PAVORA_CHAT_THEMES'), 'Chat themes shell integration missing');
 assert.ok(cloud.includes('pvChatThemeTrigger')&&cloud.includes('PAVORA_CHAT_THEMES?.apply')&&cloud.includes('PAVORA_CHAT_THEMES?.open'), 'Chat theme picker hookup missing');
