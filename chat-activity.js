@@ -3,7 +3,7 @@
 (()=>{
 'use strict';
 const kit=window.PVKit;if(!kit?.db)return;
-const db=kit.db,intervalMs=18000;
+const db=kit.db,intervalMs=12000;
 let previousUser=null,previousPeer=null,busy=false,stopped=false;
 const user=()=>kit.getUser()?.id||null;
 const openPeer=()=>typeof kit.getActiveChatPeer==='function'?kit.getActiveChatPeer():null;
@@ -24,7 +24,7 @@ async function send(){
  finally{busy=false}
 }
 const tick=()=>send();
-const timer=setInterval(tick,intervalMs);setTimeout(tick,1800);
+const timer=setInterval(tick,intervalMs);setTimeout(tick,200);window.addEventListener('pv-chat-peer-changed',()=>{setTimeout(tick,80);setTimeout(tick,800)});
 document.addEventListener('visibilitychange',tick);
 db.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'||event==='SIGNED_IN')setTimeout(tick,180)});
 window.addEventListener('pagehide',()=>{stopped=true;clearInterval(timer);if(previousUser){const uid=previousUser;db.from('pv_chat_presence').delete().eq('user_id',uid).then(()=>{})}});
