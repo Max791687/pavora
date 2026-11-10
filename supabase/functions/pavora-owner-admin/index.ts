@@ -43,8 +43,20 @@ Deno.serve(async req=>{
   if(action==='users'){
    const term=String(body.search||'').trim().slice(0,48).replace(/[,()%]/g,'');
    const page=Math.min(50,Math.max(0,Number(body.page)||0));
+   const status=['all','online','offline'].includes(body.status)?body.status:'all';
+   const cutoff=new Date(Date.now()-75000).toISOString();
+   let onlineIds=[];
+   if(status!=='all'){
+    const {data:present,error:presentError}=await admin.from('pv_user_presence')
+      .select('user_id').eq('is_active',true).gte('last_active_at',cutoff).limit(10000);
+    if(presentError)throw presentError;
+    onlineIds=(present||[]).map(row=>row.user_id);
+    if(status==='online'&&!onlineIds.length)return send({users:[],total:0,page,onlineCount:0,status});
+   }
    let q=admin.from('profiles').select('id,username,display_name,created_at,is_private,is_official',{count:'exact'}).order('created_at',{ascending:false});
    if(term)q=q.or('username.ilike.%'+term+'%,display_name.ilike.%'+term+'%');
+   if(status==='online')q=q.in('id',onlineIds);
+   if(status==='offline'&&onlineIds.length)q=q.not('id','in','('+onlineIds.join(',')+')');
    const {data,error,count}=await q.range(page*20,page*20+19);
    if(error)throw error;
    const userIds=(data||[]).map(p=>p.id);
@@ -65,7 +77,7 @@ Deno.serve(async req=>{
       online:!!last?.is_active&&age>=0&&age<75000,
       last_active_at:last?.last_active_at||null};
    }));
-   return send({users,total:count||0,page,onlineCount:users.filter(u=>u.online).length});
+   return send({users,total:count||0,page,onlineCount:users.filter(u=>u.online).length,status});
   }
   if(action==='recovery.list'){
    const entries=await read(admin.from('pv_recovery_requests').select('id,email,issue,status,created_at').order('created_at',{ascending:false}).limit(100));
