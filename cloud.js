@@ -96,38 +96,6 @@ const style=document.createElement('style');style.textContent=`
 const overlay=document.createElement('div');overlay.id='authOverlay';
 overlay.innerHTML=`<section class="authShowcase"><div class="authLogo">PAVORA ✦</div><h1>Share moments.<br><em>Make connections.</em></h1><p>Your space to share photos, discover creators, and stay close to the people who matter.</p><div class="authArt" aria-hidden="true"><div class="authArtCard">📷</div><div class="authArtCard">💜</div><div class="authArtCard">✨</div></div></section><section class="authRight"><div id="authBox"><div class="authLogo" style="margin-bottom:28px">PAVORA ✦</div><h2 id="authHeading">Log in to PAVORA</h2><p class="authSub" id="authSubtitle">Welcome back! Enter your details to continue.</p><form id="authForm"><div id="authNameWrap" hidden><label for="authName">Full name</label><input id="authName" type="text" placeholder="Your name" autocomplete="name" maxlength="60"></div><div id="authUsernameWrap" hidden><label for="authUsername">Username</label><input id="authUsername" type="text" placeholder="Choose a username" autocomplete="username" maxlength="24" pattern="[A-Za-z0-9_]{3,24}"></div><div class="pvAuthMethods" id="pvAuthMethods"><button type="button" class="pvAuthMethod active" id="pvMethodEmail" aria-pressed="true">✉ Email</button><button type="button" class="pvAuthMethod" id="pvMethodPhone" aria-pressed="false" disabled title="Mobile signup will launch when SMS verification is available">📱 Phone · Soon</button></div><div id="pvEmailWrap"><label for="authEmail">Email address</label><input id="authEmail" type="email" placeholder="you@example.com" required autocomplete="email"></div><div id="pvPhoneWrap" hidden><label for="authPhone">Mobile number (India)</label><div class="pvPhoneInput"><span>+91</span><input id="authPhone" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="9876543210" maxlength="10" pattern="[6-9][0-9]{9}"></div><small>Phone signup requires SMS verification.</small></div><div id="pvOtpWrap" hidden><label for="pvOtp">SMS verification code</label><input id="pvOtp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{4,8}" placeholder="Enter the code sent by SMS"><button type="button" class="authLink" id="pvOtpResend">Resend code</button></div><label for="authPassword">Password</label><div class="authPasswordRow"><input id="authPassword" type="password" placeholder="At least 6 characters" required minlength="6" autocomplete="current-password"><button type="button" id="authTogglePassword">Show</button></div><div id="authConfirmWrap" hidden><label for="authConfirm">Confirm password</label><input id="authConfirm" type="password" placeholder="Enter password again" autocomplete="new-password"></div><button class="authMainBtn" id="authSubmit" type="submit">Log in</button></form><div class="authCenter"><button class="authLink" id="authForgot" type="button">Forgot password?</button></div><div class="authDivider">OR</div><button class="authSwitch" id="signup" type="button">Create new account</button><p id="authMsg" role="status" aria-live="polite"></p><p class="authTerms">By continuing, you agree to use PAVORA respectfully.</p></div></section>`;
 document.body.append(overlay);
-/* PAVORA Google OAuth: the browser visits Supabase Auth and returns to GitHub Pages.
-   Google Client Secret is configured only in Supabase, never shipped to this app. */
-const pvGoogleButton=document.createElement('button');
-pvGoogleButton.type='button';pvGoogleButton.id='pvGoogleAuth';
-pvGoogleButton.setAttribute('aria-label','Continue with Google');
-pvGoogleButton.innerHTML='<svg viewBox="0 0 48 48" width="21" height="21" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.27 5.48-4.8 7.18l7.73 6c4.51-4.17 7.11-10.32 7.11-17.65z"/><path fill="#FBBC05" d="M10.53 28.59A14.39 14.39 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.2A23.83 23.83 0 0 0 0 24c0 3.87.93 7.52 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.14 1.44-4.88 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.97 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span>Continue with Google</span>';
-const pvGoogleDivider=overlay.querySelector('.authDivider');
-pvGoogleDivider?.insertAdjacentElement('afterend',pvGoogleButton);
-const pvGoogleStyles=document.createElement('style');
-pvGoogleStyles.textContent='#authBox #pvGoogleAuth{width:100%;display:flex;align-items:center;justify-content:center;gap:12px;padding:13px 16px;border:1px solid #d5d1dd;border-radius:12px;background:#fff;color:#242027;font-size:14px;font-weight:750;cursor:pointer;transition:border-color .15s,box-shadow .15s}#authBox #pvGoogleAuth:hover,#authBox #pvGoogleAuth:focus-visible{border-color:#8059dc;box-shadow:0 0 0 3px #8059dc1a}#authBox #pvGoogleAuth:disabled{opacity:.65;cursor:progress}#authBox #pvGoogleAuth svg{flex:none}';
-document.head.append(pvGoogleStyles);
-pvGoogleButton.onclick=async()=>{
- if(pvGoogleButton.disabled)return;
- pvGoogleButton.disabled=true;
- pvGoogleButton.querySelector('span').textContent='Connecting to Google…';
- msg('Redirecting securely to Google…','loading');
- try{
-  const {data,error}=await pvAuthTimeout(db.auth.signInWithOAuth({
-   provider:'google',
-   options:{redirectTo:'https://max791687.github.io/pavora/',scopes:'openid email profile'}
-  }));
-  if(error)throw error;
-  if(!data?.url)throw Error('Google authentication could not be started. Check Google provider settings in Supabase.');
-  // Supabase JS normally navigates automatically; prevent accidental second sign-in.
- }catch(e){
-  msg(/provider is not enabled|unsupported provider/i.test(e.message||'')
-   ?'Google login needs setup: enable Google under Supabase Authentication → Sign In / Providers, and add your Google OAuth Client ID and Secret.'
-   :pvReadableAuthError(e),'error');
-  pvGoogleButton.disabled=false;
-  pvGoogleButton.querySelector('span').textContent='Continue with Google';
- }
-};
 const status=document.createElement('p');status.id='cloudStatus';status.textContent='Connecting to PAVORA Cloud…';document.querySelector('.feed').prepend(status);
 const signout=document.createElement('button');signout.id='signout';signout.className='secondary';signout.textContent='Log out';document.querySelector('.top').append(signout);
 /* Visible, accessible authentication feedback beside the submit button and after navigation. */
