@@ -55,6 +55,8 @@ assert.ok(recoverySql.includes('enable row level security')&&recoverySql.include
 assert.ok(recoveryFn.includes('pv_recovery_requests')&&recoveryFn.includes('count'), 'Support intake or throttle missing');
 
 const owner=read('owner-admin.js'),ownerFunction=read('supabase/functions/pavora-owner-admin/index.ts');
+assert.ok(owner.includes('Online now')&&owner.includes('last_active_at')&&owner.includes('Open Reel')&&owner.includes('View Post')&&owner.includes('pvOwnerViewer'), 'Owner presence badges and content preview missing');
+assert.ok(ownerFunction.includes('onlineCount:users.filter(u=>u.online).length')&&ownerFunction.includes('last_active_at')&&ownerFunction.includes('video_path')&&ownerFunction.includes('image_path')&&ownerFunction.includes('author:authors.get(item.author_id)'), 'Owner backend uploader and online status missing');
 const passwordHelp=read('password-help.js'),hintSql=read('supabase/password-hints-v50.sql');
 try {new Function(passwordHelp)}catch(err){throw Error('Password help syntax: '+err.message)}
 assert.ok(html.includes('password-help.js?v=20261110-password-help-v50')&&sw.includes('./password-help.js'),'Password hint UI must ship in PWA');
@@ -63,12 +65,12 @@ assert.ok(passwordHelp.includes('pvHintLauncher')&&passwordHelp.includes('pv_pas
 assert.ok(owner.includes('recovery.send_reset')&&ownerFunction.includes("action==='recovery.send_reset'")&&ownerFunction.includes('resetPasswordForEmail')&&ownerFunction.includes('pv_admin_audit'),'Admin-assisted reset must be audited and never expose tokens');
 
 assert.ok(owner.includes("recovery.list")&&owner.includes("recovery.review")&&ownerFunction.includes("recovery.list")&&ownerFunction.includes("recovery.review"), 'Owner support recovery review not wired');
-assert.ok(html.includes('owner-admin.js?v=20261110-owner-dashboard-v54')&&sw.includes('./owner-admin.js'), 'Owner dashboard not included in PWA');
+assert.ok(html.includes('owner-admin.js?v=20261110-owner-dashboard-v55')&&sw.includes('./owner-admin.js'), 'Owner dashboard not included in PWA');
 assert.ok(owner.includes("db.functions.invoke('pavora-owner-admin'")&&owner.includes('pvOwnerLauncher')&&owner.includes('pvOwnerRoot'), 'Owner UI not securely calling Edge Function');
 assert.ok(owner.includes('pvoPanels')&&owner.includes('Recent reports')&&owner.includes('Admin activity')&&owner.includes('↻ Retry')&&owner.includes('d.recoveries'), 'Premium owner dashboard overview or retry missing');
 const backendGrants=read('supabase/owner-admin-backend-grants-v53.sql');
 assert.ok(backendGrants.includes('grant select on public.pv_app_admins to service_role')&&backendGrants.includes('grant select,insert,update on public.pv_content_moderation to service_role'), 'Owner backend table grants missing');
-assert.ok(owner.includes('LIVE ADMIN CONSOLE · v54')&&owner.includes('pvoPanels')&&owner.includes('pvoStats'), 'Updated owner admin UI not shipped');
+assert.ok(owner.includes('LIVE ADMIN CONSOLE · v55')&&owner.includes('pvoPanels')&&owner.includes('pvoStats'), 'Updated owner admin UI not shipped');
 assert.ok(owner.includes("main=E('div','pvoMain')")&&owner.includes('pvoUserList')&&owner.includes('writing-mode:horizontal-tb!important')&&owner.includes('pvoUserMeta'), 'Owner users must be isolated from main grid and action labels must remain horizontal');
 for(const command of ['user.suspend','user.unban','content.hide','content.restore','report.set','summary','users','audit']) assert.ok(ownerFunction.includes(command), 'Missing server admin command '+command);
 assert.ok(ownerFunction.includes('pv_app_admins')&&ownerFunction.includes('admin.auth.getUser')&&ownerFunction.includes("ban_duration")&&ownerFunction.includes('pv_admin_audit'), 'Admin authorization and audit must remain server-side');
@@ -87,7 +89,7 @@ assert.ok(cloud.includes('<p id="authMsg" role="status" aria-live="polite" hidde
 assert.ok(cloud.includes('db.auth.resetPasswordForEmail(email')&&cloud.includes('setAuthMode(\'reset\')')&&cloud.includes('db.auth.getSession()')&&cloud.includes("event==='SIGNED_OUT'"), 'Reset-password, session restore and logout handlers must remain wired');
 assert.ok(cloud.includes("insertAdjacentElement('afterend',document.getElementById('authMsg'))"), 'Login feedback must be near submit button');
 assert.ok(cloud.includes("pvNotifyAuth('✓ Login successful!")&&cloud.includes('Login failed. Email or password is incorrect.'), 'Login success/error messaging missing');
-assert.ok(html.includes('20261110-login-hidden-fields-v51')&&sw.includes('pavora-shell-2026-11-10-owner-v54'), 'PWA latest version mismatch');
+assert.ok(html.includes('20261110-login-hidden-fields-v51')&&sw.includes('pavora-shell-2026-11-10-owner-v55'), 'PWA latest version mismatch');
 assert.ok(html.indexOf('chat-themes.js')<html.indexOf('cloud.js?v='), 'Chat themes engine must load before cloud.js');
 assert.ok(sw.includes('chat-themes.js')&&themes.includes('PAVORA_CHAT_THEMES'), 'Chat themes shell integration missing');
 assert.ok(cloud.includes('pvChatThemeTrigger')&&cloud.includes('PAVORA_CHAT_THEMES?.apply')&&cloud.includes('PAVORA_CHAT_THEMES?.open'), 'Chat theme picker hookup missing');
