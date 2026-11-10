@@ -71,7 +71,7 @@ studio:[
 };
 const nameIdx=name=>creators.indexOf(name);
 const category=['frames','tech','travel','style','studio'];
-const startUTC=Date.UTC(2026,10,11);
+const startUTC=Date.UTC(2026,10,10);
 function indiaParts(){
  const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).formatToParts(new Date());
  const get=k=>Number(parts.find(p=>p.type===k)?.value||0);
@@ -173,7 +173,7 @@ function sync(force=false){
  renderedDay=day;shown=0;cards.replaceChildren();
  // Rotate the starting creator so the same accounts don't dominate the screen daily.
  entries=creators.map(person=>postFor(person,day)).sort((a,b)=>((nameIdx(a.creator)*37+day*17)%101)-((nameIdx(b.creator)*37+day*17)%101));
- meta.textContent='100 curated fictional creator posts · '+dateLabel(day)+' · One new demo post per profile per day at 9 AM IST. No real users, fake likes, or automated DMs. Real uploads remain separate below.';
+ meta.textContent='100 curated fictional creator posts · '+dateLabel(day)+' · One curated demo post per profile per day at 9 AM IST (60-day editorial rotation). No real users, fake likes, or automated DMs. Real uploads remain separate below.';
  drawNext();
 }
 sync(true);
