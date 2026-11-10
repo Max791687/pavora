@@ -286,7 +286,7 @@ function renderLiveUserRows(d){
    }
 
  pvUsersLiveUI.heading.textContent='Users · '+d.total;
- pvUsersLiveUI.hint.textContent='Showing '+d.users.length+' of '+d.total+' '+(statusFilter==='all'?'users':statusFilter+' users')+' · Live auto-sync · Online means active within 75 seconds. Last seen is the last recorded activity.';
+ pvUsersLiveUI.hint.textContent='Showing '+d.users.length+' of '+d.total+' '+(statusFilter==='all'?'users':statusFilter+' users')+' · Live auto-sync · Online means a recent heartbeat within 5 minutes (including background when supported). Last seen is the last recorded activity.';
  pvUsersLiveUI.prev.disabled=page===0;
  pvUsersLiveUI.next.disabled=(page+1)*20>=d.total;
  main.scrollTop=listScroll;
