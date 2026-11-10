@@ -109,6 +109,12 @@ const css=E('style');css.textContent=`
 }
 
 /* v55 admin presence and media viewer */
+/* prevent generic user-card first-child sizing from stretching media thumbnails */
+#pvOwnerRoot .pvoMediaRow > .pvoMediaThumb:first-child{flex:0 0 76px!important;max-width:76px!important;min-width:76px!important}
+#pvOwnerRoot .pvoMediaRow > .pvoMediaDetails{min-width:0;flex:1 1 auto}
+#pvOwnerRoot .pvoMediaRow > .pvoActions{flex:0 0 auto;min-width:0}
+@media(max-width:700px){#pvOwnerRoot .pvoMediaRow > .pvoMediaThumb:first-child{flex-basis:62px!important;max-width:62px!important;min-width:62px!important}}
+
 #pvOwnerRoot .pvoUserMeta .pvoOnline{color:#64e4a1;border-color:#338a68;background:#173c2c}
 #pvOwnerRoot .pvoOnline::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#50e49a;margin-right:6px;box-shadow:0 0 8px #50e49a88}
 #pvOwnerRoot .pvoMediaRow{display:flex!important;align-items:center;gap:14px}
