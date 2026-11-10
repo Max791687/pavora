@@ -157,7 +157,7 @@ const overlay=E('section');overlay.id='pvOwnerRoot';overlay.hidden=true;overlay.
 const panel=E('div','pvoPanel'),head=E('div','pvoHead'),heading=E('div'),tabs=E('nav','pvoTabs'),main=E('div','pvoMain'),close=E('button','pvoClose','Close ×');
 heading.append(E('h2','','🛡 PAVORA Owner'),E('small','','LIVE ADMIN CONSOLE · v59 · Access logged'));head.append(heading,close);panel.append(head,tabs,main);overlay.append(panel);document.body.append(overlay);
 let active='overview',allowed=false,seq=0,search='',page=0,statusFilter='all';
-const names={overview:'Overview',users:'Users',chats:'Active Chats',reports:'Reports',posts:'Posts',reels:'Reels',audit:'Audit Logs',recovery:'Recovery Support'};
+const names={overview:'Overview',users:'Users',chats:'Active Chats',testchat:'Test Chat Viewer',reports:'Reports',posts:'Posts',reels:'Reels',audit:'Audit Logs',recovery:'Recovery Support'};
 const current=()=>kit.getUser()?.id;
 async function api(action,more={}){
  const r=await db.functions.invoke('pavora-owner-admin',{body:{action,...more}});
@@ -344,6 +344,23 @@ async function render(){
   }else if(active==='chats'){
    const d=await api('chat.activity');if(ticket!==seq)return;
    updateChatsData(d);
+  }else if(active==='testchat'){
+   const d=await api('chat.test');if(ticket!==seq)return;clear();
+   const bar=toolbar('Consent-based Test Chat Viewer');
+   bar.append(makeButton('↻ Refresh',()=>render(),'secondary'));
+   line('Shows only messages SENT by accounts that turned on Test Message Sharing. Messages sent before enabling are excluded. Sharing expires after one hour and can be switched off anytime. Other participants’ messages remain private.');
+   if(!(d.messages||[]).length){
+    const empty=E('div','pvoSectionEmpty','No opted-in test messages yet. Log into your test account, enable sharing, then send a fresh message.');main.append(empty);
+   }
+   const fmt=p=>p?.username?'@'+p.username:p?.display_name||'User';
+   for(const msg of d.messages||[]){
+    const item=E('div','pvoCard'),body=E('div');
+    body.style.whiteSpace='pre-wrap';body.style.minWidth='0';body.style.width='100%';
+    body.append(E('strong','',fmt(msg.sender)+' → '+fmt(msg.recipient)),
+                E('small','','Sent '+new Date(msg.created_at).toLocaleString('en-IN')),
+                E('p','',msg.body||'[Empty text]'));
+    item.append(body);main.append(item);
+   }
   }else if(active==='recovery'){
    const d=await api('recovery.list');if(ticket!==seq)return;clear();toolbar('Account recovery support');
    line('Review access requests without ever asking for passwords, OTPs or ID documents. Verify account ownership using a trusted channel before assisting with a reset.');
