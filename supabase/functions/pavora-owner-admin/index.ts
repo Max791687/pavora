@@ -97,6 +97,15 @@ Deno.serve(async req=>{
     note:'Only chat-open status and sender/recipient/timestamp/read metadata. No message bodies or media.'
    });
   }
+  if(action==='chat.test'){
+   // Available only to verified owners, and only for messages explicitly sent AFTER opt-in.
+   // Never fetch or expose other participants' message bodies.
+   const messages=await read(admin.rpc('pv_owner_test_sent_messages'));
+   const ids=[...new Set(messages.flatMap(m=>[m.sender_id,m.recipient_id]))];
+   const profiles=ids.length?await read(admin.from('profiles').select('id,username,display_name').in('id',ids)):[];
+   const names=new Map(profiles.map(p=>[p.id,{username:p.username,display_name:p.display_name}]));
+   return send({messages:messages.map(m=>({sender:names.get(m.sender_id)||null,recipient:names.get(m.recipient_id)||null,body:m.body,created_at:m.created_at})),notice:'Only messages composed by an explicitly opted-in account after consent. Access expires after one hour.'});
+  }
   if(action==='recovery.list'){
    const entries=await read(admin.from('pv_recovery_requests').select('id,email,issue,status,created_at').order('created_at',{ascending:false}).limit(100));
    return send({entries});
