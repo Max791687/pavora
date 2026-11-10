@@ -1,10 +1,10 @@
-/* PAVORA v67: best-effort foreground and background Online / Offline / Last Seen.
+/* PAVORA v68: best-effort foreground and background Online / Offline / Last Seen.
    Database RLS protects private and blocked profiles, even from direct API reads.
    Background tabs remain active while JavaScript can run. Heartbeats use server timestamps; suspended apps expire after a short grace window. */
 (function(){
 'use strict';
-const REFRESH_MS=20000,HEARTBEAT_MS=25000,ONLINE_AGE_MS=300000;
-let db=null,uid=null,timer=null,heartbeatTimer=null,inFlight=null,busy=false,request=0;
+const REFRESH_MS=20000,HEARTBEAT_MS=15000,ONLINE_AGE_MS=300000;
+let db=null,uid=null,timer=null,heartbeatTimer=null,inFlight=null,busy=false,request=0,heartbeatBusy=false,pendingHeartbeat=false;
 const fmt=t=>{
  const ms=Date.now()-new Date(t).getTime();
  if(!Number.isFinite(ms)||ms<0)return 'Last seen recently';
@@ -61,24 +61,40 @@ async function refresh(){
 }
 async function heartbeat(active){
  if(!db||!uid)return;
- const id=uid;
+ const id=uid,client=db;
+ if(heartbeatBusy){if(active)pendingHeartbeat=true;return}
+ heartbeatBusy=true;
  try{
-  const {error}=await db.from('pv_user_presence').upsert({user_id:id,is_active:!!active},{onConflict:'user_id'});
+  const {error}=await client.from('pv_user_presence').upsert({user_id:id,is_active:!!active},{onConflict:'user_id'});
   if(error)console.warn('PAVORA presence heartbeat:',error.message);
  }catch(e){console.warn('PAVORA presence heartbeat:',e.message)}
+ finally{
+  heartbeatBusy=false;
+  if(pendingHeartbeat){pendingHeartbeat=false;if(uid===id&&db===client)heartbeat(true)}
+ }
 }
 function stop(){
- const was=db&&uid;
+ const previousUid=uid,previousDb=db;
  clearInterval(timer);clearInterval(heartbeatTimer);
  timer=null;heartbeatTimer=null;request++;
- if(was)heartbeat(false);
  uid=null;
+ pendingHeartbeat=false;
+ // Only sign-out must set offline. Backgrounded/suspended pages rely on heartbeat expiry.
+ // Avoid racing an old account's offline write with a new account's online write.
+ if(previousUid&&previousDb){
+  previousDb.from('pv_user_presence').upsert({user_id:previousUid,is_active:false},{onConflict:'user_id'}).then(({error})=>{
+   if(error)console.warn('PAVORA presence sign-out:',error.message)
+  });
+ }
  document.querySelectorAll('[data-pv-presence-peer]').forEach(n=>label(n,'','private'));
 }
 function start(client,userId){
  if(!client||!userId)return;
- if(uid===userId&&timer)return;
- stop();db=client;uid=userId;
+ if(uid===userId&&timer){heartbeat(true);return}
+ // A foreground reinitialization for the same account must not write offline.
+ if(uid&&uid!==userId)stop();
+ else{clearInterval(timer);clearInterval(heartbeatTimer);timer=null;heartbeatTimer=null;request++}
+ db=client;uid=userId;
  heartbeat(true);
  heartbeatTimer=setInterval(()=>heartbeat(true),HEARTBEAT_MS);
  timer=setInterval(refresh,REFRESH_MS);
@@ -100,6 +116,11 @@ function onVisible(){
  if(!document.hidden)refresh()
 }
 document.addEventListener('visibilitychange',onVisible);
+// Reconnect and resume instantly without requiring a manual page refresh.
+window.addEventListener('online',()=>{if(uid){heartbeat(true);refresh()}});
+window.addEventListener('focus',()=>{if(uid){heartbeat(true);refresh()}});
+window.addEventListener('pageshow',()=>{if(uid){heartbeat(true);refresh()}});
+document.addEventListener('resume',()=>{if(uid){heartbeat(true);refresh()}});
 // Do not mark offline on pagehide: mobile PWA may be backgrounded or frozen instead of closed.
 // The server automatically stops considering an account online after 5 min without heartbeats.
 const css=document.createElement('style');
