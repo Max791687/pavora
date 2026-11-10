@@ -1,5 +1,5 @@
 /* PAVORA: Cache only public application shell. Auth / Supabase API always network. */
-const CACHE='pavora-shell-2026-11-10-owner-v55';
+const CACHE='pavora-shell-2026-11-10-owner-v56';
 const SHELL=['./','./index.html','./cloud.js','./presence.js','./chat-search.js','./smart-reels.js','./reel-seek.js','./creator-hub.js','./owner-admin.js','./password-help.js','./video-compress.js','./upload-reliable.js','./chat-themes.js','./social-suite.js','./calls.js','./app-install.js','./push.js','./manifest.webmanifest','./app-icon.svg','./app-icon-maskable.svg','./notify-icon.png','./notify-badge.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).catch(err=>console.warn('Shell cache unavailable',err)));self.skipWaiting()});
 self.addEventListener('activate',event=>{event.waitUntil(Promise.all([caches.keys().then(names=>Promise.all(names.filter(n=>n.startsWith('pavora-shell-')&&n!==CACHE).map(n=>caches.delete(n)))),self.clients.claim()]))});
