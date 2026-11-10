@@ -44,7 +44,7 @@ Deno.serve(async req=>{
    const term=String(body.search||'').trim().slice(0,48).replace(/[,()%]/g,'');
    const page=Math.min(50,Math.max(0,Number(body.page)||0));
    const status=['all','online','offline'].includes(body.status)?body.status:'all';
-   const cutoff=new Date(Date.now()-75000).toISOString();
+   const cutoff=new Date(Date.now()-300000).toISOString();
    let onlineIds=[];
    if(status!=='all'){
     const {data:present,error:presentError}=await admin.from('pv_user_presence')
@@ -74,7 +74,7 @@ Deno.serve(async req=>{
     const age=last?.last_active_at?Date.now()-new Date(last.last_active_at).getTime():Infinity;
     return {...p,email:account?.email||null,confirmed:!!account?.email_confirmed_at,
       suspended:!!(account?.banned_until&&new Date(account.banned_until)>new Date()),
-      online:!!last?.is_active&&age>=0&&age<75000,
+      online:!!last?.is_active&&age>=0&&age<300000,
       last_active_at:last?.last_active_at||null};
    }));
    return send({users,total:count||0,page,onlineCount:users.filter(u=>u.online).length,status});
