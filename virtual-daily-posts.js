@@ -125,22 +125,21 @@ style.textContent=`
 .pvDailyShowcase{margin:0;padding:0;width:100%;min-width:0}
 .pvDailyCards{display:block;padding:0}
 .pvDailyCard{margin-bottom:18px!important;border:0!important;border-radius:0!important;background:transparent!important;overflow:visible;max-width:none;width:100%}
-.pvDailyCard .pvDailyWho{display:flex;align-items:center;gap:12px;padding:15px;min-width:0}
-.pvDailyAvatar{width:40px;height:40px;display:grid;place-items:center;border-radius:50%;flex:none;color:white;font-size:15px;font-weight:700;background:linear-gradient(130deg,#8650d3,#d2549e)}
-.pvDailyIdentity{display:flex;flex-direction:column;min-width:0;gap:2px;flex:1}
-.pvDailyIdentity strong{font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#d9b4ff}
-.pvDailyMeta{font-size:11px;color:#a9a5b6;font-weight:400}
-.pvDailyBadge{font-size:10px;color:#9990a7;white-space:nowrap;border:0;background:none;padding:0 3px}
+.pvDailyCard .posthead{display:flex;align-items:center;gap:12px;padding:15px;min-width:0}
+.pvDailyAuthorLine{display:flex;align-items:center;gap:8px;min-width:0}
+.pvDailyUsername{color:#d7b0ff;font-size:13px}
+.pvDailyBadge{font-size:10px;color:#9a90aa;border:0;padding:0}
+.pvDailyCard .postbody{padding:0 16px 14px;white-space:pre-wrap;overflow-wrap:anywhere}
 .pvDailyCard .pvDailyPhotoWrap{background:#17141b;position:relative;width:100%;height:auto;max-height:540px;overflow:hidden}
 .pvDailyCard .pvDailyPhotoWrap img.pvDailyPhoto{display:block;width:100%;height:auto;max-height:540px;object-fit:cover}
 .pvDailyPhotoFallback{display:none;min-height:230px;align-items:center;justify-content:center;text-align:center;color:#d5c7dc;background:#30283a;padding:20px}
 .pvDailyCard.photoFailed .pvDailyPhotoFallback{display:flex}
 .pvDailyCard.photoFailed .pvDailyPhoto{display:none}
-.pvDailyPhotoCredit{display:none}
+.pvDailyPhotoCredit{position:absolute;bottom:6px;right:7px;font-size:9px;color:#fff9;background:#0009;padding:2px 4px;border-radius:4px;text-decoration:none}
 .pvDailyCard .pvDailyPostTools{display:flex;gap:0;align-items:center;padding:14px 16px;flex-wrap:wrap}
 .pvDailyCard .pvDailyPostTools button{font:inherit;font-size:13px;line-height:1.4;color:#e7dfff;background:none;border:0;padding:0;margin-right:14px;cursor:pointer}
 .pvDailyCard .pvDailyPostTools button[aria-pressed=true]{color:#d9a0e5}
-.pvDailySpacer{flex:1}
+.pvDemoNote{display:block;color:#aba0b7;font-size:11px;flex-basis:100%;padding-top:7px}.pvDemoNote[hidden]{display:none}
 .pvDailyCard .pvDailyPostTools button:focus-visible{outline:2px solid #c89aff;outline-offset:3px}
 .pvDailyCard .pvDailyText{padding:0 16px 14px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.5;color:#e9e5ed}
 .pvDailyCard .pvDailyText p{margin:0}
@@ -177,41 +176,61 @@ function toggleSaved(postId,button){
  button.setAttribute('aria-label',on?'Remove demo post from saved':'Save demo post on this device');
 }
 function cardFor(p){
- const c=E('article','post pvDailyCard');c.dataset.theme=p.kind;
- const top=E('div','posthead pvDailyWho'),avatar=E('span','pvDailyAvatar',p.creator.initial);
- const identity=E('div','pvDailyIdentity'),who=E('strong','','@'+p.creator.username),date=E('small','pvDailyMeta',p.creator.theme+' · '+p.date);
- const badge=E('span','pvDailyBadge','Demo');badge.setAttribute('aria-label','Fictional virtual creator');
- identity.append(who,date);top.append(avatar,identity,badge);
- const visual=E('div','pvDailyPhotoWrap'),img=E('img','pvDailyPhoto');
- img.src=imageFor(p);img.alt='Illustrative photograph for '+p.title;
- img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';
+ const c=E('article','post pvDailyCard');
+ c.id='virtual-post-'+p.id;
+ const header=E('div','posthead');
+ const avatar=E('div','profilepic',p.creator.initial);
+ avatar.setAttribute('aria-hidden','true');
+ const identity=E('div');
+ const username=E('strong','pvDailyUsername','@'+p.creator.username);
+ const badge=E('span','pvDailyBadge','Demo');
+ badge.setAttribute('aria-label','Fictional virtual creator');
+ const date=E('div','muted',p.date+' · Virtual creator');
+ const authorLine=E('div','pvDailyAuthorLine');authorLine.append(username,badge);
+ identity.append(authorLine,date);header.append(avatar,identity);
+ // Match genuine feed's structure: header, caption, image, action row.
+ const captions={
+  frames:['A little more space, a little more focus.','Today I tried a simpler frame.','Light and shadows make this interesting.'],
+  tech:['Small details make a big difference.','One simple idea worth trying today.','Clean, practical and easy to use.'],
+  travel:['A quiet moment worth remembering.','Collecting colors and places.','A fresh perspective for today.'],
+  style:['Keeping it simple today.','Details make the whole look.','Trying a different mood.'],
+  studio:['A little creative experiment today.','Playing with shapes and composition.','One idea, many possibilities.']
+ };
+ const snippets=captions[p.kind]||captions.frames;
+ const caption=E('div','postbody',snippets[(nameIdx(p.creator)+p.day)%snippets.length]);
+ const photoWrap=E('div','pvDailyPhotoWrap'),image=E('img','pvDailyPhoto');
+ image.src=imageFor(p);image.alt='Illustrative '+p.creator.theme.toLowerCase()+' photo';
+ image.loading='lazy';image.decoding='async';image.referrerPolicy='no-referrer';
  let retries=0;
- img.onerror=()=>{if(retries<3){retries++;img.src=imageFor(p,retries)}else c.classList.add('photoFailed')};
- const fallback=E('div','pvDailyPhotoFallback',p.title);
- const credit=E('a','pvDailyPhotoCredit','Illustrative photo · Unsplash');
- credit.href='https://unsplash.com/';credit.target='_blank';credit.rel='noopener noreferrer';
- visual.append(img,fallback,credit);
- const actions=E('div','postfoot pvDailyPostTools');
- const heart=E('button','','♡ Like'),share=E('button','','↗ Share'),spacer=E('span','pvDailySpacer'),bookmark=E('button','','▢ Save');
- heart.type=share.type=bookmark.type='button';
- heart.setAttribute('aria-label','Appreciate demo post');heart.setAttribute('aria-pressed','false');
- heart.onclick=()=>{const on=heart.getAttribute('aria-pressed')!=='true';heart.setAttribute('aria-pressed',String(on));heart.textContent=on?'♥ Liked':'♡ Like'};
- share.setAttribute('aria-label','Share link to this demo post');
+ image.onerror=()=>{if(retries<3){retries++;image.src=imageFor(p,retries)}else c.classList.add('photoFailed')};
+ const fallback=E('div','pvDailyPhotoFallback','Photo unavailable');
+ const credit=E('a','pvDailyPhotoCredit','Photo: Unsplash');
+ credit.href='https://unsplash.com/';credit.rel='noopener noreferrer';credit.target='_blank';
+ photoWrap.append(image,fallback,credit);
+ const footer=E('div','postfoot pvDailyPostTools');
+ const like=E('button','','♡ 0 Likes'),comments=E('button','','💬 0 Comments'),share=E('button','','↗ Share'),save=E('button','','▢ Save');
+ for(const b of [like,comments,share,save])b.type='button';
+ like.setAttribute('aria-pressed','false');
+ like.onclick=()=>{
+  const on=like.getAttribute('aria-pressed')!=='true';
+  like.setAttribute('aria-pressed',String(on));
+  like.textContent=on?'♥ 1 Like':'♡ 0 Likes';
+ };
+ const commentNote=E('small','pvDemoNote','Demo content: comments are not public.');
+ commentNote.hidden=true;
+ comments.onclick=()=>{commentNote.hidden=!commentNote.hidden};
  share.onclick=async()=>{
   const link=location.origin+location.pathname+'#virtual-post-'+encodeURIComponent(p.id);
-  try{if(navigator.share)await navigator.share({title:p.title,url:link});else if(navigator.clipboard)await navigator.clipboard.writeText(link);else throw Error('Share is unavailable')}
-  catch(e){if(e.name!=='AbortError')alert('Could not share this post');return}
+  try{if(navigator.share)await navigator.share({title:p.title,url:link});else if(navigator.clipboard)await navigator.clipboard.writeText(link);else throw Error('Sharing unavailable')}
+  catch(e){if(e.name!=='AbortError')alert('Could not share this post')}
  };
- bookmark.type='button';const saved=getSaved().has(p.id);
- bookmark.textContent=saved?'▣ Saved':'▢ Save';bookmark.classList.toggle('saved',saved);bookmark.setAttribute('aria-pressed',String(saved));bookmark.setAttribute('aria-label',saved?'Remove demo post from saved':'Save demo post on this device');
- bookmark.onclick=()=>toggleSaved(p.id,bookmark);
- actions.append(heart,share,spacer,bookmark);
- const main=E('div','postbody pvDailyText'),caption=E('p'),author=E('strong','','@'+p.creator.username+' '),content=document.createTextNode(p.insight+' '+p.exercise);
- caption.append(author,content);
- const time=E('small','pvDailyTime','Illustrative photo · Virtual creator');
- main.append(caption,time);
- c.id='virtual-post-'+p.id;
- c.append(top,visual,actions,main);return c;
+ const saved=getSaved().has(p.id);
+ save.textContent=saved?'▣ Saved':'▢ Save';save.classList.toggle('saved',saved);
+ save.setAttribute('aria-pressed',String(saved));
+ save.onclick=()=>toggleSaved(p.id,save);
+ footer.append(like,comments,share,save,commentNote);
+ c.append(header,caption,photoWrap,footer);
+ return c;
 }
 function drawNext(){
  const next=Math.min(entries.length,shown+8);
