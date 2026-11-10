@@ -57,6 +57,31 @@ Deno.serve(async req=>{
    const entries=await read(admin.from('pv_recovery_requests').select('id,email,issue,status,created_at').order('created_at',{ascending:false}).limit(100));
    return send({entries});
   }
+  if(action==='recovery.send_reset'){
+   if(!uuid.test(id))return fail('Invalid recovery request');
+   if(reason.length<5)return fail('Provide an audit reason');
+   const {data:request,error:requestError}=await admin.from('pv_recovery_requests')
+     .select('id,email,status').eq('id',id).maybeSingle();
+   if(requestError)throw requestError;
+   if(!request||request.status==='closed')return fail('Open support request not found',404);
+   // Only mail a reset link to the address in the recovery ticket.
+   // No reset token or readable password is returned to any support staff.
+   const cutoff=new Date(Date.now()-30*60*1000).toISOString();
+   const {data:recent,error:recentError}=await admin.from('pv_admin_audit')
+     .select('id').eq('action','recovery.reset_email_sent').eq('target_id',id).gte('created_at',cutoff).limit(1);
+   if(recentError)throw recentError;
+   if(recent?.length)return fail('Reset already requested recently. Try again later',429);
+   const {error:mailError}=await admin.auth.resetPasswordForEmail(request.email,{
+     redirectTo:'https://max791687.github.io/pavora/'
+   });
+   if(mailError)throw mailError;
+   const {error:updateError}=await admin.from('pv_recovery_requests').update({
+     status:'reviewing',updated_at:new Date().toISOString()
+   }).eq('id',id);
+   if(updateError)throw updateError;
+   await log(actor,'recovery.reset_email_sent','recovery_request',id,reason);
+   return send({ok:true,message:'Password reset email requested. No passwords or reset tokens were revealed.'});
+  }
   if(action==='recovery.review'){
    if(!uuid.test(id))return fail('Invalid request');
    const status=String(body.status||'');
