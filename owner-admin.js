@@ -58,7 +58,7 @@ async function render(){
   if(active==='overview'){
    const d=await api('summary');if(ticket!==seq)return;clear();
    toolbar('Platform overview');
-   const grid=E('div','pvoStats');[['Users',d.users],['New users · 7d',d.newUsers],['Posts',d.posts],['Reels',d.reels],['Reports',d.reports],['Pending review',d.pending]].forEach(([l,v])=>grid.append(stat(v,l)));main.append(grid);
+   const grid=E('div','pvoStats');[['Users',d.users],['New users · 7d',d.newUsers],['Active · 15 min',d.activeNow],['Posts',d.posts],['Reels',d.reels],['Reports',d.reports],['Pending review',d.pending]].forEach(([l,v])=>grid.append(stat(v,l)));main.append(grid);
    line('Counts are live database totals. Private messages and passwords are not shown in this dashboard.');
   }else if(active==='users'){
    const d=await api('users',{search,page});if(ticket!==seq)return;clear();
