@@ -189,6 +189,64 @@ function setAuthMode(mode){document.getElementById('pvAuthBackToLogin')?.setAttr
 document.getElementById('authSubmit').insertAdjacentElement('afterend',document.getElementById('authMsg'));
 document.getElementById('signup').onclick=()=>{if(!pvAuthPending)setAuthMode(authMode==='login'?'signup':'login')};
 document.getElementById('authForgot').onclick=()=>{if(!pvAuthPending)setAuthMode('reset')};
+/* Account recovery support: request only; never request passwords, OTPs or secrets. */
+const pvSupportButton=document.createElement('button');
+pvSupportButton.type='button';
+pvSupportButton.id='pvRecoverySupportButton';
+pvSupportButton.className='authLink';
+pvSupportButton.textContent='Need help? Contact Support';
+pvSupportButton.setAttribute('aria-haspopup','dialog');
+document.querySelector('#authBox .authCenter')?.append(pvSupportButton);
+const pvSupportPanel=document.createElement('div');
+pvSupportPanel.id='pvRecoverySupportDialog';
+pvSupportPanel.hidden=true;
+pvSupportPanel.setAttribute('role','dialog');
+pvSupportPanel.setAttribute('aria-modal','true');
+pvSupportPanel.setAttribute('aria-label','PAVORA Account Recovery Support');
+pvSupportPanel.innerHTML=`<div class="pvRecoverySupportCard"><button type="button" id="pvRecoveryClose" aria-label="Close support form">×</button><h2>Account Recovery Support</h2><p>Forgot your password or cannot use email reset? Tell our team what happened. Never share your password, OTP or recovery codes.</p><form id="pvRecoveryForm"><label for="pvRecoveryEmail">Your account email</label><input id="pvRecoveryEmail" required type="email" autocomplete="email" placeholder="name@gmail.com" maxlength="254"><label for="pvRecoveryIssue">What is the problem?</label><textarea id="pvRecoveryIssue" required minlength="4" maxlength="280" rows="3" placeholder="I cannot access my email or reset my password."></textarea><button type="submit" id="pvRecoverySend">Send support request</button></form><p id="pvRecoveryStatus" role="status" aria-live="polite"></p><p class="pvRecoveryFootnote">A support request does not automatically reset a password. The team must verify account ownership first.</p></div>`;
+document.body.append(pvSupportPanel);
+const pvSupportStyle=document.createElement('style');
+pvSupportStyle.textContent=`
+#pvRecoverySupportDialog[hidden]{display:none!important}
+#pvRecoverySupportDialog{position:fixed;inset:0;z-index:900;background:#100b1bd9;display:grid;place-items:center;padding:16px}
+.pvRecoverySupportCard{position:relative;width:min(450px,100%);background:#fff;border-radius:20px;padding:26px;color:#211b2a;box-shadow:0 20px 80px #0006;font:14px/1.5 Inter,system-ui,sans-serif}
+.pvRecoverySupportCard h2{font-size:22px;margin:0 0 8px}.pvRecoverySupportCard p{color:#65596f;font-size:13px}
+#pvRecoveryClose{position:absolute;top:10px;right:14px;border:0;background:transparent;font-size:27px;color:#756581;cursor:pointer}
+#pvRecoveryForm{display:flex;flex-direction:column;gap:8px;margin-top:20px}
+#pvRecoveryForm label{font-weight:700;font-size:12px;margin-top:3px}
+#pvRecoveryForm input,#pvRecoveryForm textarea{font:inherit;width:100%;box-sizing:border-box;border:1px solid #d3c8df;border-radius:10px;background:#faf8fd;color:#231a31;padding:12px}
+#pvRecoverySend{background:#7546d7;color:#fff;border:0;padding:12px;border-radius:11px;font-weight:800;cursor:pointer;margin-top:6px}
+#pvRecoverySend:disabled{opacity:.65}#pvRecoveryStatus{font-weight:650;font-size:12px;min-height:0}
+.pvRecoveryFootnote{font-size:11px!important}
+`;
+document.head.append(pvSupportStyle);
+pvSupportButton.onclick=()=>{
+ pvSupportPanel.hidden=false;
+ const e=document.getElementById('pvRecoveryEmail');
+ e.value=document.getElementById('authEmail').value.trim();
+ document.getElementById('pvRecoveryStatus').textContent='';
+ e.focus();
+};
+document.getElementById('pvRecoveryClose').onclick=()=>{pvSupportPanel.hidden=true};
+pvSupportPanel.addEventListener('click',event=>{if(event.target===pvSupportPanel)pvSupportPanel.hidden=true});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!pvSupportPanel.hidden)pvSupportPanel.hidden=true});
+document.getElementById('pvRecoveryForm').onsubmit=async event=>{
+ event.preventDefault();
+ const button=document.getElementById('pvRecoverySend'),feedback=document.getElementById('pvRecoveryStatus');
+ if(button.disabled)return;
+ const email=document.getElementById('pvRecoveryEmail').value.trim();
+ const issue=document.getElementById('pvRecoveryIssue').value.trim();
+ button.disabled=true;button.textContent='Sending request…';feedback.textContent='Submitting securely…';
+ try{
+  const {data,error}=await pvAuthTimeout(db.functions.invoke('pavora-recovery-support',{body:{email,issue}}),20000);
+  if(error)throw error;
+  if(!data?.message)throw Error('Support response unavailable.');
+  feedback.textContent=data.message;
+  if(data.message.startsWith('Support request received'))document.getElementById('pvRecoveryIssue').value='';
+ }catch(error){feedback.textContent='Unable to submit request. Check your connection and try again.';console.warn('PAVORA recovery request unavailable:',error.message)}
+ finally{button.disabled=false;button.textContent='Send support request'}
+};
+
 document.getElementById('authTogglePassword').onclick=()=>{const input=document.getElementById('authPassword');input.type=input.type==='password'?'text':'password';document.getElementById('authTogglePassword').textContent=input.type==='password'?'Show':'Hide'};
 /* Authentication controls must never appear unresponsive on browser validation failure.
    Native constraint validation prevents the submit handler from firing. */
