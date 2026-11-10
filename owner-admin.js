@@ -107,11 +107,32 @@ const css=E('style');css.textContent=`
 #pvOwnerRoot .pvoCard > div:first-child{max-width:100%;flex-basis:100%}
 #pvOwnerRoot .pvoActions{width:100%;max-width:none;justify-content:flex-start}
 }
+
+/* v55 admin presence and media viewer */
+#pvOwnerRoot .pvoUserMeta .pvoOnline{color:#64e4a1;border-color:#338a68;background:#173c2c}
+#pvOwnerRoot .pvoOnline::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#50e49a;margin-right:6px;box-shadow:0 0 8px #50e49a88}
+#pvOwnerRoot .pvoMediaRow{display:flex!important;align-items:center;gap:14px}
+#pvOwnerRoot .pvoMediaThumb{flex:none;width:76px;height:76px;display:grid;place-items:center;overflow:hidden;border:1px solid #534264;border-radius:12px;background:#2d2240;color:#cdb1f2;font-size:22px}
+#pvOwnerRoot .pvoMediaThumb img,#pvOwnerRoot .pvoMediaThumb video{height:100%;width:100%;object-fit:cover}
+#pvOwnerRoot .pvoMediaCaption{font-size:13px;font-weight:700;color:#eee8fb;max-width:640px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+#pvOwnerRoot .pvoMediaUploader{font-size:12px;color:#c0a4f1;font-weight:750;margin-top:5px}
+#pvOwnerRoot .pvoMediaInfo{font-size:11px;color:#ada2bc;margin-top:4px}
+#pvOwnerRoot .pvoMediaRow .pvoActions{max-width:none;min-width:185px}
+#pvOwnerViewer[hidden]{display:none!important}
+#pvOwnerViewer{position:fixed;inset:0;z-index:510;background:rgba(6,4,13,.93);display:grid;place-items:center;padding:16px}
+#pvOwnerViewer .pvoViewerBox{width:min(740px,96vw);max-height:94dvh;overflow:auto;background:#191424;border:1px solid #644a83;border-radius:20px;padding:18px;box-shadow:0 30px 90px #000b}
+#pvOwnerViewer .pvoViewerHead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:15px;color:#fff}
+#pvOwnerViewer .pvoViewerHead strong{font-size:16px}
+#pvOwnerViewer .pvoViewerHead button{background:#332741;border:1px solid #625078;color:#fff;border-radius:9px;padding:8px 12px;cursor:pointer}
+#pvOwnerViewer .pvoViewerMedia{display:grid;place-items:center;background:#07050c;border-radius:12px;overflow:hidden;min-height:180px}
+#pvOwnerViewer video,#pvOwnerViewer img{max-width:100%;max-height:min(65dvh,610px);width:auto;object-fit:contain}
+#pvOwnerViewer .pvoViewerInfo{font-size:12px;color:#cbbfd9;overflow-wrap:anywhere;margin:12px 2px 0}
+@media(max-width:700px){#pvOwnerRoot .pvoMediaRow{flex-wrap:wrap}#pvOwnerRoot .pvoMediaRow>.pvoActions{width:100%;min-width:0}#pvOwnerRoot .pvoMediaThumb{width:62px;height:62px}}
 `;document.head.append(css);
 const launcher=E('button','','🛡 Owner Dashboard');launcher.id='pvOwnerLauncher';launcher.type='button';launcher.hidden=true;document.querySelector('#profile > .panel')?.prepend(launcher);
 const overlay=E('section');overlay.id='pvOwnerRoot';overlay.hidden=true;overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','PAVORA Owner Admin Dashboard');
 const panel=E('div','pvoPanel'),head=E('div','pvoHead'),heading=E('div'),tabs=E('nav','pvoTabs'),main=E('div','pvoMain'),close=E('button','pvoClose','Close ×');
-heading.append(E('h2','','🛡 PAVORA Owner'),E('small','','LIVE ADMIN CONSOLE · v54 · Access logged'));head.append(heading,close);panel.append(head,tabs,main);overlay.append(panel);document.body.append(overlay);
+heading.append(E('h2','','🛡 PAVORA Owner'),E('small','','LIVE ADMIN CONSOLE · v55 · Access logged'));head.append(heading,close);panel.append(head,tabs,main);overlay.append(panel);document.body.append(overlay);
 let active='overview',allowed=false,seq=0,search='',page=0;
 const names={overview:'Overview',users:'Users',reports:'Reports',posts:'Posts',reels:'Reels',audit:'Audit Logs',recovery:'Recovery Support'};
 const current=()=>kit.getUser()?.id;
@@ -190,10 +211,12 @@ async function render(){
     const entry=E('div','pvoCard');
     const identity=E('div','pvoIdentity');identity.append(E('strong','', '@'+(u.username||'unknown')+(u.display_name?' · '+u.display_name:'')),E('small','',u.email||'No email'));
     const badges=E('div','pvoUserMeta');
-    for(const [value,cls] of [[u.confirmed?'Verified':'Unverified',''],[u.suspended?'Suspended':'Active',u.suspended?'isSuspended':''],[u.is_official?'Official':'',''],[u.created_at?new Date(u.created_at).toLocaleDateString('en-IN'):'','']]){
+    const lastActive=u.last_active_at?new Date(u.last_active_at):null;
+    const lastLabel=lastActive&&!Number.isNaN(lastActive.getTime())?'Last active '+lastActive.toLocaleString('en-IN'):'No recent activity recorded';
+    for(const [value,cls] of [[u.online?'Online now':'Offline',u.online?'pvoOnline':''],[u.confirmed?'Verified':'Unverified',''],[u.suspended?'Suspended':'Active',u.suspended?'isSuspended':''],[u.is_official?'Official':'',''],[u.created_at?new Date(u.created_at).toLocaleDateString('en-IN'):'','']]){
       if(value)badges.append(E('span',cls,value));
     }
-    identity.append(badges);entry.append(identity);
+    identity.append(badges,E('small','',lastLabel));entry.append(identity);
     if(!u.is_official){
       const opts=E('div','pvoActions');
       opts.append(makeButton(u.suspended?'Unban':'Suspend',()=>actionConfirm(u.suspended?'unban user':'suspend user',u.suspended?'user.unban':'user.suspend',{id:u.id}),u.suspended?'secondary':'danger'));
@@ -210,7 +233,27 @@ async function render(){
   }else if(active==='posts'||active==='reels'){
    const kind=active==='posts'?'post':'reel',d=await api('content',{kind});if(ticket!==seq)return;clear();toolbar(kind==='post'?'Post moderation':'Reel moderation');
    line('Hide removes content from regular feeds but preserves database rows and media. Restore reverses the action.');
-   for(const p of d.items){const hidden=!!p.moderation?.hidden;const action=hidden?'content.restore':'content.hide';card((p.caption||'Untitled '+kind).slice(0,100),(hidden?'Hidden · ':'Visible · ')+new Date(p.created_at).toLocaleString('en-IN')+' · Author '+p.author_id,[makeButton(hidden?'Restore':'Hide',()=>actionConfirm(hidden?'restore '+kind:'hide '+kind,action,{kind,id:p.id}),hidden?'secondary':'danger')])}
+   if(!d.items.length)line('No '+(kind==='reel'?'Reels':'posts')+' uploaded yet.');
+   for(const p of d.items){
+    const hidden=!!p.moderation?.hidden,action=hidden?'content.restore':'content.hide';
+    const row=E('div','pvoCard pvoMediaRow'),thumb=E('div','pvoMediaThumb');
+    const path=kind==='reel'?p.video_path:p.image_path;
+    if(path){
+      const url=db.storage.from(kind==='reel'?'reel-videos':'post-images').getPublicUrl(path).data.publicUrl;
+      if(kind==='post'){const image=E('img');image.src=url;image.loading='lazy';image.alt='Post thumbnail';thumb.append(image)}
+      else thumb.append(E('span','','▶'));
+    }else thumb.append(E('span','',kind==='reel'?'▶':'▧'));
+    const detail=E('div','pvoMediaDetails');
+    detail.append(E('div','pvoMediaCaption',p.caption||('Untitled '+kind)));
+    const displayName=p.author?.display_name||p.author?.username||'Unknown user';
+    const username=p.author?.username?'@'+p.author.username:'ID '+String(p.author_id||'').slice(0,8);
+    detail.append(E('div','pvoMediaUploader','Uploaded by '+username+' · '+displayName));
+    detail.append(E('div','pvoMediaInfo',new Date(p.created_at).toLocaleString('en-IN')+' · '+(hidden?'Hidden from feeds':'Visible')));
+    const actions=E('div','pvoActions');
+    actions.append(makeButton(kind==='reel'?'▶ Open Reel':'▧ View Post',()=>openOwnerMedia(p,kind),'secondary'));
+    actions.append(makeButton(hidden?'Restore':'Hide',()=>actionConfirm(hidden?'restore '+kind:'hide '+kind,action,{kind,id:p.id}),hidden?'secondary':'danger'));
+    row.append(thumb,detail,actions);main.append(row);
+   }
   }else if(active==='recovery'){
    const d=await api('recovery.list');if(ticket!==seq)return;clear();toolbar('Account recovery support');
    line('Review access requests without ever asking for passwords, OTPs or ID documents. Verify account ownership using a trusted channel before assisting with a reset.');
@@ -232,8 +275,30 @@ async function render(){
   area.append(retry);main.append(area);
  }
 }
-function closePanel(){overlay.hidden=true;seq++;document.body.classList.remove('pvOwnerOpen')}
-close.onclick=closePanel;overlay.addEventListener('click',e=>{if(e.target===overlay)closePanel()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!overlay.hidden)closePanel()});
+const viewer=E('section');viewer.id='pvOwnerViewer';viewer.hidden=true;
+viewer.setAttribute('role','dialog');viewer.setAttribute('aria-modal','true');viewer.setAttribute('aria-label','View PAVORA content');
+const viewerBox=E('div','pvoViewerBox'),viewerHead=E('div','pvoViewerHead'),viewerTitle=E('strong','','Content preview'),viewerClose=E('button','','Close ×'),viewerMedia=E('div','pvoViewerMedia'),viewerInfo=E('p','pvoViewerInfo');
+viewerClose.type='button';viewerHead.append(viewerTitle,viewerClose);viewerBox.append(viewerHead,viewerMedia,viewerInfo);viewer.append(viewerBox);document.body.append(viewer);
+function closeViewer(){viewer.hidden=true;viewerMedia.querySelectorAll('video').forEach(video=>{video.pause();video.removeAttribute('src');video.load()});viewerMedia.replaceChildren()}
+viewerClose.onclick=closeViewer;viewer.addEventListener('click',event=>{if(event.target===viewer)closeViewer()});
+function openOwnerMedia(item,kind){
+ const path=kind==='reel'?item.video_path:item.image_path;
+ if(!path){alert('No uploaded media is attached to this '+kind+'.');return}
+ const bucket=kind==='reel'?'reel-videos':'post-images';
+ const mediaUrl=db.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+ if(!mediaUrl){alert('Media is unavailable.');return}
+ viewerMedia.replaceChildren();
+ const medium=E(kind==='reel'?'video':'img');
+ if(kind==='reel'){medium.controls=true;medium.playsInline=true;medium.preload='metadata';medium.autoplay=false}
+ else medium.alt=item.caption||'PAVORA post image';
+ medium.src=mediaUrl;viewerMedia.append(medium);
+ const uploader=item.author?.username?'@'+item.author.username:'User '+String(item.author_id||'').slice(0,8);
+ viewerTitle.textContent=(kind==='reel'?'Reel':'Post')+' by '+uploader;
+ viewerInfo.textContent=(item.caption||'No caption')+' · '+new Date(item.created_at).toLocaleString('en-IN');
+ viewer.hidden=false;
+}
+function closePanel(){closeViewer();overlay.hidden=true;seq++;document.body.classList.remove('pvOwnerOpen')}
+close.onclick=closePanel;overlay.addEventListener('click',e=>{if(e.target===overlay)closePanel()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!viewer.hidden){closeViewer();return}if(e.key==='Escape'&&!overlay.hidden)closePanel()});
 launcher.onclick=()=>{if(!allowed)return;overlay.hidden=false;active='overview';tabsRender();render()};
 async function verify(){const id=current();if(!id){allowed=false;launcher.hidden=true;closePanel();return}const {data,error}=await db.from('pv_app_admins').select('user_id').eq('user_id',id).maybeSingle();if(id!==current())return;allowed=!error&&!!data;launcher.hidden=!allowed;if(!allowed)closePanel()}
 db.auth.onAuthStateChange(()=>setTimeout(verify,100));setTimeout(verify,800);
