@@ -49,9 +49,10 @@ assert.ok(sw.includes('upload-reliable.js'), 'Upload helper missing from offline
 assert.ok(cloud.includes('pvReadableAuthError')&&cloud.includes('pvNotifyAuth')&&cloud.includes('pvAuthBusy'), 'Visible login status logic missing');
 assert.ok(cloud.includes('pvSignupEmailLimitMessage')&&cloud.includes('pvShowSignupEmailLimit')&&cloud.includes('pvSignupEmailCooldownUntil'), 'Auth quota guidance and retry cooldown missing');
 assert.ok(cloud.includes('email_address_not_authorized')&&cloud.includes('Custom SMTP')&&cloud.includes('pvAuthBackToLogin'), 'Auth email delivery guidance and login fallback missing');
+assert.ok(cloud.includes("pvGoogleButton.id='pvGoogleAuth'")&&cloud.includes("provider:'google'")&&cloud.includes("signInWithOAuth")&&cloud.includes("redirectTo:'https://max791687.github.io/pavora/'"), 'Secure Google OAuth login/signup button or redirect missing');
 assert.ok(cloud.includes("insertAdjacentElement('afterend',document.getElementById('authMsg'))"), 'Login feedback must be near submit button');
 assert.ok(cloud.includes("pvNotifyAuth('✓ Login successful!")&&cloud.includes('Login failed. Email or password is incorrect.'), 'Login success/error messaging missing');
-assert.ok(html.includes('20261110-auth-email-guidance-v42')&&sw.includes('pavora-shell-2026-11-10-auth-email-guidance-v42'), 'PWA latest version mismatch');
+assert.ok(html.includes('20261110-google-oauth-v43')&&sw.includes('pavora-shell-2026-11-10-google-oauth-v43'), 'PWA latest version mismatch');
 assert.ok(html.indexOf('chat-themes.js')<html.indexOf('cloud.js?v='), 'Chat themes engine must load before cloud.js');
 assert.ok(sw.includes('chat-themes.js')&&themes.includes('PAVORA_CHAT_THEMES'), 'Chat themes shell integration missing');
 assert.ok(cloud.includes('pvChatThemeTrigger')&&cloud.includes('PAVORA_CHAT_THEMES?.apply')&&cloud.includes('PAVORA_CHAT_THEMES?.open'), 'Chat theme picker hookup missing');
