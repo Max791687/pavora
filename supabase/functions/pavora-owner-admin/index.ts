@@ -33,11 +33,11 @@ Deno.serve(async req=>{
   if(action==='summary'){
    const since=new Date(Date.now()-7*86400000).toISOString();
    const count=async(table,query)=>{let q=admin.from(table).select('*',{head:true,count:'exact'});if(query)q=query(q);const r=await q;if(r.error)throw r.error;return r.count||0};
-   const [users,newUsers,posts,reels,reports,pending,suspended]=await Promise.all([
-    count('profiles'),count('profiles',q=>q.gte('created_at',since)),count('posts'),count('reels'),count('content_reports'),count('content_reports',q=>q.in('status',['pending','open','reviewing'])),
+   const [users,newUsers,activeNow,posts,reels,reports,pending,suspended]=await Promise.all([
+    count('profiles'),count('profiles',q=>q.gte('created_at',since)),count('pv_user_presence',q=>q.gte('last_active_at',new Date(Date.now()-15*60000).toISOString())),count('posts'),count('reels'),count('content_reports'),count('content_reports',q=>q.in('status',['pending','open','reviewing'])),
     admin.from('pv_admin_audit').select('target_id').eq('action','user.suspend').order('created_at',{ascending:false}).limit(50)
    ]);
-   return send({users,newUsers,posts,reels,reports,pending,latestSuspensions:suspended.data?.length||0});
+   return send({users,newUsers,activeNow,posts,reels,reports,pending});
   }
   if(action==='users'){
    const term=String(body.search||'').trim().slice(0,48).replace(/[,()%]/g,'');
