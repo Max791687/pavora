@@ -12,6 +12,21 @@ PAVORA is a live social app, available as a website, installable mobile web app 
 
 The app launches with its own icon and uses the same live PAVORA Supabase account. Internet is required for profiles, messages and uploads.
 
+## Creator Studio v70 (November 2026)
+
+- Profile → Creator Studio → My Posts: edit own captions, tag accounts, invite collaborators
+- Collab Invites: recipients accept or decline; public feed labels show accepted collaborators only
+- Tagged Posts: tagged accounts can remove their own tags
+- Discover: suggest public creators not yet followed (simple heuristic, not full AI personalization)
+- Accessibility: keyboard focus indicators, reduced-motion preference, responsive Creator Studio
+- New Post: on-device brightness/contrast photo adjustments and existing private caption drafts
+- Media: progressive lazy image decoding and non-autoplay video metadata loading
+- Moderation: existing Reports / Block / Restrict / Owner review flows retained
+
+Supabase SQL migration has been applied in the connected project for `pv_post_collaborators`, `pv_post_tags`, and owner-caption editing. Collaboration, tags and post edits use RLS. No private admin content access added.
+
+This is an incremental creator suite, **not** complete Instagram parity. Production readiness still requires two-account acceptance/rejection, iOS/Android camera, media-memory, accessibility audit, larger-scale performance, moderation review and end-to-end tests.
+
 ## PAVORA features
 
 - Email sign-in and persistent login
