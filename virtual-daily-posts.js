@@ -116,7 +116,7 @@ container.setAttribute('aria-label','Daily curated virtual creator posts');
 const cards=E('div','pvDailyCards');
 const footer=E('div','pvDailyFooter'),more=E('button','pvDailyMore','Show 12 more demo posts');
 more.type='button';footer.append(more);
-container.append(cards,footer);
+container.append(footer);
 // Keep all real uploaded posts first, then append scheduled virtual posts in the same Home feed.
 realPosts.after(container);
 const style=E('style');
@@ -232,11 +232,38 @@ function cardFor(p){
  c.append(header,caption,photoWrap,footer);
  return c;
 }
+// Real post nodes remain in #posts with their original event handlers intact.
+// Virtual posts are inserted between them, rather than into a separate section.
+let virtualNodes=[],mixScheduled=false;
+function mixFeed(){
+ mixScheduled=false;
+ if(!realPosts.isConnected)return;
+ const real=[...realPosts.children].filter(n=>n.matches?.('article.post:not(.pvDailyCard)'));
+ // Keep newest real posts in their existing chronological order.
+ // Insert two virtual posts between each pair; remaining virtual posts follow.
+ const nodes=virtualNodes.slice();
+ for(let i=0;i<nodes.length;i++){
+  const target=real[Math.floor(i/2)+1]||null;
+  if(nodes[i].parentElement!==realPosts||nodes[i].nextElementSibling!==target)
+   realPosts.insertBefore(nodes[i],target);
+ }
+}
+function scheduleMix(){
+ if(mixScheduled)return;
+ mixScheduled=true;requestAnimationFrame(mixFeed);
+}
+// Cloud feed replaces its children on a fresh fetch. Restore virtual posts without
+// duplicating them or resetting likes/comments on existing real post elements.
+const realPostObserver=new MutationObserver(records=>{
+ if(records.some(record=>[...record.addedNodes].some(n=>n.nodeType===1&&n.matches?.('article.post:not(.pvDailyCard)'))))
+  scheduleMix();
+});
+realPostObserver.observe(realPosts,{childList:true});
 function drawNext(){
  const next=Math.min(entries.length,shown+8);
- const frag=document.createDocumentFragment();
- for(let i=shown;i<next;i++)frag.append(cardFor(entries[i]));
- cards.append(frag);shown=next;
+ for(let i=shown;i<next;i++)virtualNodes.push(cardFor(entries[i]));
+ shown=next;
+ mixFeed();
  more.hidden=shown>=entries.length;
  more.textContent='Load more posts ('+shown+'/'+entries.length+')';
 }
@@ -254,7 +281,8 @@ if('IntersectionObserver' in window){
 function sync(force=false){
  const day=dayIndex();
  if(!force&&renderedDay===day)return;
- renderedDay=day;shown=0;cards.replaceChildren();
+ renderedDay=day;shown=0;
+ for(const old of virtualNodes)old.remove();virtualNodes=[];cards.replaceChildren();
  // Rotate the starting creator so the same accounts don't dominate the screen daily.
  entries=creators.map(person=>postFor(person,day)).sort((a,b)=>((nameIdx(a.creator)*37+day*17)%101)-((nameIdx(b.creator)*37+day*17)%101));
  drawNext();
