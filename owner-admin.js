@@ -155,7 +155,7 @@ const css=E('style');css.textContent=`
 const launcher=E('button','','🛡 Owner Dashboard');launcher.id='pvOwnerLauncher';launcher.type='button';launcher.hidden=true;document.querySelector('#profile > .panel')?.prepend(launcher);
 const overlay=E('section');overlay.id='pvOwnerRoot';overlay.hidden=true;overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','PAVORA Owner Admin Dashboard');
 const panel=E('div','pvoPanel'),head=E('div','pvoHead'),heading=E('div'),tabs=E('nav','pvoTabs'),main=E('div','pvoMain'),close=E('button','pvoClose','Close ×');
-heading.append(E('h2','','🛡 PAVORA Owner'),E('small','','LIVE ADMIN CONSOLE · PAVORA v66 · Access logged'));head.append(heading,close);panel.append(head,tabs,main);overlay.append(panel);document.body.append(overlay);
+heading.append(E('h2','','🛡 PAVORA Owner'),E('small','','LIVE ADMIN CONSOLE · PAVORA v67 · Access logged'));head.append(heading,close);panel.append(head,tabs,main);overlay.append(panel);document.body.append(overlay);
 let active='overview',allowed=false,seq=0,search='',page=0,statusFilter='all';
 let pvOwnerRestoredFor=null,pvOwnerSavedScroll=0;
 const pvOwnerStateKey=()=>current()?'pavora-owner-view:'+current():null;
