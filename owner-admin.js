@@ -1,4 +1,4 @@
-/* PAVORA Owner Dashboard v47: UI only. Server Edge Function verifies admin access for every operation. */
+/* PAVORA Owner Dashboard v53: UI only. Server Edge Function verifies admin access for every operation. */
 (()=>{
 'use strict';
 const kit=window.PVKit;if(!kit)return;
@@ -65,11 +65,25 @@ const css=E('style');css.textContent=`
 .pvoEmptyState .pvoBtn{min-width:110px}
 @media(max-width:930px){.pvoStats{grid-template-columns:repeat(2,minmax(0,1fr))}.pvoPanels{grid-template-columns:1fr}.pvoSectionWide{grid-column:auto}}
 @media(max-width:700px){#pvOwnerRoot{padding:0}.pvoPanel{width:100%;height:100dvh;border:0;border-radius:0}.pvoMain{padding:14px 12px 96px}.pvoStats{gap:9px}.pvoStat{padding:13px}.pvoStat b{font-size:26px}.pvoHead{padding:15px}.pvoTabs{padding:9px 10px}}
+
+/* v53: consistent action-bar sizing and visible, spacious owner console */
+#pvOwnerRoot .pvoPanel{width:min(1200px,calc(100vw - 40px));max-width:1200px;min-height:min(620px,90dvh)}
+#pvOwnerRoot .pvoMain{min-height:0;overflow-y:auto}
+#pvOwnerRoot .pvoStat{transition:transform .15s ease,border-color .15s ease}
+#pvOwnerRoot .pvoStat:hover{transform:translateY(-2px);border-color:#9266d6}
+#pvOwnerRoot .pvoSection{min-height:175px}
+#pvOwnerRoot .pvoSectionWide{min-height:88px}
+#pvOwnerRoot .pvoBtn{margin:4px 8px 4px 0}
+#pvOwnerRoot .pvoEmptyState{width:auto;max-width:none;margin:16px auto;min-height:250px}
+#pvOwnerRoot .pvoEmptyState .pvoBtn{margin-top:8px}
+#pvOwnerLauncher{display:inline-flex;align-items:center;justify-content:center;max-width:100%;min-height:39px;background:#302440;border-color:#75589f;border-radius:12px;white-space:nowrap}
+#pvOwnerLauncher:hover{background:#4c3470}
+@media(max-width:700px){#pvOwnerRoot .pvoPanel{width:100%;max-width:none;min-height:100dvh}#pvOwnerRoot .pvoSection{min-height:0}}
 `;document.head.append(css);
 const launcher=E('button','','🛡 Owner Dashboard');launcher.id='pvOwnerLauncher';launcher.type='button';launcher.hidden=true;document.querySelector('#profile > .panel')?.prepend(launcher);
 const overlay=E('section');overlay.id='pvOwnerRoot';overlay.hidden=true;overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','PAVORA Owner Admin Dashboard');
 const panel=E('div','pvoPanel'),head=E('div','pvoHead'),heading=E('div'),tabs=E('nav','pvoTabs'),main=E('main','pvoMain'),close=E('button','pvoClose','Close ×');
-heading.append(E('h2','','🛡 PAVORA Owner'),E('small','','Secure administration · Access logged'));head.append(heading,close);panel.append(head,tabs,main);overlay.append(panel);document.body.append(overlay);
+heading.append(E('h2','','🛡 PAVORA Owner'),E('small','','LIVE ADMIN CONSOLE · v53 · Access logged'));head.append(heading,close);panel.append(head,tabs,main);overlay.append(panel);document.body.append(overlay);
 let active='overview',allowed=false,seq=0,search='',page=0;
 const names={overview:'Overview',users:'Users',reports:'Reports',posts:'Posts',reels:'Reels',audit:'Audit Logs',recovery:'Recovery Support'};
 const current=()=>kit.getUser()?.id;
