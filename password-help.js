@@ -35,5 +35,17 @@ let hasRecovery=false,finished=false;
 const clearRecovery=()=>{hasRecovery=false;finished=true;resetModal.hidden=true;resetPass.value='';resetConfirm.value=''};
 resetSave.onclick=async()=>{if(!hasRecovery)return;const password=resetPass.value;if(password.length<10){resetStatus.textContent='Use at least 10 characters.';return}if(password!==resetConfirm.value){resetStatus.textContent='Passwords do not match.';return}resetSave.disabled=true;resetStatus.textContent='Updating securely…';try{const {error}=await db.auth.updateUser({password});if(error)throw error;resetStatus.textContent='Password updated successfully. You can now use your new password.';setTimeout(clearRecovery,1500)}catch(e){resetStatus.textContent='Could not update password: '+e.message}finally{resetSave.disabled=false}};
 db.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY'&&session?.user){hasRecovery=true;finished=false;resetModal.hidden=false;resetStatus.textContent='';resetPass.focus()}if(event==='SIGNED_OUT'){hintBtn.hidden=true;hintModal.hidden=true}});
-let lastUser=null;setInterval(()=>{const id=who();if(id!==lastUser){lastUser=id;hintBtn.hidden=!id;if(!id)hintModal.hidden=true}},2500);
+// v64: synchronize on auth events and rapidly detect async session restoration.
+let lastUser=null;
+function syncHintVisibility(){
+ const id=who();
+ if(id===lastUser)return;
+ lastUser=id;
+ hintBtn.hidden=!id;
+ if(!id)hintModal.hidden=true;
+}
+syncHintVisibility();
+db.auth.onAuthStateChange(()=>{syncHintVisibility();setTimeout(syncHintVisibility,0);setTimeout(syncHintVisibility,100)});
+const quickSync=setInterval(syncHintVisibility,100);
+setTimeout(()=>{clearInterval(quickSync);setInterval(syncHintVisibility,1000)},12000);
 })();
