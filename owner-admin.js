@@ -84,6 +84,7 @@ async function render(){
    if(!d.entries.length)line('No recovery requests yet.');
    for(const r of d.entries){
     const acts=['reviewing','closed'].filter(s=>s!==r.status).map(s=>makeButton(s,()=>actionConfirm('mark recovery '+s,'recovery.review',{id:r.id,status:s}),'secondary'));
+    if(r.status!=='closed')acts.unshift(makeButton('✉ Send reset email',()=>actionConfirm('send a password reset email','recovery.send_reset',{id:r.id}),'secondary'));
     card(r.email+' · '+r.status,(r.issue||'Account access request')+' · '+new Date(r.created_at).toLocaleString('en-IN'),acts);
    }
   }else{
