@@ -117,11 +117,73 @@ const cards=E('div','pvDailyCards');
 const footer=E('div','pvDailyFooter'),more=E('button','pvDailyMore','Show 12 more demo posts');
 more.type='button';footer.append(more);
 container.append(footer);
+// Feed preferences are local to the authenticated account.
+const feedTabs=E('div','pvFeedModeTabs');
+const forYouButton=E('button','','For You'),followingButton=E('button','','Following');
+for(const button of [forYouButton,followingButton])button.type='button';
+feedTabs.setAttribute('role','group');feedTabs.setAttribute('aria-label','Choose Home Feed');
+feedTabs.append(forYouButton,followingButton);
+realPosts.before(feedTabs);
+let feedMode='for-you',followed=new Set(),feedModeUser=null,followFetchToken=0;
+const feedModeKey=id=>'pavora-home-feed-mode:'+id;
+function currentAccount(){return window.PVKit?.getUser?.()?.id||null}
+function setButtonStates(){
+ forYouButton.setAttribute('aria-pressed',String(feedMode==='for-you'));
+ followingButton.setAttribute('aria-pressed',String(feedMode==='following'));
+}
+function applyFeedMode(){
+ if(!realPosts)return;
+ const own=currentAccount();
+ for(const node of realPosts.querySelectorAll(':scope > article.post')){
+  if(node.classList.contains('pvDailyCard'))node.hidden=feedMode==='following';
+  else node.hidden=feedMode==='following'&&!followed.has(node.dataset.authorId)&&node.dataset.authorId!==own;
+ }
+ container.hidden=feedMode==='following';
+ const realCount=[...realPosts.children].filter(el=>el.matches?.('article.post:not(.pvDailyCard)')&&!el.hidden).length;
+ let empty=document.getElementById('pvFollowingEmpty');
+ if(feedMode==='following'&&!realCount){
+  if(!empty){empty=E('p','pvFollowingEmpty','No posts from followed accounts yet. Follow creators to see their posts here.');empty.id='pvFollowingEmpty';realPosts.after(empty)}
+  empty.hidden=false;
+ }else if(empty)empty.hidden=true;
+ setButtonStates();
+}
+async function loadFollowing(){
+ const id=currentAccount(),token=++followFetchToken;
+ if(!id){followed.clear();applyFeedMode();return}
+ const {data,error}=await window.PVKit.db.from('follows').select('following_id').eq('follower_id',id).limit(1000);
+ if(token!==followFetchToken||currentAccount()!==id)return;
+ if(error){console.warn('PAVORA Following filter:',error.message);followingButton.title='Unable to load follows; retry by selecting Following again';return}
+ followed=new Set((data||[]).map(row=>row.following_id));
+ applyFeedMode();
+}
+function switchMode(mode){
+ feedMode=mode==='following'?'following':'for-you';
+ const id=currentAccount();if(id)try{localStorage.setItem(feedModeKey(id),feedMode)}catch(e){}
+ setButtonStates();applyFeedMode();
+ if(feedMode==='following')loadFollowing();
+}
+forYouButton.onclick=()=>switchMode('for-you');
+followingButton.onclick=()=>switchMode('following');
+function syncFeedAccount(){
+ const id=currentAccount();if(id===feedModeUser)return;
+ feedModeUser=id;followed.clear();
+ try{feedMode=id&&localStorage.getItem(feedModeKey(id))==='following'?'following':'for-you'}catch(e){feedMode='for-you'}
+ applyFeedMode();if(feedMode==='following')loadFollowing();
+}
+setButtonStates();syncFeedAccount();
+window.PVKit.db.auth.onAuthStateChange(()=>setTimeout(syncFeedAccount,0));
+setInterval(syncFeedAccount,1500);
+
 // Keep all real uploaded posts first, then append scheduled virtual posts in the same Home feed.
 realPosts.after(container);
 const style=E('style');
 style.textContent=`
 /* Reuse the exact existing PAVORA .post, .posthead, .postbody and .postfoot layout. */
+.pvFeedModeTabs{display:flex;gap:8px;margin:8px 0 14px;padding:0 3px}
+.pvFeedModeTabs button{background:transparent;border:0;border-bottom:2px solid transparent;color:#aaa4b6;font-size:14px;padding:10px 15px;cursor:pointer;font-weight:750}
+.pvFeedModeTabs button[aria-pressed=true]{border-bottom-color:#a76ce5;color:#fff}
+.pvFeedModeTabs button:focus-visible{outline:2px solid #d6b2ff;outline-offset:2px}
+.pvFollowingEmpty{padding:18px 10px;color:#c0b5d0;font-size:13px}
 .pvDailyShowcase{margin:0;padding:0;width:100%;min-width:0}
 .pvDailyCards{display:block;padding:0}
 .pvDailyCard{margin-bottom:18px!important;border:0!important;border-radius:0!important;background:transparent!important;overflow:visible;max-width:none;width:100%}
@@ -247,6 +309,7 @@ function mixFeed(){
   if(nodes[i].parentElement!==realPosts||nodes[i].nextElementSibling!==target)
    realPosts.insertBefore(nodes[i],target);
  }
+ applyFeedMode();
 }
 function scheduleMix(){
  if(mixScheduled)return;
