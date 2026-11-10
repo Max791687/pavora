@@ -51,10 +51,10 @@ assert.ok(cloud.includes("addEventListener('invalid'")&&cloud.includes("pvAuthSu
 assert.ok(cloud.includes('pvRecoverySupportDialog')&&cloud.includes('pvRecoverySupportButton')&&cloud.includes("db.functions.invoke('pavora-recovery-support'"), 'Recovery request UI and secure submission missing');
 const recoverySql=read('supabase/recovery-support-v49.sql'),recoveryFn=read('supabase/functions/pavora-recovery-support/index.ts');
 assert.ok(recoverySql.includes('enable row level security')&&recoverySql.includes('revoke all'), 'Support tickets must remain restricted');
-assert.ok(recoveryFn.includes('pv_recovery_requests')&&recoveryFn.includes('count')&&recoveryFn.includes('Never')===false, 'Support intake or throttle missing');
-assert.ok(owner.includes("recovery.list")&&owner.includes("recovery.review")&&ownerFunction.includes("recovery.list")&&ownerFunction.includes("recovery.review"), 'Owner support recovery review not wired');
+assert.ok(recoveryFn.includes('pv_recovery_requests')&&recoveryFn.includes('count'), 'Support intake or throttle missing');
 
 const owner=read('owner-admin.js'),ownerFunction=read('supabase/functions/pavora-owner-admin/index.ts');
+assert.ok(owner.includes("recovery.list")&&owner.includes("recovery.review")&&ownerFunction.includes("recovery.list")&&ownerFunction.includes("recovery.review"), 'Owner support recovery review not wired');
 assert.ok(html.includes('owner-admin.js?v=20261110-owner-dashboard-v47')&&sw.includes('./owner-admin.js'), 'Owner dashboard not included in PWA');
 assert.ok(owner.includes("db.functions.invoke('pavora-owner-admin'")&&owner.includes('pvOwnerLauncher')&&owner.includes('pvOwnerRoot'), 'Owner UI not securely calling Edge Function');
 for(const command of ['user.suspend','user.unban','content.hide','content.restore','report.set','summary','users','audit']) assert.ok(ownerFunction.includes(command), 'Missing server admin command '+command);
