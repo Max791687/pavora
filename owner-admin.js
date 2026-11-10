@@ -79,11 +79,39 @@ const css=E('style');css.textContent=`
 #pvOwnerLauncher{display:inline-flex;align-items:center;justify-content:center;max-width:100%;min-height:39px;background:#302440;border-color:#75589f;border-radius:12px;white-space:nowrap}
 #pvOwnerLauncher:hover{background:#4c3470}
 @media(max-width:700px){#pvOwnerRoot .pvoPanel{width:100%;max-width:none;min-height:100dvh}#pvOwnerRoot .pvoSection{min-height:0}}
+
+/* v54: isolate owner UI from the PAVORA application's global main grid */
+#pvOwnerRoot .pvoMain{display:block!important;grid-template-columns:none!important;max-width:none!important;width:100%!important;margin:0!important;gap:0!important;justify-content:initial!important}
+#pvOwnerRoot .pvoMain > *{max-width:100%;min-width:0}
+#pvOwnerRoot .pvoToolbar{display:flex!important;flex-direction:row!important;align-items:center;justify-content:space-between;gap:12px;width:100%;margin:0 0 18px;padding:0}
+#pvOwnerRoot .pvoToolbar h3{flex:0 0 auto;margin:0;font-size:19px}
+#pvOwnerRoot .pvoToolbar .pvoSearch{flex:1 1 280px;min-width:180px;max-width:400px;width:auto}
+#pvOwnerRoot .pvoToolbar .pvoBtn{flex:0 0 auto;min-width:88px;margin:0}
+#pvOwnerRoot .pvoCard{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;gap:20px;width:100%;margin:0 0 10px;padding:14px 18px;min-height:76px}
+#pvOwnerRoot .pvoCard > div:first-child{flex:1 1 auto;min-width:0;max-width:calc(100% - 115px)}
+#pvOwnerRoot .pvoCard strong{font-weight:750;font-size:14px;line-height:1.45;display:block;overflow-wrap:anywhere}
+#pvOwnerRoot .pvoCard small{display:block;line-height:1.5;overflow-wrap:anywhere}
+#pvOwnerRoot .pvoActions{display:flex!important;flex-direction:row!important;flex:0 0 auto;align-items:center;justify-content:flex-end;max-width:45%;gap:8px}
+#pvOwnerRoot .pvoActions .pvoBtn{display:inline-flex!important;align-items:center;justify-content:center;writing-mode:horizontal-tb!important;white-space:nowrap!important;overflow-wrap:normal!important;word-break:normal!important;min-width:85px;min-height:36px;padding:9px 15px;margin:0!important}
+#pvOwnerRoot .pvoUserList{display:flex;flex-direction:column;gap:10px;margin:14px 0 18px}
+#pvOwnerRoot .pvoUserList .pvoCard{margin:0}
+#pvOwnerRoot .pvoUserHint{width:100%;margin:0 0 13px;color:#ac9ebf;font-size:12px}
+#pvOwnerRoot .pvoUserMeta{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 0}
+#pvOwnerRoot .pvoUserMeta span{font-size:11px;color:#bdb0cf;padding:3px 8px;border:1px solid #554767;background:#292239;border-radius:30px}
+#pvOwnerRoot .pvoUserMeta .isSuspended{color:#ffd5e0;border-color:#97516b;background:#432335}
+@media(max-width:700px){
+#pvOwnerRoot .pvoToolbar{align-items:stretch;flex-wrap:wrap}
+#pvOwnerRoot .pvoToolbar h3{flex-basis:100%}
+#pvOwnerRoot .pvoToolbar .pvoSearch{flex:1 1 160px;min-width:0}
+#pvOwnerRoot .pvoCard{align-items:flex-start!important;flex-wrap:wrap;gap:10px}
+#pvOwnerRoot .pvoCard > div:first-child{max-width:100%;flex-basis:100%}
+#pvOwnerRoot .pvoActions{width:100%;max-width:none;justify-content:flex-start}
+}
 `;document.head.append(css);
 const launcher=E('button','','🛡 Owner Dashboard');launcher.id='pvOwnerLauncher';launcher.type='button';launcher.hidden=true;document.querySelector('#profile > .panel')?.prepend(launcher);
 const overlay=E('section');overlay.id='pvOwnerRoot';overlay.hidden=true;overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','PAVORA Owner Admin Dashboard');
-const panel=E('div','pvoPanel'),head=E('div','pvoHead'),heading=E('div'),tabs=E('nav','pvoTabs'),main=E('main','pvoMain'),close=E('button','pvoClose','Close ×');
-heading.append(E('h2','','🛡 PAVORA Owner'),E('small','','LIVE ADMIN CONSOLE · v53 · Access logged'));head.append(heading,close);panel.append(head,tabs,main);overlay.append(panel);document.body.append(overlay);
+const panel=E('div','pvoPanel'),head=E('div','pvoHead'),heading=E('div'),tabs=E('nav','pvoTabs'),main=E('div','pvoMain'),close=E('button','pvoClose','Close ×');
+heading.append(E('h2','','🛡 PAVORA Owner'),E('small','','LIVE ADMIN CONSOLE · v54 · Access logged'));head.append(heading,close);panel.append(head,tabs,main);overlay.append(panel);document.body.append(overlay);
 let active='overview',allowed=false,seq=0,search='',page=0;
 const names={overview:'Overview',users:'Users',reports:'Reports',posts:'Posts',reels:'Reels',audit:'Audit Logs',recovery:'Recovery Support'};
 const current=()=>kit.getUser()?.id;
@@ -154,11 +182,24 @@ async function render(){
    line('All figures and actions come from live Supabase data. No sample analytics or fake reports are displayed.');
   }else if(active==='users'){
    const d=await api('users',{search,page});if(ticket!==seq)return;clear();
-   const bar=toolbar('User management'),input=E('input','pvoSearch');input.placeholder='Search username or display name';input.value=search;input.setAttribute('aria-label','Search users');const go=makeButton('Search',async()=>{search=input.value.trim();page=0;await render()});input.addEventListener('keydown',e=>{if(e.key==='Enter')go.click()});bar.append(input,go);
-   line('Showing '+d.users.length+' of '+d.total+' matching users. Suspensions block new sign-ins; existing sessions may remain until token expiry.');
-   for(const u of d.users){const subtitle=[u.email||'No email',u.confirmed?'Verified':'Unverified',u.suspended?'Suspended':'Active',u.is_official?'Official account':'',u.created_at?new Date(u.created_at).toLocaleDateString('en-IN'):''].filter(Boolean).join(' · ');
-    const acts=[];if(!u.is_official){acts.push(makeButton(u.suspended?'Unban':'Suspend',()=>actionConfirm(u.suspended?'unban user':'suspend user',u.suspended?'user.unban':'user.suspend',{id:u.id}),u.suspended?'secondary':'danger'))}
-    card('@'+u.username+(u.display_name?' · '+u.display_name:''),subtitle,acts);
+   const bar=toolbar('Users · '+d.total),input=E('input','pvoSearch');input.placeholder='Search username or display name';input.value=search;input.setAttribute('aria-label','Search users');const go=makeButton('Search',async()=>{search=input.value.trim();page=0;await render()});input.addEventListener('keydown',e=>{if(e.key==='Enter')go.click()});bar.append(input,go);
+   main.append(E('p','pvoUserHint','Showing '+d.users.length+' of '+d.total+' users · Suspension blocks new sign-ins; existing sessions can remain until token expiry.'));
+   const userList=E('div','pvoUserList');main.append(userList);
+   if(!d.users.length)userList.append(E('div','pvoSectionEmpty','No matching users found.'));
+   for(const u of d.users){
+    const entry=E('div','pvoCard');
+    const identity=E('div','pvoIdentity');identity.append(E('strong','', '@'+(u.username||'unknown')+(u.display_name?' · '+u.display_name:'')),E('small','',u.email||'No email'));
+    const badges=E('div','pvoUserMeta');
+    for(const [value,cls] of [[u.confirmed?'Verified':'Unverified',''],[u.suspended?'Suspended':'Active',u.suspended?'isSuspended':''],[u.is_official?'Official':'',''],[u.created_at?new Date(u.created_at).toLocaleDateString('en-IN'):'','']]){
+      if(value)badges.append(E('span',cls,value));
+    }
+    identity.append(badges);entry.append(identity);
+    if(!u.is_official){
+      const opts=E('div','pvoActions');
+      opts.append(makeButton(u.suspended?'Unban':'Suspend',()=>actionConfirm(u.suspended?'unban user':'suspend user',u.suspended?'user.unban':'user.suspend',{id:u.id}),u.suspended?'secondary':'danger'));
+      entry.append(opts);
+    }
+    userList.append(entry);
    }
    const foot=E('div','pvoFoot'),label=E('span','pvoMuted','Page '+(page+1)),prev=makeButton('Previous',async()=>{page--;await render()},'secondary'),next=makeButton('Next',async()=>{page++;await render()},'secondary');
    prev.disabled=page===0;next.disabled=(page+1)*20>=d.total;foot.append(prev,label,next);main.append(foot);
