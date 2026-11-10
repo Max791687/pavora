@@ -1053,6 +1053,8 @@ const pvVirtualCreators=pvVirtualNames.flatMap((name,i)=>pvVirtualThemes.map((th
  theme:theme.label,posts:theme.posts,shade:(i*2+j)%8
 })));
 
+// Published to the clearly labeled daily virtual editorial showcase; no synthetic Auth users.
+window.PAVORA_VIRTUAL_CREATORS=pvVirtualCreators;
 const pvVirtualCss=document.createElement('style');
 pvVirtualCss.textContent=`
 #pvVirtualDiscovery{margin:16px 0 26px;padding:18px;background:#14121c;border:1px solid #302638;border-radius:17px}
@@ -1182,14 +1184,16 @@ function pvOpenVirtual(person){
  avatar.dataset.shade=String(person.shade);
  const details=node('div');
  details.append(node('h2','',person.username),node('strong','',person.display_name),node('div','pvVirtualTag','Virtual · Creative concept profile'),node('p','pvVirtualProfileBio',person.bio));
- const meta=node('div','pvVirtualMeta');meta.append(node('span','','3 posts'),node('span','','Creative concepts'));
+ const dailyHistory=window.PAVORA_DAILY?.history?.(person,3)||person.posts.map(text=>({caption:text}));
+ const meta=node('div','pvVirtualMeta');meta.append(node('span','',dailyHistory.length+' recent demo posts'),node('span','','Virtual creator · editorial schedule'));
  details.append(meta);
  const actions=node('div','pvVirtualActions'),message=node('button','','Message'),exploreBtn=node('button','secondary','Explore creators');
  message.onclick=()=>pvOpenVirtualChat(person);
  exploreBtn.onclick=back.onclick;
  actions.append(message,exploreBtn);details.append(actions);head.append(avatar,details);
  const grid=node('div','pvVirtualPostGrid');
- person.posts.forEach((content,i)=>{
+ dailyHistory.forEach((entry,i)=>{
+  const content=entry.caption;
   const post=node('button','pvVirtualPost');post.type='button';
   post.style.background=['linear-gradient(135deg,#3a275c,#18213a)','linear-gradient(135deg,#1e4f63,#25203f)','linear-gradient(135deg,#5b2b50,#292039)'][(i+person.shade)%3];
   post.append(node('small','','PAVORA · '+person.theme),node('span','',content));
