@@ -235,7 +235,8 @@ async function refreshChatsLive(force=false){
 async function render(){
  pvChatsLayout=null;pvChatsSignature='';
  const ticket=++seq;clear();if(!allowed||!current()){closePanel();return}
- main.append(E('p','pvoMuted','Loading secure admin data…'));
+ if(active==='chats'){buildChatsLayout();pvChatsLayout.status.textContent='Connecting live activity…';}
+ else main.append(E('p','pvoMuted','Loading secure admin data…'));
  try{
   if(active==='overview'){
    const d=await api('summary');if(ticket!==seq)return;clear();
@@ -341,8 +342,8 @@ async function render(){
     row.append(thumb,detail,actions);main.append(row);
    }
   }else if(active==='chats'){
-   const d=await api('chat.activity');if(ticket!==seq)return;clear();
-   buildChatsLayout();updateChatsData(d);
+   const d=await api('chat.activity');if(ticket!==seq)return;
+   updateChatsData(d);
   }else if(active==='recovery'){
    const d=await api('recovery.list');if(ticket!==seq)return;clear();toolbar('Account recovery support');
    line('Review access requests without ever asking for passwords, OTPs or ID documents. Verify account ownership using a trusted channel before assisting with a reset.');
