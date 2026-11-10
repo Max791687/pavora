@@ -25,7 +25,8 @@ Deno.serve(async req=>{
   if(authError||!auth?.user?.id)return fail('Invalid or expired login',401);
   const actor=auth.user.id;
   const {data:membership,error:memberError}=await admin.from('pv_app_admins').select('user_id').eq('user_id',actor).maybeSingle();
-  if(memberError||!membership)return fail('Owner admin access required',403);
+  if(memberError){console.error('PAVORA admin membership lookup failed:',memberError.message);return fail('Admin membership check is temporarily unavailable',503)}
+  if(!membership)return fail('Owner admin access required',403);
   const body=await req.json().catch(()=>({}));
   const action=String(body.action||'');
   const id=String(body.id||'');
@@ -33,11 +34,11 @@ Deno.serve(async req=>{
   if(action==='summary'){
    const since=new Date(Date.now()-7*86400000).toISOString();
    const count=async(table,query)=>{let q=admin.from(table).select('*',{head:true,count:'exact'});if(query)q=query(q);const r=await q;if(r.error)throw r.error;return r.count||0};
-   const [users,newUsers,activeNow,posts,reels,reports,pending,suspended]=await Promise.all([
+   const [users,newUsers,activeNow,posts,reels,reports,pending,recoveries]=await Promise.all([
     count('profiles'),count('profiles',q=>q.gte('created_at',since)),count('pv_user_presence',q=>q.gte('last_active_at',new Date(Date.now()-15*60000).toISOString())),count('posts'),count('reels'),count('content_reports'),count('content_reports',q=>q.in('status',['pending','open','reviewing'])),
-    admin.from('pv_admin_audit').select('target_id').eq('action','user.suspend').order('created_at',{ascending:false}).limit(50)
+    count('pv_recovery_requests',q=>q.in('status',['pending','reviewing']))
    ]);
-   return send({users,newUsers,activeNow,posts,reels,reports,pending});
+   return send({users,newUsers,activeNow,posts,reels,reports,pending,recoveries});
   }
   if(action==='users'){
    const term=String(body.search||'').trim().slice(0,48).replace(/[,()%]/g,'');
