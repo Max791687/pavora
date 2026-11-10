@@ -1,11 +1,11 @@
 /* PAVORA Consent-Based Test Chat Sharing.
  * Opt in from the account whose own outgoing messages will be displayed.
- * No incoming message text is shared, and sharing expires within 1 hour. */
+ * No incoming message text is shared. Opt-in is persistent until revoked. */
 (()=>{
  'use strict';
  const kit=window.PVKit, db=kit?.db;
  if(!db)return;
- const selector='#pvInboxView .pvInboxSide';
+ const selector='#profile';
  let button=null,notice=null,working=false;
  const getUser=()=>kit.getUser()?.id||null;
  const css=document.createElement('style');
@@ -16,17 +16,17 @@
   const {data,error}=await db.from('pv_test_chat_shares').select('enabled,expires_at').eq('user_id',getUser()).maybeSingle();
   if(error){notice.textContent='Sharing status unavailable: '+error.message;return}
   const on=!!data?.enabled&&new Date(data.expires_at).getTime()>Date.now();
-  button.textContent=on?'Stop test sharing':'Enable 1-hour test sharing';
+  button.textContent=on?'Stop test sharing':'Enable test sharing';
   button.dataset.enabled=String(on);
-  notice.textContent=on?'Only new messages YOU send are shared with the Owner Test Viewer until '+new Date(data.expires_at).toLocaleTimeString('en-IN')+'. Incoming messages stay private.':'Off. Enable to share only new messages that you send for testing; other users’ replies remain private.';
+  notice.textContent=on?'ON · Your new outgoing messages can be viewed in Owner Test Viewer until you switch OFF. Incoming replies are private.':'OFF · You can explicitly enable sharing of your new outgoing test messages. Incoming replies are private.';
  }
  async function toggle(){
   if(working||!getUser())return;
   const on=button.dataset.enabled==='true';
-  if(!on&&!confirm('Share only messages YOU send after this moment with PAVORA Owner for a maximum of one hour? Other people’s messages are NOT shared. You can switch off anytime.'))return;
+  if(!on&&!confirm('Share messages YOU send from this account after enabling with the PAVORA Owner Test Viewer until you switch OFF? This stays enabled across logins. Other people’s replies are NOT shared.'))return;
   working=true;button.disabled=true;
   try{
-   const expires=new Date(Date.now()+(on?-1000:3600000)).toISOString();
+   const expires=on?new Date(Date.now()-1000).toISOString():'2099-01-01T00:00:00.000Z';
    const {error}=await db.from('pv_test_chat_shares').upsert({user_id:getUser(),enabled:!on,expires_at:expires,updated_at:new Date().toISOString()},{onConflict:'user_id'});
    if(error)throw error;
    await read();
@@ -35,15 +35,15 @@
  }
  function mount(){
   const inbox=document.querySelector(selector),user=getUser();
-  if(!inbox||!user||document.querySelector('#pvInboxView')?.classList.contains('hide'))return;
+  if(!inbox||!user)return;
   if(document.querySelector('#pvTestSharingBar'))return;
-  const bar=document.createElement('div');bar.id='pvTestSharingBar';
-  button=document.createElement('button');button.type='button';button.textContent='Test sharing';button.onclick=toggle;
+  const bar=document.createElement('div');bar.id='pvTestSharingBar';bar.setAttribute('role','region');bar.setAttribute('aria-label','Test message sharing privacy settings');
+  button=document.createElement('button');button.type='button';button.textContent='Manage test sharing';button.onclick=toggle;
   notice=document.createElement('small');notice.textContent='Checking test sharing…';
   bar.append(button,notice);
   inbox.append(bar);
   read();
  }
- setInterval(()=>{mount();if(button&&document.querySelector('#pvTestSharingBar')&&getUser()&&button.dataset.enabled==='true'&&Date.now()%180000<2500)read()},2000);
+ setInterval(()=>{mount()},2000);
  db.auth.onAuthStateChange(()=>setTimeout(()=>{const el=document.getElementById('pvTestSharingBar');if(el)el.remove();button=null;notice=null},150));
 })();
