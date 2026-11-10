@@ -5,11 +5,11 @@
  'use strict';
  const kit=window.PVKit, db=kit?.db;
  if(!db)return;
- const selector='#pvInboxView';
+ const selector='#pvInboxView .pvInboxSide';
  let button=null,notice=null,working=false;
  const getUser=()=>kit.getUser()?.id||null;
  const css=document.createElement('style');
- css.textContent='#pvTestSharingBar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0;padding:10px 12px;border:1px solid #514263;border-radius:12px;background:#211b2d;color:#f1e8ff;font-size:12px}#pvTestSharingBar button{border:1px solid #8063b1;border-radius:9px;background:#51357c;color:white;padding:7px 11px;font-weight:700}#pvTestSharingBar small{flex:1;min-width:155px;color:#c2b3d4}';
+ css.textContent='#pvTestSharingBar{display:flex;flex-direction:column;gap:5px;align-items:stretch;margin:8px 0;padding:8px;border:1px solid #514263;border-radius:10px;background:#211b2d;color:#f1e8ff;font-size:11px;max-width:100%;min-width:0}#pvTestSharingBar button{border:1px solid #8063b1;border-radius:9px;background:#51357c;color:white;padding:7px 11px;font-weight:700}#pvTestSharingBar small{display:block;min-width:0;overflow-wrap:anywhere;line-height:1.3;color:#c2b3d4}';
  document.head.append(css);
  async function read(){
   if(!getUser()||!button)return;
@@ -35,13 +35,13 @@
  }
  function mount(){
   const inbox=document.querySelector(selector),user=getUser();
-  if(!inbox||!user||inbox.classList.contains('hide'))return;
+  if(!inbox||!user||document.querySelector('#pvInboxView')?.classList.contains('hide'))return;
   if(document.querySelector('#pvTestSharingBar'))return;
   const bar=document.createElement('div');bar.id='pvTestSharingBar';
   button=document.createElement('button');button.type='button';button.textContent='Test sharing';button.onclick=toggle;
   notice=document.createElement('small');notice.textContent='Checking test sharing…';
   bar.append(button,notice);
-  inbox.prepend(bar);
+  inbox.append(bar);
   read();
  }
  setInterval(()=>{mount();if(button&&document.querySelector('#pvTestSharingBar')&&getUser()&&button.dataset.enabled==='true'&&Date.now()%180000<2500)read()},2000);
