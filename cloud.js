@@ -162,7 +162,29 @@ document.getElementById('pvMethodPhone').onclick=()=>pvSwitchMethod('phone');
 document.getElementById('pvOtpResend').onclick=async()=>{if(!pvPhonePending)return;try{const {error}=await db.auth.resend({type:'sms',phone:pvPhonePending});if(error)throw error;msg('Fresh verification code sent to '+pvPhonePending)}catch(e){msg(e.message||'Could not resend SMS. Check SMS provider settings.')}};
 
 let authMode='login';
-function setAuthMode(mode){authMode=mode;pvPhonePending='';document.getElementById('pvOtpWrap').hidden=true;document.getElementById('pvOtp').required=false;document.getElementById('pvAuthMethods').hidden=mode==='reset';document.getElementById('pvEmailWrap').hidden=mode!=='reset'&&pvAuthMethod==='phone';document.getElementById('pvPhoneWrap').hidden=mode==='reset'||pvAuthMethod==='email';document.getElementById('authEmail').required=mode==='reset'||pvAuthMethod==='email';document.getElementById('authPhone').required=mode!=='reset'&&pvAuthMethod==='phone';msg('');const signup=mode==='signup',reset=mode==='reset';document.getElementById('authNameWrap').hidden=!signup;document.getElementById('authUsernameWrap').hidden=!signup;document.getElementById('authConfirmWrap').hidden=!signup;document.getElementById('authName').required=signup;document.getElementById('authUsername').required=signup;document.getElementById('authConfirm').required=signup;document.getElementById('authPassword').required=!reset;document.getElementById('authPassword').closest('.authPasswordRow').previousElementSibling.hidden=reset;document.getElementById('authPassword').closest('.authPasswordRow').hidden=reset;document.getElementById('authHeading').textContent=signup?'Create your account':reset?'Reset your password':'Log in to PAVORA';document.getElementById('authSubtitle').textContent=signup?'Join PAVORA in a few easy steps.':reset?'We will send you a password reset link.':'Welcome back! Enter your details to continue.';document.getElementById('authSubmit').textContent=signup?'Create account':reset?'Send reset link':'Log in';document.getElementById('signup').textContent=signup||reset?'Back to log in':'Create new account';document.getElementById('authForgot').hidden=signup||reset||pvAuthMethod==='phone';document.getElementById('authPassword').autocomplete=signup?'new-password':'current-password'}
+let pvSignupEmailCooldownUntil=0;
+let pvSignupCooldownTimer=null;
+function pvSignupEmailLimitMessage(){
+ return 'PAVORA cannot send more verification emails right now because the email service limit has been reached. Existing users can log in. For reliable new signups, the admin must configure Custom SMTP in Supabase Authentication → SMTP Settings. Please try signup later.';
+}
+function pvShowSignupEmailLimit(){
+ pvSignupEmailCooldownUntil=Date.now()+5*60*1000;
+ msg(pvSignupEmailLimitMessage(),'error');
+ const feedback=document.getElementById('authMsg');
+ let action=document.getElementById('pvAuthBackToLogin');
+ if(!action){
+  action=document.createElement('button');action.type='button';action.id='pvAuthBackToLogin';
+  action.textContent='Already have an account? Log in';
+  action.style.cssText='display:block;width:100%;margin-top:8px;padding:9px 12px;background:#fff;color:#6844bd;border:1px solid #ac92e2;border-radius:9px;font-size:12px;font-weight:750;cursor:pointer';
+  action.onclick=()=>{if(!pvAuthPending)setAuthMode('login')};
+  feedback.insertAdjacentElement('afterend',action);
+ }
+ action.hidden=false;
+ if(pvSignupCooldownTimer)clearTimeout(pvSignupCooldownTimer);
+ pvSignupCooldownTimer=setTimeout(()=>{pvSignupCooldownTimer=null;pvSignupEmailCooldownUntil=0},5*60*1000);
+}
+
+function setAuthMode(mode){document.getElementById('pvAuthBackToLogin')?.setAttribute('hidden','');authMode=mode;pvPhonePending='';document.getElementById('pvOtpWrap').hidden=true;document.getElementById('pvOtp').required=false;document.getElementById('pvAuthMethods').hidden=mode==='reset';document.getElementById('pvEmailWrap').hidden=mode!=='reset'&&pvAuthMethod==='phone';document.getElementById('pvPhoneWrap').hidden=mode==='reset'||pvAuthMethod==='email';document.getElementById('authEmail').required=mode==='reset'||pvAuthMethod==='email';document.getElementById('authPhone').required=mode!=='reset'&&pvAuthMethod==='phone';msg('');const signup=mode==='signup',reset=mode==='reset';document.getElementById('authNameWrap').hidden=!signup;document.getElementById('authUsernameWrap').hidden=!signup;document.getElementById('authConfirmWrap').hidden=!signup;document.getElementById('authName').required=signup;document.getElementById('authUsername').required=signup;document.getElementById('authConfirm').required=signup;document.getElementById('authPassword').required=!reset;document.getElementById('authPassword').closest('.authPasswordRow').previousElementSibling.hidden=reset;document.getElementById('authPassword').closest('.authPasswordRow').hidden=reset;document.getElementById('authHeading').textContent=signup?'Create your account':reset?'Reset your password':'Log in to PAVORA';document.getElementById('authSubtitle').textContent=signup?'Join PAVORA in a few easy steps.':reset?'We will send you a password reset link.':'Welcome back! Enter your details to continue.';document.getElementById('authSubmit').textContent=signup?'Create account':reset?'Send reset link':'Log in';document.getElementById('signup').textContent=signup||reset?'Back to log in':'Create new account';document.getElementById('authForgot').hidden=signup||reset||pvAuthMethod==='phone';document.getElementById('authPassword').autocomplete=signup?'new-password':'current-password'}
 // Place feedback immediately below the main action, above OR and account switching.
 document.getElementById('authSubmit').insertAdjacentElement('afterend',document.getElementById('authMsg'));
 document.getElementById('signup').onclick=()=>{if(!pvAuthPending)setAuthMode(authMode==='login'?'signup':'login')};
@@ -187,6 +209,9 @@ if(pvPhonePending){
 if(usingPhone&&!/^[6-9][0-9]{9}$/.test(phoneInput))return msg('Enter a valid 10-digit Indian mobile number.');
 if(!usingPhone&&!email)return msg('Please enter your email.');
 if(authMode==='signup'&&password!==document.getElementById('authConfirm').value)return msg('Passwords do not match.');
+if(authMode==='signup'&&!usingPhone&&Date.now()<pvSignupEmailCooldownUntil){
+ pvShowSignupEmailLimit();return;
+}
 pvAuthBusy(true,authMode);msg(authMode==='login'?'Logging in…':authMode==='signup'?'Creating your account…':'Sending reset link…','loading');
 try{
  if(authMode==='login'){
@@ -225,7 +250,8 @@ try{
  const raw=String(err?.message||'Something went wrong. Please try again.');
  const code=String(err?.code||'').toLowerCase();
  if(usingPhone&&(/sms provider|sms.*disabled|phone.*disabled|unsupported provider|provider is not enabled/i.test(raw)))msg('Phone signup needs an SMS provider. PAVORA admin: enable Phone in Supabase Authentication → Sign In / Providers and configure SMS delivery.');
- else if(code==='over_email_send_rate_limit'||/email rate limit exceeded/i.test(raw))msg('Signup email sending limit reached. Try later or ask the admin to configure Custom SMTP.');
+ else if(code==='over_email_send_rate_limit'||/email rate limit exceeded|signup email sending limit reached/i.test(raw))pvShowSignupEmailLimit();
+ else if(code==='email_address_not_authorized'||/email address not authorized/i.test(raw))msg('PAVORA email service cannot send to this address yet. The admin needs to configure Custom SMTP in Supabase Authentication → SMTP Settings.','error');
  else if(err?.status===429||/rate limit/i.test(raw))msg('Too many attempts right now. Please try again later.');
  else msg(pvReadableAuthError(err),'error');
 }finally{pvAuthBusy(false,authMode)}
