@@ -113,7 +113,7 @@ const home=document.getElementById('home'),realPosts=document.getElementById('po
 const container=E('section','pvDailyShowcase');
 container.id='pvDailyShowcase';
 container.setAttribute('aria-label','Daily curated virtual creator posts');
-const heading=E('div','pvDailyHead'),title=E('h2','','Daily Creator Showcase'),meta=E('p','pvDailyIntro');
+const heading=E('div','pvDailyHead'),title=E('h2','','From virtual creators · Daily photo posts'),meta=E('p','pvDailyIntro');
 heading.append(title,meta);
 const cards=E('div','pvDailyCards');
 const footer=E('div','pvDailyFooter'),more=E('button','pvDailyMore','Show 12 more demo posts');
@@ -168,9 +168,9 @@ const photoIds={
  style:['photo-1483985988355-763728e1935b','photo-1529139574466-a303027c1d8b','photo-1485968579580-b6d095142e6e','photo-1503342217505-b0a15ec3261c'],
  studio:['photo-1493612276216-ee3925520721','photo-1541462608143-67571c6738dd','photo-1455390582262-044cdead277a','photo-1523726491678-bf852e717f6a']
 };
-function imageFor(p){
+function imageFor(p,retry=0){
  const list=photoIds[p.kind]||photoIds.frames;
- const id=list[(nameIdx(p.creator)+p.day)%list.length];
+ const id=list[(nameIdx(p.creator)+p.day+retry)%list.length];
  return 'https://images.unsplash.com/'+id+'?auto=format&fit=crop&w=1100&q=78';
 }
 function draftStorageKey(){return 'pavora-demo-saved:'+((window.PVKit?.getUser?.()?.id)||'guest')}
@@ -193,7 +193,8 @@ function cardFor(p){
  const visual=E('div','pvDailyPhotoWrap'),img=E('img','pvDailyPhoto');
  img.src=imageFor(p);img.alt='Illustrative photograph for '+p.title;
  img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';
- img.onerror=()=>c.classList.add('photoFailed');
+ let retries=0;
+ img.onerror=()=>{if(retries<3){retries++;img.src=imageFor(p,retries)}else c.classList.add('photoFailed')};
  const fallback=E('div','pvDailyPhotoFallback',p.title);
  const credit=E('a','pvDailyPhotoCredit','Illustrative photo · Unsplash');
  credit.href='https://unsplash.com/';credit.target='_blank';credit.rel='noopener noreferrer';
@@ -245,10 +246,18 @@ function sync(force=false){
  renderedDay=day;shown=0;cards.replaceChildren();
  // Rotate the starting creator so the same accounts don't dominate the screen daily.
  entries=creators.map(person=>postFor(person,day)).sort((a,b)=>((nameIdx(a.creator)*37+day*17)%101)-((nameIdx(b.creator)*37+day*17)%101));
- meta.textContent='100 virtual creators published 1 curated DEMO post each today · '+dateLabel(day)+' · One curated demo post per profile per day at 9 AM IST (60-day editorial rotation). Clearly labeled virtual content; real uploaded posts appear above. No fake likes or automated DMs.';
+ meta.textContent='100 curated illustrative photo posts today · '+dateLabel(day)+' · Fictional profiles are labeled Demo. Real user uploads appear above.';
  drawNext();
 }
 sync(true);
+// Open a shared demo post by progressively rendering the required card.
+function openSharedPost(){
+ const id=decodeURIComponent(location.hash.slice(1));if(!id.startsWith('virtual-post-'))return;
+ let target=document.getElementById(id);
+ while(!target&&shown<entries.length){drawNext();target=document.getElementById(id)}
+ if(target)requestAnimationFrame(()=>target.scrollIntoView({block:'start',behavior:'instant'}));
+}
+window.addEventListener('hashchange',openSharedPost);setTimeout(openSharedPost,250);
 setInterval(()=>sync(),60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
 window.addEventListener('pageshow',()=>sync());
