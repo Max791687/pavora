@@ -53,6 +53,21 @@ Deno.serve(async req=>{
    }));
    return send({users,total:count||0,page});
   }
+  if(action==='recovery.list'){
+   const entries=await read(admin.from('pv_recovery_requests').select('id,email,issue,status,created_at').order('created_at',{ascending:false}).limit(100));
+   return send({entries});
+  }
+  if(action==='recovery.review'){
+   if(!uuid.test(id))return fail('Invalid request');
+   const status=String(body.status||'');
+   if(!['reviewing','closed'].includes(status))return fail('Invalid status');
+   if(reason.length<5)return fail('Provide an audit reason');
+   const {data,error}=await admin.from('pv_recovery_requests').update({status,updated_at:new Date().toISOString()}).eq('id',id).select('id').maybeSingle();
+   if(error)throw error;
+   if(!data)return fail('Request not found',404);
+   await log(actor,'recovery.'+status,'recovery_request',id,reason);
+   return send({ok:true});
+  }
   if(action==='reports'){
    const reports=await read(admin.from('content_reports').select('id,reporter_id,target_kind,target_id,reason,details,status,created_at').order('created_at',{ascending:false}).limit(100));
    return send({reports});
