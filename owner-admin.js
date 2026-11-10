@@ -32,6 +32,39 @@ const css=E('style');css.textContent=`
 .pvoFoot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px}
 #pvOwnerLauncher{margin:8px 0;background:#3a2b55}
 @media(max-width:700px){#pvOwnerRoot{padding:0}.pvoPanel{height:100dvh;width:100%;border-radius:0}.pvoMain{padding:12px}.pvoStats{grid-template-columns:repeat(2,minmax(0,1fr))}.pvoCard{align-items:flex-start;flex-direction:column}.pvoActions{justify-content:flex-start}.pvoHead{padding:13px}.pvoTab{font-size:12px;padding:8px}}
+
+/* v52 premium owner console: compact KPI cards, balanced sections, mobile-safe layouts */
+.pvoPanel{width:min(1240px,calc(100vw - 28px));height:min(850px,94dvh);border:1px solid #67518b;border-radius:22px;background:#12101c;box-shadow:0 32px 110px #000d}
+.pvoHead{padding:23px 26px;background:radial-gradient(ellipse at 80% 0%,#6c33a545,transparent 58%),linear-gradient(108deg,#29203c,#161322)}
+.pvoHead h2{font-size:23px;letter-spacing:-.5px}.pvoHead small{font-size:12px}
+.pvoTabs{padding:12px 20px;gap:8px;background:#171421;scrollbar-width:thin}
+.pvoTab{padding:10px 15px;border-radius:10px}.pvoTab.active{background:linear-gradient(130deg,#8652e2,#6033ad)}
+.pvoMain{padding:24px;overflow-x:hidden;background:radial-gradient(ellipse at 45% 0%,#3b215c22,transparent 70%),#120f1a}
+.pvoToolbar h3{font-size:19px;font-weight:800;letter-spacing:-.3px;margin:0}
+.pvoToolbar{margin:0 0 18px}
+.pvoStats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0 0 23px}
+.pvoStat{min-width:0;display:flex;flex-direction:column;gap:6px;padding:17px;background:linear-gradient(165deg,#29213a,#1b1728);border:1px solid #514166;box-shadow:0 8px 22px #0003;border-radius:15px}
+.pvoStat span{font-size:12px;color:#bfb0d2;font-weight:650}
+.pvoStat b{font-size:30px;line-height:1.2;letter-spacing:-1px;margin:4px 0;color:#fff}
+.pvoStat .pvoKpiIcon{font-size:19px;color:#ba8bff}
+.pvoStat small{font-size:10px;color:#a799ba}
+.pvoPanels{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.pvoSection{background:linear-gradient(170deg,#201b2e,#171321);border:1px solid #433553;border-radius:16px;padding:19px;min-width:0}
+.pvoSection h3{font-size:16px;color:#f7f2ff;margin:0 0 7px}
+.pvoSection p{margin:3px 0 13px;color:#b6a8c9;font-size:12px}
+.pvoSection .pvoSectionEmpty{background:#171320;border:1px dashed #534463;border-radius:10px;padding:20px 13px;font-size:13px;color:#ae9fc3}
+.pvoSectionWide{grid-column:1 / -1}
+.pvoEvent{padding:12px 0;border-bottom:1px solid #3b3149;color:#f3eaff;font-size:12px}
+.pvoEvent:last-child{border-bottom:0}
+.pvoEvent small{color:#a99bbb;display:block;margin-top:4px}
+.pvoCard{border-color:#403550;background:#221c30}
+.pvoAlert{width:100%;box-sizing:border-box;max-width:700px;padding:18px;border-radius:14px;margin:0 auto}
+.pvoEmptyState{min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px dashed #55446a;border-radius:16px;background:#21192a55;padding:26px;text-align:center;gap:10px}
+.pvoEmptyState h3{font-size:18px;margin:0;color:#fff}
+.pvoEmptyState p{font-size:13px;color:#c4b7d2;max-width:540px;margin:0 0 9px}
+.pvoEmptyState .pvoBtn{min-width:110px}
+@media(max-width:930px){.pvoStats{grid-template-columns:repeat(2,minmax(0,1fr))}.pvoPanels{grid-template-columns:1fr}.pvoSectionWide{grid-column:auto}}
+@media(max-width:700px){#pvOwnerRoot{padding:0}.pvoPanel{width:100%;height:100dvh;border:0;border-radius:0}.pvoMain{padding:14px 12px 96px}.pvoStats{gap:9px}.pvoStat{padding:13px}.pvoStat b{font-size:26px}.pvoHead{padding:15px}.pvoTabs{padding:9px 10px}}
 `;document.head.append(css);
 const launcher=E('button','','🛡 Owner Dashboard');launcher.id='pvOwnerLauncher';launcher.type='button';launcher.hidden=true;document.querySelector('#profile > .panel')?.prepend(launcher);
 const overlay=E('section');overlay.id='pvOwnerRoot';overlay.hidden=true;overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','PAVORA Owner Admin Dashboard');
@@ -40,7 +73,21 @@ heading.append(E('h2','','🛡 PAVORA Owner'),E('small','','Secure administratio
 let active='overview',allowed=false,seq=0,search='',page=0;
 const names={overview:'Overview',users:'Users',reports:'Reports',posts:'Posts',reels:'Reels',audit:'Audit Logs',recovery:'Recovery Support'};
 const current=()=>kit.getUser()?.id;
-async function api(action,more={}){const r=await db.functions.invoke('pavora-owner-admin',{body:{action,...more}});if(r.error)throw new Error(r.data?.error||r.error.message||'Admin request failed');if(r.data?.error)throw new Error(r.data.error);return r.data}
+async function api(action,more={}){
+ const r=await db.functions.invoke('pavora-owner-admin',{body:{action,...more}});
+ if(r.error){
+  let detail=r.data?.error;
+  const response=r.error.context;
+  if(response?.json){try{const body=await response.clone().json();detail=body.error||body.message||detail}catch{}}
+  const status=response?.status;
+  if(status===401)detail='Session expired. Log out and log back in.';
+  if(status===403)detail='Owner permission denied. Only verified owners can access this dashboard.';
+  if(status===503)detail='Admin backend is temporarily unavailable.';
+  throw new Error(detail||(status?'Server returned HTTP '+status:r.error.message)||'Admin request failed');
+ }
+ if(r.data?.error)throw new Error(r.data.error);
+ return r.data;
+}
 function clear(){main.replaceChildren()}
 function line(t){main.append(E('p','pvoMuted',t))}
 function alertText(msg,ok=false){const a=E('div','pvoAlert'+(ok?' pvoOk':''),msg);main.prepend(a)}
@@ -58,8 +105,39 @@ async function render(){
   if(active==='overview'){
    const d=await api('summary');if(ticket!==seq)return;clear();
    toolbar('Platform overview');
-   const grid=E('div','pvoStats');[['Users',d.users],['New users · 7d',d.newUsers],['Active · 15 min',d.activeNow],['Posts',d.posts],['Reels',d.reels],['Reports',d.reports],['Pending review',d.pending]].forEach(([l,v])=>grid.append(stat(v,l)));main.append(grid);
-   line('Counts are live database totals. Private messages and passwords are not shown in this dashboard.');
+   const metrics=[['♙','Total Users',d.users],['✦','New Signups · 7d',d.newUsers],['◉','Active · 15 min',d.activeNow],['▤','Posts',d.posts],['▣','Reels',d.reels],['⚑','Pending Reports',d.pending],['✉','Recovery Requests',d.recoveries],['◎','Total Reports',d.reports]];
+   const grid=E('div','pvoStats');
+   for(const [icon,label,value] of metrics){
+    const statbox=E('div','pvoStat');
+    statbox.append(E('div','pvoKpiIcon',icon),E('span','',label),E('b','',Number(value||0).toLocaleString('en-IN')));
+    statbox.append(E('small','', 'Live Supabase data'));
+    grid.append(statbox);
+   }
+   main.append(grid);
+   const sections=E('div','pvoPanels'),left=E('section','pvoSection'),right=E('section','pvoSection'),bottom=E('section','pvoSection pvoSectionWide');
+   left.append(E('h3','','⚑ Recent reports'),E('p','','Latest reports from the PAVORA community'));
+   right.append(E('h3','','◷ Admin activity'),E('p','','Most recent moderation and security actions'));
+   bottom.append(E('h3','','⚡ Quick access'),E('p','','Manage accounts, moderation and recovery from one place'));
+   const makeLink=(text,to,parent)=>{
+     const btn=E('button','pvoBtn secondary',text);btn.type='button';btn.onclick=()=>{active=to;tabsRender();render()};parent.append(btn)
+   };
+   const results=await Promise.allSettled([api('reports'),api('audit')]);
+   if(ticket!==seq)return;
+   if(results[0].status==='fulfilled'&&results[0].value.reports?.length){
+    for(const r of results[0].value.reports.slice(0,5)){
+     const line=E('div','pvoEvent',r.target_kind+' · '+String(r.reason||'Report'));line.append(E('small','',(r.status||'pending')+' · '+new Date(r.created_at).toLocaleString('en-IN')));left.append(line)
+    }
+   }else left.append(E('div','pvoSectionEmpty',results[0].status==='rejected'?'Reports are temporarily unavailable.':'No reports filed yet.'));
+   makeLink('View reports', 'reports',left);
+   if(results[1].status==='fulfilled'&&results[1].value.entries?.length){
+    for(const a of results[1].value.entries.slice(0,5)){
+     const line=E('div','pvoEvent',a.action);line.append(E('small','',new Date(a.created_at).toLocaleString('en-IN')+' · '+a.target_kind));right.append(line)
+    }
+   }else right.append(E('div','pvoSectionEmpty',results[1].status==='rejected'?'Activity logs are temporarily unavailable.':'No admin actions recorded yet.'));
+   makeLink('View audit logs','audit',right);
+   for(const [label,to] of [['Manage users','users'],['Review Reels','reels'],['Moderate posts','posts'],['Recovery support','recovery']])makeLink(label,to,bottom);
+   sections.append(left,right,bottom);main.append(sections);
+   line('All figures and actions come from live Supabase data. No sample analytics or fake reports are displayed.');
   }else if(active==='users'){
    const d=await api('users',{search,page});if(ticket!==seq)return;clear();
    const bar=toolbar('User management'),input=E('input','pvoSearch');input.placeholder='Search username or display name';input.value=search;input.setAttribute('aria-label','Search users');const go=makeButton('Search',async()=>{search=input.value.trim();page=0;await render()});input.addEventListener('keydown',e=>{if(e.key==='Enter')go.click()});bar.append(input,go);
@@ -93,7 +171,11 @@ async function render(){
    if(!d.entries.length)line('No admin actions recorded yet.');
    for(const a of d.entries)card(a.action+' · '+a.target_kind, (a.reason||'')+' · '+a.target_id+' · '+new Date(a.created_at).toLocaleString('en-IN'));
   }
- }catch(e){if(ticket!==seq)return;clear();alertText('Admin dashboard: '+e.message)}
+ }catch(e){if(ticket!==seq)return;clear();
+  const area=E('div','pvoEmptyState');area.append(E('div','','⚠️'),E('h3','','Unable to load dashboard data'),E('p','',e.message||'Please try again.'));
+  const retry=E('button','pvoBtn','↻ Retry');retry.type='button';retry.onclick=()=>render();
+  area.append(retry);main.append(area);
+ }
 }
 function closePanel(){overlay.hidden=true;seq++;document.body.classList.remove('pvOwnerOpen')}
 close.onclick=closePanel;overlay.addEventListener('click',e=>{if(e.target===overlay)closePanel()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!overlay.hidden)closePanel()});
