@@ -293,21 +293,27 @@ async function render(){
    }
   }else if(active==='chats'){
    const d=await api('chat.activity');if(ticket!==seq)return;clear();
-   const bar=toolbar('Active conversations · '+(d.pairs?.length||0));
-   const refresh=makeButton('↻ Refresh',async()=>render(),'secondary');bar.append(refresh);
-   line('Shows only pairs where BOTH people currently have each other’s chat open. This does not prove they are typing or exchanging messages. Private message content is never read.');
-   if(!d.pairs?.length){
-    const empty=E('div','pvoSectionEmpty','No two-way open chats right now. A pair appears only while both chat windows are active.');main.append(empty);
+   const bar=toolbar('Live Chats & Message Activity');
+   bar.append(makeButton('↻ Refresh',async()=>render(),'secondary'));
+   line('Updates automatically about every 2 seconds. Open chats show one or both people viewing. Message activity works even if the recipient is offline. Only sender, recipient, time and seen status are shown — never message text or attachments.');
+   const fmt=p=>p?.username?'@'+p.username:p?.display_name||'User';
+   const sectionOpen=E('div','pvoSection');sectionOpen.append(E('h3','','Open chats · '+(d.openChats?.length||0)));
+   if(!d.openChats?.length)sectionOpen.append(E('p','pvoMuted','No open chat windows detected right now.'));
+   for(const item of d.openChats||[]){
+    const box=E('div','pvoCard pvoActiveChat'),detail=E('div');
+    detail.append(E('strong','',fmt(item.viewer)+' → '+fmt(item.peer)),E('small','','● '+(item.mutual?'Both viewing':'One person viewing')+' · '+new Date(item.updated_at).toLocaleTimeString('en-IN')));
+    box.append(detail);sectionOpen.append(box);
    }
-   for(const pair of d.pairs||[]){
-    const first=pair.first?.username?'@'+pair.first.username:pair.first?.display_name||'User';
-    const second=pair.second?.username?'@'+pair.second.username:pair.second?.display_name||'User';
-    const when=pair.last_active_at?new Date(pair.last_active_at).toLocaleString('en-IN'):'just now';
-    const item=E('div','pvoCard pvoActiveChat');
-    const info=E('div');info.append(E('strong','',first+' ↔ '+second),E('small','','● Both viewing this conversation · Updated '+when));
-    item.append(info);main.append(item);
+   main.append(sectionOpen);
+   const sectionMessages=E('div','pvoSection');sectionMessages.style.marginTop='14px';
+   sectionMessages.append(E('h3','','Recent sent messages · '+(d.messages?.length||0)));
+   if(!d.messages?.length)sectionMessages.append(E('p','pvoMuted','No sent messages yet.'));
+   for(const m of d.messages||[]){
+    const box=E('div','pvoCard'),detail=E('div');
+    detail.append(E('strong','',fmt(m.sender)+' → '+fmt(m.recipient)),E('small','','✉ '+new Date(m.created_at).toLocaleString('en-IN')+' · '+(m.seen?'Seen':'Not seen / recipient may be offline')));
+    box.append(detail);sectionMessages.append(box);
    }
-   line('Live status refreshes about every 15 seconds while this tab is open. Activity expires automatically when chat windows close or stop sending heartbeats.');
+   main.append(sectionMessages);
   }else if(active==='recovery'){
    const d=await api('recovery.list');if(ticket!==seq)return;clear();toolbar('Account recovery support');
    line('Review access requests without ever asking for passwords, OTPs or ID documents. Verify account ownership using a trusted channel before assisting with a reset.');
@@ -358,6 +364,7 @@ async function verify(){const id=current();if(!id){allowed=false;launcher.hidden
 db.auth.onAuthStateChange(()=>setTimeout(verify,100));setTimeout(verify,800);
 // Cloud session restoration can complete after INITIAL_SESSION; recheck hidden owner entry safely.
 setInterval(()=>{if(current()&&!allowed)verify();else if(!current()&&allowed)verify()},10000);
-setInterval(()=>{if(allowed&&!overlay.hidden&&active==='chats'&&!document.hidden)render()},15000);
+let pvLiveChatRefreshing=false;
+setInterval(async()=>{if(!allowed||overlay.hidden||active!=='chats'||document.hidden||pvLiveChatRefreshing)return;pvLiveChatRefreshing=true;const oldScroll=main.scrollTop;try{await render();main.scrollTop=oldScroll}finally{pvLiveChatRefreshing=false}},2000);
 window.PAVORA_OWNER={open:()=>{if(allowed)launcher.click()}};
 })();
