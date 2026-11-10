@@ -157,6 +157,25 @@ const overlay=E('section');overlay.id='pvOwnerRoot';overlay.hidden=true;overlay.
 const panel=E('div','pvoPanel'),head=E('div','pvoHead'),heading=E('div'),tabs=E('nav','pvoTabs'),main=E('div','pvoMain'),close=E('button','pvoClose','Close ×');
 heading.append(E('h2','','🛡 PAVORA Owner'),E('small','','LIVE ADMIN CONSOLE · v59 · Access logged'));head.append(heading,close);panel.append(head,tabs,main);overlay.append(panel);document.body.append(overlay);
 let active='overview',allowed=false,seq=0,search='',page=0,statusFilter='all';
+let pvOwnerRestoredFor=null,pvOwnerSavedScroll=0;
+const pvOwnerStateKey=()=>current()?'pavora-owner-view:'+current():null;
+function pvSaveOwnerView(){
+ const key=pvOwnerStateKey();if(!key)return;
+ try{sessionStorage.setItem(key,JSON.stringify({open:!overlay.hidden,active,search,page,statusFilter,scroll:main.scrollTop}))}catch(e){}
+}
+function pvRestoreOwnerView(){
+ const key=pvOwnerStateKey();if(!key||pvOwnerRestoredFor===current())return;
+ pvOwnerRestoredFor=current();
+ let saved;try{saved=JSON.parse(sessionStorage.getItem(key)||'null')}catch(e){}
+ if(!saved||!saved.open)return;
+ active=Object.hasOwn(names,saved.active)?saved.active:'overview';
+ search=typeof saved.search==='string'?saved.search.slice(0,48):'';
+ page=Number.isInteger(saved.page)?Math.max(0,Math.min(50,saved.page)):0;
+ statusFilter=['all','online','offline'].includes(saved.statusFilter)?saved.statusFilter:'all';
+ pvOwnerSavedScroll=Number(saved.scroll)||0;
+ overlay.hidden=false;tabsRender();render();
+}
+
 const names={overview:'Overview',users:'Users',chats:'Active Chats',testchat:'Test Chat Viewer',reports:'Reports',posts:'Posts',reels:'Reels',audit:'Audit Logs',recovery:'Recovery Support'};
 const current=()=>kit.getUser()?.id;
 async function api(action,more={}){
@@ -180,7 +199,7 @@ function alertText(msg,ok=false){const a=E('div','pvoAlert'+(ok?' pvoOk':''),msg
 function makeButton(t,action,style=''){const b=E('button','pvoBtn '+style,t);b.type='button';b.onclick=async()=>{b.disabled=true;try{await action()}catch(e){alertText(e.message)}finally{b.disabled=false}};return b}
 function card(title,subtitle='',actions=[]){const box=E('div','pvoCard'),text=E('div');text.append(E('strong','',title),E('small','',subtitle));box.append(text);if(actions.length){const opts=E('div','pvoActions');actions.forEach(a=>opts.append(a));box.append(opts)}main.append(box);return box}
 function stat(n,label){const b=E('div','pvoStat');b.append(E('b','',Number(n||0).toLocaleString('en-IN')),E('span','',label));return b}
-function tabsRender(){tabs.replaceChildren();for(const [key,value] of Object.entries(names)){const button=E('button','pvoTab'+(active===key?' active':''),value);button.onclick=()=>{active=key;page=0;tabsRender();render()};tabs.append(button)}}
+function tabsRender(){tabs.replaceChildren();for(const [key,value] of Object.entries(names)){const button=E('button','pvoTab'+(active===key?' active':''),value);button.onclick=()=>{active=key;page=0;tabsRender();pvSaveOwnerView();render()};tabs.append(button)}}
 function requireReason(verb){const reason=prompt('Reason for '+verb+' (minimum 5 characters). This will be saved in the audit log:');if(reason===null)return null;if(reason.trim().length<5){alert('Please enter at least 5 characters.');return null}return reason.trim().slice(0,250)}
 async function actionConfirm(label,action,params,refresh=true){const reason=requireReason(label);if(!reason)return;if(!confirm('Confirm '+label+'? This action will be recorded in the admin audit log.'))return;await api(action,{...params,reason});if(refresh)await render()}
 function toolbar(text){const bar=E('div','pvoToolbar');bar.append(E('h3','',text));main.append(bar);return bar}
@@ -331,22 +350,23 @@ async function render(){
    line('All figures and actions come from live Supabase data. No sample analytics or fake reports are displayed.');
   }else if(active==='users'){
    const d=await api('users',{search,page,status:statusFilter});if(ticket!==seq)return;clear();
-   const bar=toolbar('Users · '+d.total),heading=bar.querySelector('h3'),input=E('input','pvoSearch');input.placeholder='Search username or display name';input.value=search;input.setAttribute('aria-label','Search users');const go=makeButton('Search',async()=>{search=input.value.trim();page=0;await render()});input.addEventListener('keydown',e=>{if(e.key==='Enter')go.click()});bar.append(input,go);
+   const bar=toolbar('Users · '+d.total),heading=bar.querySelector('h3'),input=E('input','pvoSearch');input.placeholder='Search username or display name';input.value=search;input.setAttribute('aria-label','Search users');const go=makeButton('Search',async()=>{search=input.value.trim();page=0;pvSaveOwnerView();await render()});input.addEventListener('keydown',e=>{if(e.key==='Enter')go.click()});bar.append(input,go);
    const filters=E('div','pvoUserFilters');filters.setAttribute('role','group');filters.setAttribute('aria-label','Filter users by online status');
    for(const [state,label] of [['all','All users'],['online','Online'],['offline','Offline']]){
     const button=E('button','pvoFilter'+(statusFilter===state?' active':''));button.type='button';button.setAttribute('aria-pressed',String(statusFilter===state));
     if(state!=='all')button.append(E('span','pvoFilterDot '+state));
     button.append(document.createTextNode(label));
-    button.onclick=()=>{if(statusFilter===state)return;statusFilter=state;page=0;render()};
+    button.onclick=()=>{if(statusFilter===state)return;statusFilter=state;page=0;pvSaveOwnerView();render()};
     filters.append(button);
    }
    const refresh=E('button','pvoFilter','↻ Refresh');refresh.type='button';refresh.title='Refresh online status from Supabase';refresh.onclick=()=>render();filters.append(refresh);main.append(filters);
    const hint=E('p','pvoUserHint','Live users loading…');main.append(hint);
    const userList=E('div','pvoUserList');main.append(userList);
    const live=E('small','pvoMuted','● Live · Automatically syncing');live.style.display='block';live.style.margin='8px 0';main.append(live);
-   const foot=E('div','pvoFoot'),label=E('span','pvoMuted','Page '+(page+1)),prev=makeButton('Previous',async()=>{page--;await render()},'secondary'),next=makeButton('Next',async()=>{page++;await render()},'secondary');
+   const foot=E('div','pvoFoot'),label=E('span','pvoMuted','Page '+(page+1)),prev=makeButton('Previous',async()=>{page--;pvSaveOwnerView();await render()},'secondary'),next=makeButton('Next',async()=>{page++;pvSaveOwnerView();await render()},'secondary');
    foot.append(prev,label,next);main.append(foot);
    pvUsersLiveUI={heading,hint,userList,prev,next,live};renderLiveUserRows(d);
+   if(pvOwnerSavedScroll){main.scrollTop=pvOwnerSavedScroll;pvOwnerSavedScroll=0}
   }else if(active==='reports'){
    const d=await api('reports');if(ticket!==seq)return;clear();toolbar('Reported content and accounts');
    if(!d.reports.length)line('No reports to review.');
@@ -438,14 +458,17 @@ function openOwnerMedia(item,kind){
  viewerInfo.textContent=(item.caption||'No caption')+' · '+new Date(item.created_at).toLocaleString('en-IN');
  viewer.hidden=false;
 }
-function closePanel(){closeViewer();overlay.hidden=true;seq++;document.body.classList.remove('pvOwnerOpen')}
+function closePanel(){closeViewer();overlay.hidden=true;seq++;document.body.classList.remove('pvOwnerOpen');pvSaveOwnerView()}
 close.onclick=closePanel;overlay.addEventListener('click',e=>{if(e.target===overlay)closePanel()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!viewer.hidden){closeViewer();return}if(e.key==='Escape'&&!overlay.hidden)closePanel()});
-launcher.onclick=()=>{if(!allowed)return;overlay.hidden=false;active='overview';tabsRender();render()};
-async function verify(){const id=current();if(!id){allowed=false;launcher.hidden=true;closePanel();return}const {data,error}=await db.from('pv_app_admins').select('user_id').eq('user_id',id).maybeSingle();if(id!==current())return;allowed=!error&&!!data;launcher.hidden=!allowed;if(!allowed)closePanel()}
+launcher.onclick=()=>{if(!allowed)return;overlay.hidden=false;active='overview';tabsRender();pvSaveOwnerView();render()};
+async function verify(){const id=current();if(!id){allowed=false;launcher.hidden=true;closePanel();return}const {data,error}=await db.from('pv_app_admins').select('user_id').eq('user_id',id).maybeSingle();if(id!==current())return;allowed=!error&&!!data;launcher.hidden=!allowed;if(!allowed)closePanel();else pvRestoreOwnerView()}
 db.auth.onAuthStateChange(()=>setTimeout(verify,100));setTimeout(verify,800);
 // Cloud session restoration can complete after INITIAL_SESSION; recheck hidden owner entry safely.
 setInterval(()=>{if(current()&&!allowed)verify();else if(!current()&&allowed)verify()},10000);
 setInterval(()=>{refreshChatsLive()},2000);
-setInterval(()=>{refreshUsersLive()},2500);
+setInterval(()=>{refreshUsersLive()},1500);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){refreshUsersLive();refreshChatsLive()}});
+window.addEventListener('pagehide',()=>{if(allowed&&!overlay.hidden)pvSaveOwnerView()});
+main.addEventListener('scroll',()=>{if(allowed&&!overlay.hidden)pvSaveOwnerView()},{passive:true});
 window.PAVORA_OWNER={open:()=>{if(allowed)launcher.click()}};
 })();
