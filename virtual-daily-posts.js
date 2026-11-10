@@ -113,48 +113,46 @@ const home=document.getElementById('home'),realPosts=document.getElementById('po
 const container=E('section','pvDailyShowcase');
 container.id='pvDailyShowcase';
 container.setAttribute('aria-label','Daily curated virtual creator posts');
-const heading=E('div','pvDailyHead'),title=E('h2','','From virtual creators · Daily photo posts'),meta=E('p','pvDailyIntro');
-heading.append(title,meta);
 const cards=E('div','pvDailyCards');
 const footer=E('div','pvDailyFooter'),more=E('button','pvDailyMore','Show 12 more demo posts');
 more.type='button';footer.append(more);
-container.append(heading,cards,footer);
+container.append(cards,footer);
 // Keep all real uploaded posts first, then append scheduled virtual posts in the same Home feed.
 realPosts.after(container);
 const style=E('style');
 style.textContent=`
-.pvDailyShowcase{margin:20px auto 28px;max-width:620px;min-width:0}
+.pvDailyShowcase{margin:0 0 24px;width:100%;max-width:none;min-width:0}
 .pvDailyHead{padding:12px 14px;border-bottom:1px solid #332b3b}
 .pvDailyHead h2{font-size:15px;margin:0 0 4px;color:#fff}
 .pvDailyIntro{font-size:11px;color:#aea4b9;line-height:1.55;margin:0}
-.pvDailyCards{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding:10px 0}
-.pvDailyCard{min-width:0;background:#100e16;border:1px solid #292332;border-radius:13px;overflow:hidden;max-width:620px;width:100%;margin-inline:auto}
-.pvDailyWho{display:flex;align-items:center;gap:10px;padding:11px 13px;min-width:0}
-.pvDailyAvatar{width:38px;height:38px;display:grid;place-items:center;border-radius:50%;flex:none;color:white;font-size:16px;font-weight:850;background:linear-gradient(130deg,#8650d3,#d2549e)}
+.pvDailyCards{display:block;padding:0}
+.pvDailyCard{min-width:0;background:transparent;border:0;border-bottom:1px solid #343042;border-radius:0;overflow:hidden;max-width:none;width:100%;margin:0 0 18px}
+.pvDailyWho{display:flex;align-items:center;gap:12px;padding:15px;min-width:0}
+.pvDailyAvatar{width:46px;height:46px;display:grid;place-items:center;border-radius:50%;flex:none;color:white;font-size:16px;font-weight:850;background:linear-gradient(130deg,#8650d3,#d2549e)}
 .pvDailyIdentity{display:flex;flex-direction:column;min-width:0;gap:3px;flex:1}
 .pvDailyWho strong{font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pvDailyMeta{font-size:10px;color:#b7a9c5}
 .pvDailyBadge{font-size:9px;border:1px solid #71538c;color:#dfc5ff;border-radius:999px;padding:3px 6px;white-space:nowrap}
-.pvDailyPhotoWrap{background:#292330;aspect-ratio:4/5;max-height:650px;position:relative;overflow:hidden}
-.pvDailyPhoto{display:block;width:100%;height:100%;object-fit:cover}
+.pvDailyPhotoWrap{background:#292330;width:100%;max-height:540px;position:relative;overflow:hidden}
+.pvDailyPhotoWrap .pvDailyPhoto{display:block;width:100%;height:auto;max-height:540px;object-fit:cover}
 .pvDailyPhotoCredit{position:absolute;bottom:8px;right:9px;padding:4px 7px;background:#08050ab8;color:#fff;border-radius:6px;font-size:9px;text-decoration:none}
 .pvDailyPhotoFallback{display:none;position:absolute;inset:0;align-items:center;justify-content:center;padding:25px;color:#eee;text-align:center;background:#302640;font-weight:750}
 .pvDailyCard.photoFailed .pvDailyPhotoFallback{display:flex}
 .pvDailyCard.photoFailed .pvDailyPhoto{display:none}
-.pvDailyPostTools{display:flex;align-items:center;gap:14px;padding:12px 14px 5px}
+.pvDailyPostTools{display:flex;align-items:center;gap:14px;padding:14px 16px 5px}
 .pvDailyPostTools button{border:0;background:none;color:#eee6f9;font-size:23px;line-height:1;padding:4px;cursor:pointer}
 .pvDailyPostTools button:focus-visible{outline:2px solid #c89aff;outline-offset:3px;border-radius:4px}
 .pvDailyPostTools button.saved{color:#c897ff}
 .pvDailyPostTools button[aria-pressed=true]{color:#e68cc5}
 .pvDailySpacer{flex:1}
-.pvDailyText{padding:8px 15px 15px;color:#ded5e6;font-size:13px;line-height:1.55}
+.pvDailyText{padding:6px 16px 15px;color:#ded5e6;font-size:13px;line-height:1.55}
 .pvDailyText p{margin:0 0 9px}
 .pvDailyText strong{color:white}
 .pvDailyPrompt{color:#b9aac9;font-size:12px}
 .pvDailyTime{font-size:10px;color:#8f859a}
 .pvDailyFooter{text-align:center;padding:10px}
 .pvDailyMore{background:#654198;border:1px solid #9670cc;border-radius:11px;color:#fff;cursor:pointer;padding:11px 16px;font-weight:750}
-@media(max-width:630px){.pvDailyShowcase{margin:12px 0}.pvDailyPhotoWrap{aspect-ratio:1/1}.pvDailyCard{border-radius:8px}}
+@media(max-width:630px){.pvDailyShowcase{margin:0}.pvDailyPhotoWrap{max-height:540px}.pvDailyCard{border-radius:0}}
 @media(prefers-reduced-motion:reduce){.pvDailyShowcase *{animation:none!important;transition:none!important}}
 `;
 document.head.append(style);
@@ -185,8 +183,8 @@ function toggleSaved(postId,button){
  button.setAttribute('aria-label',on?'Remove demo post from saved':'Save demo post on this device');
 }
 function cardFor(p){
- const c=E('article','pvDailyCard');c.dataset.theme=p.kind;
- const top=E('div','pvDailyWho'),avatar=E('span','pvDailyAvatar',p.creator.initial);
+ const c=E('article','post pvDailyCard');c.dataset.theme=p.kind;
+ const top=E('div','posthead pvDailyWho'),avatar=E('span','pvDailyAvatar',p.creator.initial);
  const identity=E('div','pvDailyIdentity'),who=E('strong','','@'+p.creator.username),date=E('small','pvDailyMeta',p.creator.theme+' · '+p.date);
  const badge=E('span','pvDailyBadge','VIRTUAL · DEMO');
  identity.append(who,date);top.append(avatar,identity,badge);
@@ -199,7 +197,7 @@ function cardFor(p){
  const credit=E('a','pvDailyPhotoCredit','Illustrative photo · Unsplash');
  credit.href='https://unsplash.com/';credit.target='_blank';credit.rel='noopener noreferrer';
  visual.append(img,fallback,credit);
- const actions=E('div','pvDailyPostTools');
+ const actions=E('div','postfoot pvDailyPostTools');
  const heart=E('button','','♡'),share=E('button','','↗'),spacer=E('span','pvDailySpacer'),bookmark=E('button','','▢');
  heart.type=share.type=bookmark.type='button';
  heart.setAttribute('aria-label','Appreciate demo post');heart.setAttribute('aria-pressed','false');
@@ -214,7 +212,7 @@ function cardFor(p){
  bookmark.textContent=saved?'▣':'▢';bookmark.classList.toggle('saved',saved);bookmark.setAttribute('aria-pressed',String(saved));bookmark.setAttribute('aria-label',saved?'Remove demo post from saved':'Save demo post on this device');
  bookmark.onclick=()=>toggleSaved(p.id,bookmark);
  actions.append(heart,share,spacer,bookmark);
- const main=E('div','pvDailyText'),caption=E('p'),author=E('strong','','@'+p.creator.username+' '),content=document.createTextNode(p.insight);
+ const main=E('div','postbody pvDailyText'),caption=E('p'),author=E('strong','','@'+p.creator.username+' '),content=document.createTextNode(p.insight);
  caption.append(author,content);
  const prompt=E('p','pvDailyPrompt',p.exercise),time=E('small','pvDailyTime','Virtual editorial post · '+p.date);
  main.append(caption,prompt,time);
@@ -222,12 +220,12 @@ function cardFor(p){
  c.append(top,visual,actions,main);return c;
 }
 function drawNext(){
- const next=Math.min(entries.length,shown+12);
+ const next=Math.min(entries.length,shown+8);
  const frag=document.createDocumentFragment();
  for(let i=shown;i<next;i++)frag.append(cardFor(entries[i]));
  cards.append(frag);shown=next;
  more.hidden=shown>=entries.length;
- more.textContent='Load more creator posts ('+shown+'/'+entries.length+')';
+ more.textContent='Load more posts ('+shown+'/'+entries.length+')';
 }
 more.addEventListener('click',drawNext);
 // When visitors scroll Home Feed, load every scheduled post progressively.
@@ -246,7 +244,6 @@ function sync(force=false){
  renderedDay=day;shown=0;cards.replaceChildren();
  // Rotate the starting creator so the same accounts don't dominate the screen daily.
  entries=creators.map(person=>postFor(person,day)).sort((a,b)=>((nameIdx(a.creator)*37+day*17)%101)-((nameIdx(b.creator)*37+day*17)%101));
- meta.textContent='100 curated illustrative photo posts today · '+dateLabel(day)+' · Fictional profiles are labeled Demo. Real user uploads appear above.';
  drawNext();
 }
 sync(true);
