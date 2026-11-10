@@ -79,6 +79,26 @@ Deno.serve(async req=>{
    }));
    return send({users,total:count||0,page,onlineCount:users.filter(u=>u.online).length,status});
   }
+  if(action==='chat.activity'){
+   // A pair appears only when BOTH participants have this chat open now.
+   // No messages, message counts, media or previous conversation history are read.
+   const cutoff=new Date(Date.now()-65000).toISOString();
+   const presence=await read(admin.from('pv_chat_presence').select('user_id,peer_id,updated_at').gte('updated_at',cutoff).order('updated_at',{ascending:false}).limit(500));
+   const byUser=new Map(presence.map(row=>[row.user_id,row]));
+   const pairs=[],seen=new Set();
+   for(const row of presence){
+    const other=byUser.get(row.peer_id);
+    if(!other||other.peer_id!==row.user_id)continue;
+    const key=[row.user_id,row.peer_id].sort().join(':');
+    if(seen.has(key))continue;
+    seen.add(key);
+    pairs.push({first_id:row.user_id,second_id:row.peer_id,last_active_at:row.updated_at<other.updated_at?row.updated_at:other.updated_at});
+   }
+   const ids=[...new Set(pairs.flatMap(p=>[p.first_id,p.second_id]))];
+   const profiles=ids.length?await read(admin.from('profiles').select('id,username,display_name').in('id',ids)):[];
+   const names=new Map(profiles.map(u=>[u.id,{username:u.username,display_name:u.display_name}]));
+   return send({pairs:pairs.slice(0,100).map(p=>({...p,first:names.get(p.first_id)||null,second:names.get(p.second_id)||null})),updated_at:new Date().toISOString(),note:'Only reciprocal open chat windows; private message content is never accessed.'});
+  }
   if(action==='recovery.list'){
    const entries=await read(admin.from('pv_recovery_requests').select('id,email,issue,status,created_at').order('created_at',{ascending:false}).limit(100));
    return send({entries});
