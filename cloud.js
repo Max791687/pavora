@@ -190,6 +190,25 @@ document.getElementById('authSubmit').insertAdjacentElement('afterend',document.
 document.getElementById('signup').onclick=()=>{if(!pvAuthPending)setAuthMode(authMode==='login'?'signup':'login')};
 document.getElementById('authForgot').onclick=()=>{if(!pvAuthPending)setAuthMode('reset')};
 document.getElementById('authTogglePassword').onclick=()=>{const input=document.getElementById('authPassword');input.type=input.type==='password'?'text':'password';document.getElementById('authTogglePassword').textContent=input.type==='password'?'Show':'Hide'};
+/* Authentication controls must never appear unresponsive on browser validation failure.
+   Native constraint validation prevents the submit handler from firing. */
+const pvAuthForm=document.getElementById('authForm');
+const pvAuthSubmit=document.getElementById('authSubmit');
+pvAuthForm.addEventListener('invalid',event=>{
+ const input=event.target;
+ if(!(input instanceof HTMLInputElement))return;
+ const label=input.labels?.[0]?.textContent?.trim()||input.getAttribute('aria-label')||input.name||'form field';
+ const detail=input.validity.valueMissing?'is required':input.validity.typeMismatch?'has an invalid format':input.validity.tooShort?'is too short':input.validity.patternMismatch?'has an invalid format':'needs attention';
+ msg(label+' '+detail+'. Please correct it and try again.','error');
+},true);
+pvAuthSubmit.addEventListener('click',()=>{
+ if(pvAuthPending)return;
+ const invalid=[...pvAuthForm.querySelectorAll('input')].find(input=>input.willValidate&&!input.validity.valid);
+ if(invalid){
+  const label=invalid.labels?.[0]?.textContent?.trim()||invalid.placeholder||'Input';
+  msg('Please check '+label+'. '+(invalid.validationMessage||''),'error');
+ }else msg('Checking your login details…','loading');
+});
 document.getElementById('authForm').onsubmit=async e=>{
 e.preventDefault();
 if(pvAuthPending)return;
