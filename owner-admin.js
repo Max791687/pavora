@@ -155,7 +155,7 @@ const css=E('style');css.textContent=`
 const launcher=E('button','','🛡 Owner Dashboard');launcher.id='pvOwnerLauncher';launcher.type='button';launcher.hidden=true;document.querySelector('#profile > .panel')?.prepend(launcher);
 const overlay=E('section');overlay.id='pvOwnerRoot';overlay.hidden=true;overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','PAVORA Owner Admin Dashboard');
 const panel=E('div','pvoPanel'),head=E('div','pvoHead'),heading=E('div'),tabs=E('nav','pvoTabs'),main=E('div','pvoMain'),close=E('button','pvoClose','Close ×');
-heading.append(E('h2','','🛡 PAVORA Owner'),E('small','','LIVE ADMIN CONSOLE · v57 · Access logged'));head.append(heading,close);panel.append(head,tabs,main);overlay.append(panel);document.body.append(overlay);
+heading.append(E('h2','','🛡 PAVORA Owner'),E('small','','LIVE ADMIN CONSOLE · v59 · Access logged'));head.append(heading,close);panel.append(head,tabs,main);overlay.append(panel);document.body.append(overlay);
 let active='overview',allowed=false,seq=0,search='',page=0,statusFilter='all';
 const names={overview:'Overview',users:'Users',chats:'Active Chats',reports:'Reports',posts:'Posts',reels:'Reels',audit:'Audit Logs',recovery:'Recovery Support'};
 const current=()=>kit.getUser()?.id;
@@ -184,7 +184,56 @@ function tabsRender(){tabs.replaceChildren();for(const [key,value] of Object.ent
 function requireReason(verb){const reason=prompt('Reason for '+verb+' (minimum 5 characters). This will be saved in the audit log:');if(reason===null)return null;if(reason.trim().length<5){alert('Please enter at least 5 characters.');return null}return reason.trim().slice(0,250)}
 async function actionConfirm(label,action,params,refresh=true){const reason=requireReason(label);if(!reason)return;if(!confirm('Confirm '+label+'? This action will be recorded in the admin audit log.'))return;await api(action,{...params,reason});if(refresh)await render()}
 function toolbar(text){const bar=E('div','pvoToolbar');bar.append(E('h3','',text));main.append(bar);return bar}
+// v59: Keep the Active Chats DOM mounted while refreshing; never flash a loading screen.
+let pvChatsLayout=null,pvChatsSignature='',pvChatsRequestBusy=false;
+function pvName(p){return p?.username?'@'+p.username:p?.display_name||'User'}
+function buildChatsLayout(){
+ const bar=toolbar('Live Chats & Message Activity');
+ bar.append(makeButton('↻ Refresh',async()=>refreshChatsLive(true),'secondary'));
+ line('Automatically updates while this tab stays open. Shows who has a chat open and who messaged whom, even if the receiver is offline. Messages and attachments remain private.');
+ const open=E('section','pvoSection'),openTitle=E('h3','','Open chats'),openList=E('div');
+ open.append(openTitle,openList);main.append(open);
+ const messages=E('section','pvoSection'),messagesTitle=E('h3','','Recent sent messages'),messageList=E('div');
+ messages.style.marginTop='14px';messages.append(messagesTitle,messageList);main.append(messages);
+ const status=E('small','pvoMuted','Live updates active');status.style.display='block';status.style.marginTop='10px';main.append(status);
+ pvChatsLayout={openTitle,openList,messagesTitle,messageList,status};pvChatsSignature='';
+}
+function updateChatsData(d){
+ if(!pvChatsLayout||active!=='chats'||overlay.hidden)return;
+ const chats=d.openChats||[],messages=d.messages||[];
+ const signature=JSON.stringify([chats,messages]);
+ if(signature===pvChatsSignature)return;
+ pvChatsSignature=signature;
+ const {openTitle,openList,messagesTitle,messageList,status}=pvChatsLayout;
+ openTitle.textContent='Open chats · '+chats.length;
+ messagesTitle.textContent='Recent sent messages · '+messages.length;
+ const fmtTime=date=>{const v=new Date(date);return Number.isNaN(v.getTime())?'Recently':v.toLocaleString('en-IN')};
+ const makeRow=(title,detail,cls='pvoCard')=>{
+  const box=E('div',cls),info=E('div');
+  info.append(E('strong','',title),E('small','',detail));box.append(info);return box;
+ };
+ const openFragment=document.createDocumentFragment();
+ if(!chats.length)openFragment.append(E('p','pvoMuted','No open chat windows detected right now.'));
+ for(const row of chats)openFragment.append(makeRow(pvName(row.viewer)+' → '+pvName(row.peer),(row.mutual?'● Both viewing':'● One person viewing')+' · '+fmtTime(row.updated_at),'pvoCard pvoActiveChat'));
+ openList.replaceChildren(openFragment);
+ const msgFragment=document.createDocumentFragment();
+ if(!messages.length)msgFragment.append(E('p','pvoMuted','No sent messages yet.'));
+ for(const row of messages)msgFragment.append(makeRow(pvName(row.sender)+' → '+pvName(row.recipient),'✉ '+fmtTime(row.created_at)+' · '+(row.seen?'Seen':'Not seen')));
+ messageList.replaceChildren(msgFragment);
+ status.textContent='Live updates active · last synced '+new Date().toLocaleTimeString('en-IN');
+}
+async function refreshChatsLive(force=false){
+ if(!allowed||overlay.hidden||active!=='chats'||document.hidden||pvChatsRequestBusy||!pvChatsLayout)return;
+ pvChatsRequestBusy=true;
+ try{
+  const d=await api('chat.activity');
+  if(active==='chats'&&!overlay.hidden)updateChatsData(d);
+ }catch(e){
+  if(pvChatsLayout&&active==='chats')pvChatsLayout.status.textContent='Sync interrupted: '+(e.message||'Network error')+' · retrying';
+ }finally{pvChatsRequestBusy=false}
+}
 async function render(){
+ pvChatsLayout=null;pvChatsSignature='';
  const ticket=++seq;clear();if(!allowed||!current()){closePanel();return}
  main.append(E('p','pvoMuted','Loading secure admin data…'));
  try{
@@ -293,27 +342,7 @@ async function render(){
    }
   }else if(active==='chats'){
    const d=await api('chat.activity');if(ticket!==seq)return;clear();
-   const bar=toolbar('Live Chats & Message Activity');
-   bar.append(makeButton('↻ Refresh',async()=>render(),'secondary'));
-   line('Updates automatically about every 2 seconds. Open chats show one or both people viewing. Message activity works even if the recipient is offline. Only sender, recipient, time and seen status are shown — never message text or attachments.');
-   const fmt=p=>p?.username?'@'+p.username:p?.display_name||'User';
-   const sectionOpen=E('div','pvoSection');sectionOpen.append(E('h3','','Open chats · '+(d.openChats?.length||0)));
-   if(!d.openChats?.length)sectionOpen.append(E('p','pvoMuted','No open chat windows detected right now.'));
-   for(const item of d.openChats||[]){
-    const box=E('div','pvoCard pvoActiveChat'),detail=E('div');
-    detail.append(E('strong','',fmt(item.viewer)+' → '+fmt(item.peer)),E('small','','● '+(item.mutual?'Both viewing':'One person viewing')+' · '+new Date(item.updated_at).toLocaleTimeString('en-IN')));
-    box.append(detail);sectionOpen.append(box);
-   }
-   main.append(sectionOpen);
-   const sectionMessages=E('div','pvoSection');sectionMessages.style.marginTop='14px';
-   sectionMessages.append(E('h3','','Recent sent messages · '+(d.messages?.length||0)));
-   if(!d.messages?.length)sectionMessages.append(E('p','pvoMuted','No sent messages yet.'));
-   for(const m of d.messages||[]){
-    const box=E('div','pvoCard'),detail=E('div');
-    detail.append(E('strong','',fmt(m.sender)+' → '+fmt(m.recipient)),E('small','','✉ '+new Date(m.created_at).toLocaleString('en-IN')+' · '+(m.seen?'Seen':'Not seen / recipient may be offline')));
-    box.append(detail);sectionMessages.append(box);
-   }
-   main.append(sectionMessages);
+   buildChatsLayout();updateChatsData(d);
   }else if(active==='recovery'){
    const d=await api('recovery.list');if(ticket!==seq)return;clear();toolbar('Account recovery support');
    line('Review access requests without ever asking for passwords, OTPs or ID documents. Verify account ownership using a trusted channel before assisting with a reset.');
@@ -364,7 +393,6 @@ async function verify(){const id=current();if(!id){allowed=false;launcher.hidden
 db.auth.onAuthStateChange(()=>setTimeout(verify,100));setTimeout(verify,800);
 // Cloud session restoration can complete after INITIAL_SESSION; recheck hidden owner entry safely.
 setInterval(()=>{if(current()&&!allowed)verify();else if(!current()&&allowed)verify()},10000);
-let pvLiveChatRefreshing=false;
-setInterval(async()=>{if(!allowed||overlay.hidden||active!=='chats'||document.hidden||pvLiveChatRefreshing)return;pvLiveChatRefreshing=true;const oldScroll=main.scrollTop;try{await render();main.scrollTop=oldScroll}finally{pvLiveChatRefreshing=false}},2000);
+setInterval(()=>{refreshChatsLive()},2000);
 window.PAVORA_OWNER={open:()=>{if(allowed)launcher.click()}};
 })();
