@@ -2537,7 +2537,12 @@ for(const post of posts){const tile=node('button');tile.type='button';if(post.im
 const oldOpenProfilePost=openProfilePost;
 openProfilePost=function(p){oldOpenProfilePost(p);if(p.author_name){const label=pvPreview.querySelector('.pvPreviewCaption strong');if(label)label.textContent='@'+p.author_name}};
 let pvInboxTab='Primary',pvInboxSearch='',pvConversationSettings=new Map(),pvPrefsReady=true;
-document.addEventListener('click',e=>{if(!e.target.closest('.pvChatMenuWrap'))document.querySelectorAll('.pvChatContextMenu').forEach(m=>m.classList.add('hide'))});
+document.addEventListener('click',e=>{
+ if(e.target.closest('.pvChatMenuWrap,.pvDmFloatingMenu'))return;
+ document.querySelectorAll('.pvDmFloatingMenu').forEach(m=>{m.classList.add('hide');m.classList.remove('pvDmFloatingMenu');m.remove()});
+ document.querySelectorAll('#pvInboxView .pvChatContextMenu').forEach(m=>m.classList.add('hide'));
+ document.querySelectorAll('#pvInboxView .pvChatMore[aria-expanded="true"]').forEach(b=>b.setAttribute('aria-expanded','false'));
+});
 async function pvLoadConversationSettings(){if(!user)return;const {data,error}=await db.from('conversation_preferences').select('peer_id,folder,pinned,muted').eq('owner_id',user.id);if(error){pvPrefsReady=false;console.warn('Inbox folders need setup:',error.message);return}pvPrefsReady=true;pvConversationSettings=new Map((data||[]).map(x=>[x.peer_id,{folder:x.folder,pinned:x.pinned,muted:x.muted}]))}
 function pvConversationSetting(peer){return pvConversationSettings.get(peer)||{folder:'primary',pinned:false,muted:false}}
 async function pvSaveConversationSetting(peer,changes){if(!pvPrefsReady){alert('Run supabase/conversation-preferences.sql in Supabase SQL Editor first.');return false}const next={...pvConversationSetting(peer),...changes};const {error}=await db.from('conversation_preferences').upsert({owner_id:user.id,peer_id:peer,...next,updated_at:new Date().toISOString()},{onConflict:'owner_id,peer_id'});if(error){alert('Cannot update conversation: '+error.message+' — Run supabase/conversation-preferences.sql first.');return false}pvConversationSettings.set(peer,next);return true}
@@ -2622,27 +2627,65 @@ b.addEventListener('click',event=>{
 });
 const menuButton=node('button','pvChatMore','⋯');menuButton.type='button';menuButton.title='Conversation options';menuButton.setAttribute('aria-label','Options for '+(p.display_name||p.username));
 const menu=node('div','pvChatContextMenu hide');menu.setAttribute('role','menu');
-function menuItem(label,fn){const item=node('button','pvChatMenuItem',label);item.type='button';item.setAttribute('role','menuitem');
-// Avoid iOS inherited -webkit-text-fill-color overriding the label.
-item.style.setProperty('color',label==='Remove chat'?'#a53057':'#322144','important');
-item.style.setProperty('-webkit-text-fill-color',label==='Remove chat'?'#a53057':'#322144','important');
-item.style.setProperty('background','transparent','important');
-item.style.setProperty('opacity','1','important');item.onclick=async e=>{e.stopPropagation();menu.classList.add('hide');menuButton.setAttribute('aria-expanded','false');await fn()};menu.append(item)}
+// The menu must live outside the scrolling inbox: iOS clips fixed descendants
+// of overflow/transform containers and shows a popup that cannot be tapped.
+function closeMenu(){
+ menu.classList.add('hide');
+ menuButton.setAttribute('aria-expanded','false');
+ menu.classList.remove('pvDmFloatingMenu');
+ menu.style.removeProperty('top');menu.style.removeProperty('left');
+ menu.style.removeProperty('right');menu.style.removeProperty('position');
+ if(menu.parentNode===document.body)controls.append(menu);
+}
+function menuItem(label,fn){
+ const item=node('button','pvChatMenuItem',label);item.type='button';
+ item.setAttribute('role','menuitem');
+ item.style.setProperty('color',label==='Remove chat'?'#a53057':'#322144','important');
+ item.style.setProperty('-webkit-text-fill-color',label==='Remove chat'?'#a53057':'#322144','important');
+ item.addEventListener('pointerdown',e=>e.stopPropagation());
+ item.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
+ item.addEventListener('click',async e=>{
+  e.preventDefault();e.stopPropagation();
+  if(item.disabled)return;
+  closeMenu();
+  try{await fn()}catch(error){console.warn('DM action failed:',error)}
+ });
+ menu.append(item);
+}
 if(pvInboxTab!=='Requests')menuItem(setting.folder==='primary'?'Move to General':'Move to Primary',async()=>{if(await pvSaveConversationSetting(id,{folder:setting.folder==='primary'?'general':'primary'})){if(selectedPeer===id)selectedPeer=null;await loadInbox()}});
 if(pvInboxTab!=='Requests')menuItem(setting.pinned?'Unpin conversation':'Pin conversation',async()=>{if(await pvSaveConversationSetting(id,{pinned:!setting.pinned}))await loadInbox()});
 menuItem(setting.muted?'Unmute notifications':'Mute notifications',async()=>{if(await pvSaveConversationSetting(id,{muted:!setting.muted}))await loadInbox()});
 menuItem('Remove chat',async()=>pvRemoveChat(id));
-menuButton.setAttribute('aria-expanded','false');menuButton.onclick=e=>{
- e.stopPropagation();
+menuButton.setAttribute('aria-expanded','false');
+menuButton.onclick=e=>{
+ e.preventDefault();e.stopPropagation();
  const opening=menu.classList.contains('hide');
+ // Clean up older floating menus before opening a new one.
+ document.querySelectorAll('.pvDmFloatingMenu').forEach(other=>{
+  if(other===menu)return;
+  other.classList.add('hide');other.classList.remove('pvDmFloatingMenu');
+  other.remove();
+ });
  inboxView.querySelectorAll('.pvChatContextMenu').forEach(m=>m.classList.add('hide'));
  inboxView.querySelectorAll('.pvChatMore').forEach(m=>m.setAttribute('aria-expanded','false'));
- menu.classList.toggle('hide',!opening);menuButton.setAttribute('aria-expanded',String(opening));
- if(opening&&window.innerWidth<=700){
+ if(!opening){closeMenu();return}
+ if(window.innerWidth<=700){
+  document.body.append(menu);
+  menu.classList.add('pvDmFloatingMenu');
+ }
+ menu.classList.remove('hide');
+ menuButton.setAttribute('aria-expanded','true');
+ if(window.innerWidth<=700){
   const rect=menuButton.getBoundingClientRect();
-  const visibleHeight=window.visualViewport?.height||window.innerHeight;
-  menu.style.position='fixed';menu.style.right=Math.max(12,window.innerWidth-rect.right)+'px';
-  menu.style.left='auto';menu.style.top=Math.max(12,Math.min(rect.bottom+6,visibleHeight-menu.offsetHeight-12))+'px';
+  const vv=window.visualViewport;
+  const vtop=vv?.offsetTop||0, vleft=vv?.offsetLeft||0;
+  const vw=vv?.width||window.innerWidth,vh=vv?.height||window.innerHeight;
+  const width=menu.offsetWidth||225,height=menu.offsetHeight||190;
+  const left=Math.max(vleft+8,Math.min(rect.right-width,vleft+vw-width-8));
+  const below=rect.bottom+6,above=rect.top-height-6;
+  const top=below+height<=vtop+vh-8?below:Math.max(vtop+8,above);
+  menu.style.position='fixed';menu.style.left=Math.round(left)+'px';
+  menu.style.top=Math.round(top)+'px';menu.style.right='auto';
  }
 };
 const controls=node('div','pvChatMenuWrap');controls.append(menuButton,menu);
