@@ -1,6 +1,6 @@
 {
-  "version": 122,
+  "version": 123,
   "release": "2026-11-11",
-  "name": "PAVORA v122",
-  "notes": "Removed the actual divider inside chat cards. New versions now refresh automatically after deployment when no unsaved work is in progress."
+  "name": "PAVORA v123",
+  "notes": "Smoothed iPhone chat opening by stabilizing loading layout and removing unwanted transition jump."
 }
