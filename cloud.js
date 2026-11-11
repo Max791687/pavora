@@ -2501,6 +2501,8 @@ const top=node('div','pvPublicTop'),avatar=node('div','pvPublicAvatar');if(perso
 const details=node('div'),publicName=node('h2','pvPublicName');publicName.append(document.createTextNode(person.username));
 if(person.is_official){publicName.append(pvOfficialBadge());details.append(publicName,node('div','pvPublicOfficialType','Official PAVORA Account'));}
 else details.append(publicName);
+// Display name belongs beside the username, never attached after presence/Offline.
+details.append(node('strong','pvPublicDisplayName',person.display_name||person.username));
 if(person.is_private)details.append(node('div','pvProfilePrivacyTag','🔒 Private account'));
 else window.PAVORA_PRESENCE?.attach(details,id,'profile');
 const pvCountText=(value,failed)=>failed?'—':String(value??0);
@@ -2511,7 +2513,7 @@ for(const [amount,label,failed] of [
  [pvCountText(followerCount,followerCountError),'followers',followerCountError],
  [pvCountText(followingCount,followingCountError),'following',followingCountError]
 ]){const stat=label==='followers'||label==='following'?pvConnectionCountButton(amount,label,id,failed):node('span','pvPublicStat');if(label!=='followers'&&label!=='following')stat.append(node('strong','',amount),document.createTextNode(' '+label));publicStats.append(stat)}
-details.append(node('strong','',person.display_name||person.username),publicStats,node('p','',person.bio||''));
+details.append(publicStats,node('p','pvPublicBio',person.bio||''));
 top.append(avatar,details);publicView.append(top);
 if(blockedByMe){const warning=node('div','pvBlockedNotice');warning.append(node('strong','','You blocked @'+person.username),node('p','','This account cannot access your PAVORA profile or content. Unblock to interact again.'));const button=node('button','pvSettingsAction','Unblock');button.onclick=()=>pvUnblockAccount(id,person.username);warning.append(button);publicView.append(warning);return}
 const privateLocked=!!person.is_private&&!myFollow;
@@ -2644,7 +2646,12 @@ const filter=()=>{const q=pvInboxSearch.toLowerCase();for(const {entry,p} of row
 search.oninput=()=>{pvInboxSearch=search.value;filter()};filter();
 if(selectedPeer)await renderChat(selectedPeer);await pvCheckUnread();
 }
-async function openChat(id,navigate=true){if(!user||id===user.id)return;if(pvHiddenChats.has(id)){const {error}=await db.from('hidden_conversations').delete().eq('owner_id',user.id).eq('peer_id',id);if(!error)pvHiddenChats.delete(id)}if(selectedPeer&&selectedPeer!==id)pvClearTyping(selectedPeer);pvDmTypingLastSeen=0;selectedPeer=id;window.dispatchEvent(new Event('pv-chat-peer-changed'));if(navigate){const {data:req}=await db.from('message_requests').select('sender_id').eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null).maybeSingle();const {data:following}=req?await db.from('follows').select('follower_id').eq('follower_id',id).eq('following_id',user.id).maybeSingle():{data:null};pvInboxTab=req&&!following?'Requests':pvConversationSetting(id).folder==='general'?'General':'Primary';pvNavigate('messages')}else{inboxView.classList.add('pvChatSelected');inboxView.querySelectorAll('.pvThreadPerson').forEach(b=>b.classList.toggle('active',b.dataset.peerId===id));const area=document.getElementById('pvChatArea');if(area&&!area.querySelector('.pvMessageForm'))area.replaceChildren(pvDmLoadingChat());await renderChat(id)}pvRememberInboxPosition();if(!chatPoll)chatPoll=setInterval(()=>{if(!inboxView.classList.contains('hide')&&selectedPeer&&!pvChatPollBusy){pvChatPollBusy=true;renderChat(selectedPeer,true).catch(e=>console.warn('Chat poll:',e)).finally(()=>{pvChatPollBusy=false})}},pvDmRealtimeStatus==='live'?12000:4000)}
+async function openChat(id,navigate=true){if(!user||id===user.id)return;if(pvHiddenChats.has(id)){const {error}=await db.from('hidden_conversations').delete().eq('owner_id',user.id).eq('peer_id',id);if(!error)pvHiddenChats.delete(id)}if(selectedPeer&&selectedPeer!==id)pvClearTyping(selectedPeer);pvDmTypingLastSeen=0;selectedPeer=id;window.dispatchEvent(new Event('pv-chat-peer-changed'));if(navigate){
+ // Start showing the conversation loading shell before the request-status lookup.
+ // This prevents an extra flash of the previous profile or empty chat screen.
+ inboxView.classList.add('pvChatSelected');
+ pvNavigate('messages');
+ const {data:req}=await db.from('message_requests').select('sender_id').eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null).maybeSingle();const {data:following}=req?await db.from('follows').select('follower_id').eq('follower_id',id).eq('following_id',user.id).maybeSingle():{data:null};pvInboxTab=req&&!following?'Requests':pvConversationSetting(id).folder==='general'?'General':'Primary';}else{inboxView.classList.add('pvChatSelected');inboxView.querySelectorAll('.pvThreadPerson').forEach(b=>b.classList.toggle('active',b.dataset.peerId===id));const area=document.getElementById('pvChatArea');if(area&&!area.querySelector('.pvMessageForm'))area.replaceChildren(pvDmLoadingChat());await renderChat(id)}pvRememberInboxPosition();if(!chatPoll)chatPoll=setInterval(()=>{if(!inboxView.classList.contains('hide')&&selectedPeer&&!pvChatPollBusy){pvChatPollBusy=true;renderChat(selectedPeer,true).catch(e=>console.warn('Chat poll:',e)).finally(()=>{pvChatPollBusy=false})}},pvDmRealtimeStatus==='live'?12000:4000)}
 async function renderChat(id,silent=false){const area=document.getElementById('pvChatArea');if(!area||!user||selectedPeer!==id)return;
 const pollingExisting=!!(silent&&area.querySelector('.pvMessageForm'));
 const uid=user.id;
