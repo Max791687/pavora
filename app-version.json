@@ -1,6 +1,6 @@
 {
-  "version": 116,
+  "version": 117,
   "release": "2026-11-11",
-  "name": "PAVORA v116",
-  "notes": "Smoother chat opening: removed the temporary Your messages screen while conversations load."
+  "name": "PAVORA v117",
+  "notes": "Other users' profiles now use clean Liquid Glass styling, with clearer identity, stats, posts and buttons. Chat opening transition improved."
 }
