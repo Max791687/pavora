@@ -1,6 +1,6 @@
 {
-  "version": 140,
+  "version": 141,
   "release": "2026-11-11",
-  "name": "PAVORA v140",
-  "notes": "Followers and Following redesigned with light Liquid Glass, Apple-style spring opening, and staggered animations for asynchronously loaded users."
+  "name": "PAVORA v141",
+  "notes": "Fixed followers/following popup height jumping while loading, with stable glass skeleton and animated user reveal."
 }
