@@ -2558,9 +2558,16 @@ function pvInboxMobileBack(){
  const area=document.getElementById('pvChatArea');
  if(area)area.replaceChildren(pvEmptyChat());
 }
+function pvDmLoadingChat(){
+ const shell=node('div','pvDmLoadingShell');
+ shell.setAttribute('role','status');
+ shell.setAttribute('aria-label','Opening conversation');
+ shell.innerHTML='<div class="pvDmLoadingHead"><span class="pvDmLoadingBack">‹</span><span class="pvDmLoadingAvatar"></span><span class="pvDmLoadingTitle"></span></div><div class="pvDmLoadingContent"><span class="pvDmLoadingBubble"></span><span class="pvDmLoadingBubble mine"></span><span class="pvDmLoadingBubble short"></span></div><div class="pvDmLoadingCompose"><span></span></div>';
+ return shell;
+}
 function pvEmptyChat(){const empty=node('div','pvEmptyChat');empty.innerHTML='<div class="pvEmptyIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m21 3-8.5 18-3.5-7.5L2 10z"/><path d="M21 3 9 13.5"/></svg></div><h2>Your messages</h2><p>Send private photos and messages to a friend.</p>';const btn=node('button','pvStartMessage','Send message');btn.onclick=()=>pvNavigate('explore');empty.append(btn);return empty}
 async function loadInbox(){if(!user)return;
-const layout=node('div','pvInboxLayout'),side=node('div','pvInboxSide'),right=node('div','pvChatArea');right.id='pvChatArea';right.append(pvEmptyChat());layout.append(side,right);inboxView.replaceChildren(layout);
+const layout=node('div','pvInboxLayout'),side=node('div','pvInboxSide'),right=node('div','pvChatArea');right.id='pvChatArea';right.append(selectedPeer?pvDmLoadingChat():pvEmptyChat());layout.append(side,right);inboxView.replaceChildren(layout);
 inboxView.classList.toggle('pvChatSelected',!!selectedPeer);
 requestAnimationFrame(pvSyncDesktopChatHeight);
 requestAnimationFrame(pvSyncMobileDmViewport);
@@ -2637,7 +2644,7 @@ const filter=()=>{const q=pvInboxSearch.toLowerCase();for(const {entry,p} of row
 search.oninput=()=>{pvInboxSearch=search.value;filter()};filter();
 if(selectedPeer)await renderChat(selectedPeer);await pvCheckUnread();
 }
-async function openChat(id,navigate=true){if(!user||id===user.id)return;if(pvHiddenChats.has(id)){const {error}=await db.from('hidden_conversations').delete().eq('owner_id',user.id).eq('peer_id',id);if(!error)pvHiddenChats.delete(id)}if(selectedPeer&&selectedPeer!==id)pvClearTyping(selectedPeer);pvDmTypingLastSeen=0;selectedPeer=id;window.dispatchEvent(new Event('pv-chat-peer-changed'));if(navigate){const {data:req}=await db.from('message_requests').select('sender_id').eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null).maybeSingle();const {data:following}=req?await db.from('follows').select('follower_id').eq('follower_id',id).eq('following_id',user.id).maybeSingle():{data:null};pvInboxTab=req&&!following?'Requests':pvConversationSetting(id).folder==='general'?'General':'Primary';pvNavigate('messages')}else{inboxView.classList.add('pvChatSelected');inboxView.querySelectorAll('.pvThreadPerson').forEach(b=>b.classList.toggle('active',b.dataset.peerId===id));await renderChat(id)}pvRememberInboxPosition();if(!chatPoll)chatPoll=setInterval(()=>{if(!inboxView.classList.contains('hide')&&selectedPeer&&!pvChatPollBusy){pvChatPollBusy=true;renderChat(selectedPeer,true).catch(e=>console.warn('Chat poll:',e)).finally(()=>{pvChatPollBusy=false})}},pvDmRealtimeStatus==='live'?12000:4000)}
+async function openChat(id,navigate=true){if(!user||id===user.id)return;if(pvHiddenChats.has(id)){const {error}=await db.from('hidden_conversations').delete().eq('owner_id',user.id).eq('peer_id',id);if(!error)pvHiddenChats.delete(id)}if(selectedPeer&&selectedPeer!==id)pvClearTyping(selectedPeer);pvDmTypingLastSeen=0;selectedPeer=id;window.dispatchEvent(new Event('pv-chat-peer-changed'));if(navigate){const {data:req}=await db.from('message_requests').select('sender_id').eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null).maybeSingle();const {data:following}=req?await db.from('follows').select('follower_id').eq('follower_id',id).eq('following_id',user.id).maybeSingle():{data:null};pvInboxTab=req&&!following?'Requests':pvConversationSetting(id).folder==='general'?'General':'Primary';pvNavigate('messages')}else{inboxView.classList.add('pvChatSelected');inboxView.querySelectorAll('.pvThreadPerson').forEach(b=>b.classList.toggle('active',b.dataset.peerId===id));const area=document.getElementById('pvChatArea');if(area&&!area.querySelector('.pvMessageForm'))area.replaceChildren(pvDmLoadingChat());await renderChat(id)}pvRememberInboxPosition();if(!chatPoll)chatPoll=setInterval(()=>{if(!inboxView.classList.contains('hide')&&selectedPeer&&!pvChatPollBusy){pvChatPollBusy=true;renderChat(selectedPeer,true).catch(e=>console.warn('Chat poll:',e)).finally(()=>{pvChatPollBusy=false})}},pvDmRealtimeStatus==='live'?12000:4000)}
 async function renderChat(id,silent=false){const area=document.getElementById('pvChatArea');if(!area||!user||selectedPeer!==id)return;
 const pollingExisting=!!(silent&&area.querySelector('.pvMessageForm'));
 const uid=user.id;
