@@ -1,6 +1,6 @@
 {
-  "version": 144,
+  "version": 145,
   "release": "2026-11-11",
-  "name": "PAVORA v144",
-  "notes": "Visible one-time spring pop on opening real chat and staggered user-card animations in Messages inbox."
+  "name": "PAVORA v145",
+  "notes": "Fix chat opening animation end glitch, prevent historical message cascade pop and stabilize late-loading media."
 }
