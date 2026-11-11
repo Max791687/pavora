@@ -1,6 +1,6 @@
 {
-  "version": 97,
+  "version": 98,
   "release": "2026-11-11",
-  "name": "PAVORA v97",
-  "notes": "Desktop story rail embedded in main page with real creators or labeled demo fallback"
+  "name": "PAVORA v98",
+  "notes": "Only active story authors displayed; Your Story always uses profile DP and plus when inactive"
 }
