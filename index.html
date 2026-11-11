@@ -1103,7 +1103,7 @@ body.pvSkipIntro #pvLaunchScreen{
 <main><aside class="left panel"><div class="intro"><div class="row"><div class="profilepic">P</div><div><b>@pavora_user</b><div class="muted">Creator account</div></div></div><hr style="border:0;border-top:1px solid #34344a;margin:16px 0"></div><button class="nav active" data-view="home">⌂ Home</button><button class="nav" data-view="reels">▣ Reels</button><button class="nav" data-view="explore">⌕ Explore</button><button class="nav" data-view="profile">◉ Profile</button></aside>
 <section class="feed"><div id="home"><div class="story" id="stories"></div><div class="composer"><h2>Share a moment ✨</h2><textarea id="caption" maxlength="2200" placeholder="What's happening?"></textarea><div class="actions"><div><label for="photo" class="secondary" style="cursor:pointer">＋ Add photo</label><input class="upload" id="photo" type="file" accept="image/*"><span id="filename" class="hint"></span></div><button class="primary" id="publish">Publish</button></div><p class="hint">Share photos and moments with your PAVORA community.</p></div><div id="posts"></div></div><div id="reels" class="hide"><h2>Reels ▣</h2><div class="empty">Reels player is coming in the next version.</div></div><div id="explore" class="hide"><h2>Explore ✨</h2><div class="empty">Discover creators and trending posts — coming soon.</div></div><div id="profile" class="hide"><div class="panel"><div class="row"><div class="profilepic" style="width:70px;height:70px">P</div><div><h2 style="margin:0">@pavora_user</h2><p class="muted">Welcome to your PAVORA profile</p></div></div><p id="stats"></p><p class="muted">Your posts appear in Home Feed.</p></div></div></section><aside class="right panel"><h3>Welcome to PAVORA 💜</h3><p class="muted">A new space for creators to connect, share and grow.</p><hr style="border:0;border-top:1px solid #34344a"><p class="hint">Share photos, discover creators, watch Reels and stay connected.</p></aside></main>
 <!-- Legacy local demo handlers removed: PAVORA uses Supabase-backed cloud.js and social-suite.js. -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="./video-compress.js?v=20261109-video-opt-v29"></script><script src="./upload-reliable.js?v=20261109-uploads-v30"></script><script src="./chat-themes.js?v=20261110-themes-v32"></script><script src="./presence.js?v=20261110-background-heartbeat-v68"></script><script src="./chat-search.js?v=20261110-dm-search-v38"></script><script src="./smart-reels.js?v=20261110-smart-reels-v39"></script><script src="./reel-seek.js?v=20261110-reel-seek-v40"></script><script src="./cloud.js?v=20261111-gesture-back-v138"></script><script src="./brand-identity.js?v=20261111-logo-v80"></script><script src="./native-feel.js?v=20261111-native-feel-v81"></script><script src="./ios-motion-v83.js?v=20261111-ios-motion-v83"></script><script src="./ios-reference-v84.js?v=20261111-ios-reference-v84"></script><script src="./ios-mobile-rebuild-v86.js?v=20261111-ios-mobile-rebuild-v86"></script><script src="./ios-reference-polish-v87.js?v=20261111-ios-polish-v87"></script><script src="./chat-activity.js?v=20261110-live-activity-v58"></script><script src="./social-suite.js?v=20261111-story-plus-v99"></script><script src="./creator-hub.js?v=20261110-creator-hub-v41"></script><script src="./virtual-daily-posts.js?v=20261111-feed-tabs-v78"></script><script src="./feed-controls.js?v=20261111-feed-controls-v79"></script><script src="./post-drafts.js?v=20261110-drafts-v69b"></script><script src="./creator-studio.js?v=20261111-creator-glass-v104"></script><script src="./photo-adjustments.js?v=20261110-photo-tools-v70"></script><script src="./media-performance.js?v=20261110-media-opt-v70"></script><script src="./post-collab-labels.js?v=20261110-post-labels-v70"></script><script src="./test-chat-share.js?v=20261111-sharing-contrast-v101"></script><script src="./owner-admin.js?v=20261111-profile-glass-v100"></script><script src="./password-help.js?v=20261110-instant-hint-v64"></script><script src="./calls.js?v=20261110-calling-v46"></script><script src="./app-install.js?v=20261111-iphone-install-v82" defer></script><script src="./push.js?v=20261109-push-diagnostics-v2" defer></script><style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="./video-compress.js?v=20261109-video-opt-v29"></script><script src="./upload-reliable.js?v=20261109-uploads-v30"></script><script src="./chat-themes.js?v=20261110-themes-v32"></script><script src="./presence.js?v=20261110-background-heartbeat-v68"></script><script src="./chat-search.js?v=20261110-dm-search-v38"></script><script src="./smart-reels.js?v=20261110-smart-reels-v39"></script><script src="./reel-seek.js?v=20261110-reel-seek-v40"></script><script src="./cloud.js?v=20261111-follow-glass-v139"></script><script src="./brand-identity.js?v=20261111-logo-v80"></script><script src="./native-feel.js?v=20261111-native-feel-v81"></script><script src="./ios-motion-v83.js?v=20261111-ios-motion-v83"></script><script src="./ios-reference-v84.js?v=20261111-ios-reference-v84"></script><script src="./ios-mobile-rebuild-v86.js?v=20261111-ios-mobile-rebuild-v86"></script><script src="./ios-reference-polish-v87.js?v=20261111-ios-polish-v87"></script><script src="./chat-activity.js?v=20261110-live-activity-v58"></script><script src="./social-suite.js?v=20261111-story-plus-v99"></script><script src="./creator-hub.js?v=20261110-creator-hub-v41"></script><script src="./virtual-daily-posts.js?v=20261111-feed-tabs-v78"></script><script src="./feed-controls.js?v=20261111-feed-controls-v79"></script><script src="./post-drafts.js?v=20261110-drafts-v69b"></script><script src="./creator-studio.js?v=20261111-creator-glass-v104"></script><script src="./photo-adjustments.js?v=20261110-photo-tools-v70"></script><script src="./media-performance.js?v=20261110-media-opt-v70"></script><script src="./post-collab-labels.js?v=20261110-post-labels-v70"></script><script src="./test-chat-share.js?v=20261111-sharing-contrast-v101"></script><script src="./owner-admin.js?v=20261111-profile-glass-v100"></script><script src="./password-help.js?v=20261110-instant-hint-v64"></script><script src="./calls.js?v=20261110-calling-v46"></script><script src="./app-install.js?v=20261111-iphone-install-v82" defer></script><script src="./push.js?v=20261109-push-diagnostics-v2" defer></script><style>
 /* PAVORA v63: one aligned action group for profile header controls */
 #pvProfileToolsRow{display:flex;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap;width:100%;margin:0 0 16px;padding:0}
 #pvProfileToolsRow > :is(#pvHintLauncher,#pvOwnerLauncher,.pvHubLauncher){display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;box-sizing:border-box;flex:0 0 auto;height:42px;min-height:42px;max-height:42px;margin:0!important;padding:0 14px!important;border-radius:12px!important;font-size:13px!important;font-weight:750!important;line-height:1.2!important;white-space:nowrap}
@@ -2153,4 +2153,160 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
   overflow-y:auto!important;
  }
 }
-</style><script src="./ios-edge-back-v138.js?v=20261111-gesture-back-v138"></script></body></html>
+</style><script src="./ios-edge-back-v138.js?v=20261111-gesture-back-v138"></script><style id="pvConnectionsLiquidGlassV139">
+/* Profile Followers / Following: translucent purple Liquid Glass sheet.
+   Open and close are motion states; original user data, RLS and click handlers remain. */
+#pvConnectionsDialog[hidden]{display:none!important}
+#pvConnectionsDialog{
+ position:fixed!important;inset:0!important;z-index:150!important;
+ display:flex!important;justify-content:center!important;align-items:center!important;
+ padding:max(16px,env(safe-area-inset-top,0px)) 14px max(17px,env(safe-area-inset-bottom,0px))!important;
+ background:rgba(31,20,43,.24)!important;
+ -webkit-backdrop-filter:blur(13px) saturate(.85)!important;
+ backdrop-filter:blur(13px) saturate(.85)!important;
+ opacity:0!important;transition:opacity .23s ease-out!important;
+ overscroll-behavior:contain;
+}
+#pvConnectionsDialog.pvConnectionsOpen{opacity:1!important}
+#pvConnectionsDialog.pvConnectionsClosing{opacity:0!important;pointer-events:none!important}
+#pvConnectionsDialog .pvConnectionsCard{
+ position:relative!important;display:flex!important;flex-direction:column!important;
+ width:min(460px,100%)!important;
+ max-height:min(83dvh,810px)!important;
+ min-height:0!important;
+ overflow:hidden!important;
+ border-radius:31px!important;
+ border:1px solid rgba(255,255,255,.55)!important;
+ background:
+  radial-gradient(ellipse 95% 42% at 12% -8%,rgba(223,187,255,.43),transparent 75%),
+  linear-gradient(165deg,rgba(57,32,81,.86),rgba(30,21,47,.87) 75%)!important;
+ -webkit-backdrop-filter:blur(28px) saturate(1.35)!important;
+ backdrop-filter:blur(28px) saturate(1.35)!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.4),
+  inset 0 -1px 0 rgba(255,255,255,.08),
+  0 25px 65px rgba(35,18,53,.3)!important;
+ transform:translate3d(0,calc(29px + var(--pvFollowDragY,0px)),0) scale(.955)!important;
+ opacity:0!important;
+ transition:transform .37s cubic-bezier(.2,1.16,.28,1),
+   opacity .24s ease-out!important;
+ will-change:transform,opacity;
+}
+#pvConnectionsDialog.pvConnectionsOpen .pvConnectionsCard{
+ transform:translate3d(0,var(--pvFollowDragY,0px),0) scale(1)!important;opacity:1!important
+}
+#pvConnectionsDialog.pvConnectionsClosing .pvConnectionsCard{
+ transform:translate3d(0,calc(19px + var(--pvFollowDragY,0px)),0) scale(.975)!important;
+ opacity:0!important;transition-duration:.21s!important
+}
+#pvConnectionsDialog .pvConnectionsHeader{
+ position:relative!important;flex:0 0 auto!important;display:flex!important;
+ align-items:center!important;justify-content:space-between!important;
+ gap:12px!important;padding:24px 20px 17px!important;
+ border-bottom:1px solid rgba(255,255,255,.15)!important;
+ background:rgba(255,255,255,.045)!important;
+ touch-action:pan-x;
+}
+#pvConnectionsDialog .pvConnectionsGrabber{
+ position:absolute;left:50%;top:10px;transform:translateX(-50%);
+ width:36px;height:4px;border-radius:99px;background:rgba(255,255,255,.46);
+}
+#pvConnectionsDialog .pvConnectionsTitleWrap{display:flex;flex-direction:column;gap:3px;min-width:0}
+#pvConnectionsDialog .pvConnectionsEyebrow{
+ font-size:10px;font-weight:750;letter-spacing:.12em;color:#cfb4e9;
+}
+#pvConnectionsDialog .pvConnectionsHeader h3{
+ margin:0!important;font-size:25px!important;line-height:1.15!important;
+ letter-spacing:-.035em!important;font-weight:800!important;
+ color:#faf6ff!important;-webkit-text-fill-color:#faf6ff!important;
+}
+#pvConnectionsDialog .pvConnectionsClose{
+ display:grid!important;place-items:center!important;
+ width:43px!important;min-width:43px!important;height:43px!important;
+ padding:0!important;flex:0 0 43px!important;border-radius:15px!important;
+ border:1px solid rgba(255,255,255,.21)!important;
+ background:rgba(255,255,255,.16)!important;
+ box-shadow:inset 0 1px rgba(255,255,255,.28),0 4px 13px rgba(0,0,0,.13)!important;
+ color:#fff!important;-webkit-text-fill-color:#fff!important;
+ font-size:25px!important;font-weight:400!important;
+ -webkit-backdrop-filter:blur(15px)!important;backdrop-filter:blur(15px)!important;
+ transition:transform .25s cubic-bezier(.2,1.45,.3,1),background .2s ease!important;
+}
+#pvConnectionsDialog .pvConnectionsClose:active{transform:scale(.89)!important;background:rgba(255,255,255,.26)!important}
+#pvConnectionsDialog .pvConnectionsPeople{
+ flex:1 1 auto!important;min-height:0!important;
+ overflow:auto!important;overscroll-behavior:contain!important;
+ padding:12px 13px 16px!important;
+ -webkit-overflow-scrolling:touch!important;scrollbar-width:none;
+}
+#pvConnectionsDialog .pvConnectionsPeople::-webkit-scrollbar{display:none}
+#pvConnectionsDialog .pvConnectionPerson{
+ display:flex!important;align-items:center!important;
+ gap:13px!important;width:100%!important;min-width:0!important;
+ padding:12px 12px!important;margin:0 0 8px!important;
+ border-radius:19px!important;border:1px solid rgba(255,255,255,.12)!important;
+ background:rgba(255,255,255,.075)!important;
+ box-shadow:inset 0 1px rgba(255,255,255,.08),0 4px 16px rgba(0,0,0,.06)!important;
+ color:#fff!important;-webkit-text-fill-color:#fff!important;
+ text-align:left!important;
+ -webkit-backdrop-filter:blur(10px)!important;backdrop-filter:blur(10px)!important;
+ transition:transform .23s cubic-bezier(.2,1.5,.3,1),background .18s ease,border-color .18s ease!important;
+}
+#pvConnectionsDialog .pvConnectionPerson:active{
+ transform:scale(.974)!important;
+ background:rgba(212,167,255,.19)!important;border-color:rgba(255,255,255,.31)!important
+}
+#pvConnectionsDialog .pvConnectionAvatar{
+ flex:0 0 52px!important;width:52px!important;height:52px!important;
+ border-radius:50%!important;overflow:hidden!important;
+ background:linear-gradient(135deg,#8b4adc,#d665c2)!important;
+ box-shadow:inset 0 1px rgba(255,255,255,.27),0 5px 13px rgba(126,62,174,.19)!important;
+ font-size:20px!important;font-weight:750!important;
+}
+#pvConnectionsDialog .pvConnectionText{flex:1 1 0!important;min-width:0!important;gap:4px!important}
+#pvConnectionsDialog .pvConnectionText strong{
+ font-size:16px!important;line-height:1.2!important;
+ font-weight:750!important;color:#fff!important;-webkit-text-fill-color:#fff!important;
+}
+#pvConnectionsDialog .pvConnectionText small{
+ font-size:13px!important;line-height:1.25!important;
+ color:#d2c6de!important;-webkit-text-fill-color:#d2c6de!important;
+}
+#pvConnectionsDialog .pvConnectionPerson::after{
+ content:'›';font-size:24px;font-weight:300;line-height:1;color:rgba(255,255,255,.47)
+}
+#pvConnectionsDialog .pvConnectionNotice{
+ color:#d9cbe5!important;-webkit-text-fill-color:#d9cbe5!important;
+ font-size:14px!important;padding:22px!important;
+}
+#pvConnectionsDialog .pvConnectionsMore{
+ border-radius:14px!important;border:1px solid rgba(255,255,255,.24)!important;
+ background:rgba(208,165,255,.19)!important;color:white!important;
+ -webkit-text-fill-color:white!important;
+ margin:8px auto 14px!important;min-height:42px!important;
+ -webkit-backdrop-filter:blur(10px)!important;backdrop-filter:blur(10px)!important;
+}
+@media(max-width:700px){
+ #pvConnectionsDialog .pvConnectionsCard{
+  width:100%!important;max-height:min(84dvh,760px)!important;
+  border-radius:29px!important;
+ }
+ #pvConnectionsDialog .pvConnectionsPeople{padding:11px 11px 13px!important}
+}
+@media(prefers-reduced-motion:no-preference){
+ #pvConnectionsDialog.pvConnectionsOpen .pvConnectionPerson{
+  animation:pvConnectionsRowEnter139 .34s ease-out both;
+ }
+ #pvConnectionsDialog.pvConnectionsOpen .pvConnectionPerson:nth-child(1){animation-delay:.035s}
+ #pvConnectionsDialog.pvConnectionsOpen .pvConnectionPerson:nth-child(2){animation-delay:.065s}
+ #pvConnectionsDialog.pvConnectionsOpen .pvConnectionPerson:nth-child(3){animation-delay:.095s}
+ #pvConnectionsDialog.pvConnectionsOpen .pvConnectionPerson:nth-child(4){animation-delay:.125s}
+ #pvConnectionsDialog.pvConnectionsOpen .pvConnectionPerson:nth-child(5){animation-delay:.155s}
+ @keyframes pvConnectionsRowEnter139{
+  from{opacity:0;translate:0 8px}to{opacity:1;translate:0 0}
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #pvConnectionsDialog,#pvConnectionsDialog .pvConnectionsCard,
+ #pvConnectionsDialog .pvConnectionPerson{transition:none!important;animation:none!important}
+}
+</style></body></html>
