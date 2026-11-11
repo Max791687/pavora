@@ -2598,7 +2598,7 @@ function pvShowPreparedChat(id){
 async function loadInbox(){if(!user)return;
 const layout=node('div','pvInboxLayout'),side=node('div','pvInboxSide'),right=node('div','pvChatArea');right.id='pvChatArea';right.append(selectedPeer?pvDmLoadingChat():pvEmptyChat());layout.append(side,right);inboxView.replaceChildren(layout);
 // Keep inbox visible until real chat content is ready; avoid switching to an empty/skeleton pane.
-inboxView.classList.remove('pvChatSelected');
+inboxView.classList.toggle('pvChatSelected',!!selectedPeer);
 requestAnimationFrame(pvSyncDesktopChatHeight);
 requestAnimationFrame(pvSyncMobileDmViewport);
 const top=node('div','pvInboxTop'),name=node('strong','',profile?.username||'Messages'),compose=node('button','pvInboxCompose','✎');compose.title='New message';compose.setAttribute('aria-label','New message');compose.onclick=()=>pvNavigate('explore');const pvInboxBell=pvMakeBell('pvInboxBell');const pvInboxActions=node('div','pvInboxActions');pvInboxActions.append(pvInboxBell,compose);top.append(name,pvInboxActions);side.append(top);
@@ -2723,6 +2723,8 @@ async function openChat(id,navigate=true){if(!user||id===user.id)return;if(pvHid
  inboxView.classList.add('pvChatSelected');
  pvNavigate('messages');
  const {data:req}=await db.from('message_requests').select('sender_id').eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null).maybeSingle();const {data:following}=req?await db.from('follows').select('follower_id').eq('follower_id',id).eq('following_id',user.id).maybeSingle():{data:null};pvInboxTab=req&&!following?'Requests':pvConversationSetting(id).folder==='general'?'General':'Primary';}else{
+ // Immediate view switch on tap: do not leave the inbox visible while network requests run.
+ inboxView.classList.add('pvChatSelected');
  inboxView.querySelectorAll('.pvThreadPerson').forEach(b=>b.classList.toggle('active',b.dataset.peerId===id));
  const area=document.getElementById('pvChatArea');
  if(area&&!area.querySelector('.pvMessageForm'))area.replaceChildren(pvDmLoadingChat());
