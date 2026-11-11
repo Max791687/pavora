@@ -159,6 +159,16 @@ const launch=async()=>{
 };
 
 
+const pvOwnStoryStyle=el('style');
+pvOwnStoryStyle.textContent=`
+#stories .pvStoryMine{position:relative;overflow:visible;background:#efe3ff;color:#573276}
+#stories .pvStoryMine img{border-radius:50%;overflow:hidden}
+#stories .pvStoryMinePlus{position:absolute;right:-5px;bottom:-3px;display:grid;place-items:center;
+ width:21px;height:21px;background:#8d43df;color:#fff;font:800 15px/1 system-ui,sans-serif;
+ border:2px solid #fff;border-radius:50%;box-shadow:0 2px 5px #55357830}
+#stories .pvStoryMine.pvStoryIsActive{border:3px solid #bd4ee4}
+`;
+document.head.append(pvOwnStoryStyle);
 const pvViewStyle=el('style');pvViewStyle.textContent="\n.pvLiveViews{padding:15px;background:#26212e;border:1px solid #43364e;border-radius:14px;margin:7px 0}\n.pvLiveViewsTop{display:flex;justify-content:space-between;align-items:center;gap:12px}\n.pvLiveViewsTop strong{font-size:17px}.pvLiveViewsTop strong span{color:#d9afff;font-variant-numeric:tabular-nums}\n.pvLiveViewsTop small{color:#bca4d3;font-size:11px}\n.pvLiveViewList{display:flex;flex-direction:column;max-height:290px;overflow:auto;margin-top:10px}\n.pvLiveViewRow{display:flex;align-items:center;gap:11px;padding:11px 2px;border-bottom:1px solid #403648}\n.pvLiveViewRow:last-child{border-bottom:0}\n.pvLiveViewAvatar{height:39px;width:39px;flex:none;display:grid;place-items:center;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#8852dd,#c85d9f);font-weight:800}\n.pvLiveViewAvatar img{width:100%;height:100%;object-fit:cover}\n.pvLiveViewIdentity{flex:1;min-width:0}.pvLiveViewIdentity strong{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pvLiveViewIdentity small{display:block;font-size:11px;color:#b9aac9}\n.pvLiveViewTime{white-space:nowrap;color:#ad9dbd;font-size:11px}.pvLiveViewEmpty{color:#bba9cf;font-size:12px;line-height:1.6;padding:16px 3px}\n";document.head.append(pvViewStyle);
 const pvPlaybackStyle=el('style');pvPlaybackStyle.textContent=".pvStoryControls{display:flex;flex-direction:column;gap:9px}.pvStoryBars{display:flex;gap:4px}.pvStoryTrack{height:3px;flex:1;background:#ffffff50;border-radius:3px;overflow:hidden}.pvStoryFill{display:block;background:#fff;height:100%;width:0}.pvStoryNav{display:flex;justify-content:space-between;gap:10px}.pvStoryNav button{border-radius:999px!important;font-size:12px!important}.pvStoryNav button:disabled{opacity:.4}.pvStoryHoldHint{text-align:center;color:#b8aac8;font-size:11px}";document.head.append(pvPlaybackStyle);
 const showStory=async story=>{
@@ -328,14 +338,35 @@ kit.renderStories=async(bar,opts={})=>{
   const {data:profiles,error:profileError}=people.length?await db.from('profiles').select('id,username,avatar_url').in('id',people):{data:[],error:null};
   if(profileError)console.warn('Stories profile info:',profileError.message);
   const names=new Map((profiles||[]).map(p=>[p.id,p]));
-  const signature=JSON.stringify({user:person.id,stories:nextStories.map(x=>[x.id,x.author_id,x.media_path]),profiles:(profiles||[]).map(p=>[p.id,p.username,p.avatar_url])});
+  // Your Story always uses the current account's real profile picture,
+  // even when there is no active Story (so that user is absent from 'people').
+  if(!names.has(person.id)){
+   const {data:selfProfile,error:selfError}=await db.from('profiles')
+    .select('id,username,avatar_url').eq('id',person.id).maybeSingle();
+   if(!selfError&&selfProfile)names.set(person.id,selfProfile);
+  }
+  const signature=JSON.stringify({user:person.id,stories:nextStories.map(x=>[x.id,x.author_id,x.media_path]),profiles:[...names.values()].map(p=>[p.id,p.username,p.avatar_url])});
   stories=nextStories;
   pvStoriesLastCheck=Date.now();
   if(signature===pvStoriesSignature&&bar.childElementCount)return;
   const fragment=document.createDocumentFragment();
-  const add=el('button','pvStoryAdd'),circle=el('span','pvStoryPlus','+');
-  add.append(circle,el('small','','Your story'));add.onclick=launch;fragment.append(add);
-  const grouped=new Set();
+  const myActiveStory=nextStories.find(x=>x.author_id===person.id)||null;
+  const add=el('button','pvStoryAdd'),circle=el('span','pvStoryAvatar pvStoryMine');
+  const myDetails=names.get(person.id)||{};
+  if(myDetails.avatar_url){
+   const img=el('img');img.src=myDetails.avatar_url;img.alt='Your profile picture';
+   img.onerror=()=>{img.remove();circle.textContent=(myDetails.username||'?')[0].toUpperCase()};
+   circle.append(img);
+  }else circle.textContent=(myDetails.username||'?')[0].toUpperCase();
+  if(myActiveStory)circle.classList.add('pvStoryIsActive');
+  else{
+   const plus=el('span','pvStoryMinePlus','+');
+   circle.append(plus);
+  }
+  add.append(circle,el('small','','Your story'));
+  add.onclick=()=>myActiveStory?showStory(myActiveStory):launch();
+  fragment.append(add);
+  const grouped=new Set([person.id]);
   for(const x of stories){
    if(grouped.has(x.author_id))continue;
    grouped.add(x.author_id);
