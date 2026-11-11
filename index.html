@@ -941,7 +941,9 @@ body.pvDrawerOpen .pvIconRail{z-index:14!important}
 </style>
 <style id="pvStartupV105">
 /* v105: branded first paint; do not wait for network/auth to render a usable shell */
-#pvLaunchScreen{display:flex!important;position:fixed!important;inset:0!important;z-index:9999!important;pointer-events:none!important;will-change:opacity;opacity:1!important;visibility:visible!important;transition:opacity .24s ease,visibility .24s ease!important}
+/* Native iPhone/Android installed PWA already displays its branded launch icon.
+   Do not show the HTML splash over the app a second time. */
+#pvLaunchScreen{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}
 body.pvIntroFinished #pvLaunchScreen,body.pvLaunchReady #pvLaunchScreen,body.pvEarlyShell #pvLaunchScreen{opacity:0!important;visibility:hidden!important;pointer-events:none!important}
 #pvLaunchScreen .pvLaunchLogo{animation:pvQuickStart .38s cubic-bezier(.2,.75,.3,1) both!important;filter:none!important}
 #pvLaunchScreen .pvLaunchWord{animation:pvQuickStart .4s ease-out both!important}
