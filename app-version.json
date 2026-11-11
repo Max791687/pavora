@@ -1,6 +1,6 @@
 {
-  "version": 124,
+  "version": 125,
   "release": "2026-11-11",
-  "name": "PAVORA v124",
-  "notes": "Fixed the chat opening jump by preparing latest-message scroll before displaying messages and reserving media height."
+  "name": "PAVORA v125",
+  "notes": "Removed duplicate startup splash and fixed chat opening flash by showing the conversation only after loading."
 }
