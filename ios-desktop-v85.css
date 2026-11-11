@@ -1,0 +1,66 @@
+/* PAVORA v85 desktop: responsive counterpart to the iPhone reference.
+   Keep native mobile layouts and fullscreen Reels / messaging untouched. */
+@media(min-width:901px){
+ body:not(.pvReelsMode):not(.pvMessagesMode) main{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  width:min(750px,calc(100vw - 112px))!important;
+  max-width:min(750px,calc(100vw - 112px))!important;
+  margin-left:max(90px,calc(73px + (100vw - 73px - 750px)/2))!important;
+  margin-right:0!important;
+  padding:19px 16px 30px!important;
+  gap:0!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) main>.feed{
+  min-width:0!important;width:100%!important;max-width:100%!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) main>aside.right{display:none!important}
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home{
+  max-width:680px!important;margin:0 auto!important
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .post,
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .pvDailyCard{
+  width:100%!important;max-width:680px!important;
+  background:white!important;border:1px solid #e9e0f3!important;
+  border-radius:17px!important;box-shadow:0 10px 38px #59417a0b!important;
+  margin:0 auto 18px!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .post>img,
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .post .pvDailyPhotoWrap img{
+  display:block;width:100%!important;max-height:680px!important;object-fit:contain
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .posthead{padding:14px 18px!important;min-height:67px!important}
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .postbody{
+  padding:0 18px 14px!important;font-size:14px!important
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .postfoot{
+  padding:12px 18px 14px!important;min-height:50px!important
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .story{
+  border-radius:18px!important;min-height:104px!important;
+  padding:15px 17px!important;margin:0 auto 16px!important;
+  background:#fff!important;border:1px solid #eae1f5!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) .pvFeedModeTabs{padding:0 8px!important;margin:7px 0 14px!important}
+ body:not(.pvReelsMode):not(.pvMessagesMode) #explore,
+ body:not(.pvReelsMode):not(.pvMessagesMode) #profile{
+  width:100%!important;max-width:680px!important;margin:0 auto!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #explore .pvExploreGrid{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #profile .panel{
+  border-radius:19px!important;background:#fff!important;
+  border:1px solid #eae2f5!important;padding:22px!important
+ }
+}
+@media(min-width:701px) and (max-width:900px){
+ body:not(.pvReelsMode):not(.pvMessagesMode) main{
+  grid-template-columns:minmax(0,1fr)!important;
+  max-width:calc(100vw - 105px)!important;
+  margin-left:90px!important;margin-right:0!important;
+  padding:14px 16px!important
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) main>aside.right{display:none!important}
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .post{max-width:none!important}
+}
