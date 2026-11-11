@@ -2622,7 +2622,12 @@ b.addEventListener('click',event=>{
 });
 const menuButton=node('button','pvChatMore','⋯');menuButton.type='button';menuButton.title='Conversation options';menuButton.setAttribute('aria-label','Options for '+(p.display_name||p.username));
 const menu=node('div','pvChatContextMenu hide');menu.setAttribute('role','menu');
-function menuItem(label,fn){const item=node('button','pvChatMenuItem',label);item.type='button';item.setAttribute('role','menuitem');item.onclick=async e=>{e.stopPropagation();menu.classList.add('hide');menuButton.setAttribute('aria-expanded','false');await fn()};menu.append(item)}
+function menuItem(label,fn){const item=node('button','pvChatMenuItem',label);item.type='button';item.setAttribute('role','menuitem');
+// Avoid iOS inherited -webkit-text-fill-color overriding the label.
+item.style.setProperty('color',label==='Remove chat'?'#a53057':'#322144','important');
+item.style.setProperty('-webkit-text-fill-color',label==='Remove chat'?'#a53057':'#322144','important');
+item.style.setProperty('background','transparent','important');
+item.style.setProperty('opacity','1','important');item.onclick=async e=>{e.stopPropagation();menu.classList.add('hide');menuButton.setAttribute('aria-expanded','false');await fn()};menu.append(item)}
 if(pvInboxTab!=='Requests')menuItem(setting.folder==='primary'?'Move to General':'Move to Primary',async()=>{if(await pvSaveConversationSetting(id,{folder:setting.folder==='primary'?'general':'primary'})){if(selectedPeer===id)selectedPeer=null;await loadInbox()}});
 if(pvInboxTab!=='Requests')menuItem(setting.pinned?'Unpin conversation':'Pin conversation',async()=>{if(await pvSaveConversationSetting(id,{pinned:!setting.pinned}))await loadInbox()});
 menuItem(setting.muted?'Unmute notifications':'Mute notifications',async()=>{if(await pvSaveConversationSetting(id,{muted:!setting.muted}))await loadInbox()});
