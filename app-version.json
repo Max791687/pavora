@@ -1,6 +1,6 @@
 {
-  "version": 100,
+  "version": 115,
   "release": "2026-11-11",
-  "name": "PAVORA v100",
-  "notes": "Desktop profile contrast and premium Liquid Glass readability"
+  "name": "PAVORA v115",
+  "notes": "Liquid Glass chat improvements, iPhone fixes and update notifications. This announcement appears once per version on each device."
 }
