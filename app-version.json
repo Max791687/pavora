@@ -1,6 +1,6 @@
 {
-  "version": 120,
+  "version": 121,
   "release": "2026-11-11",
-  "name": "PAVORA v120",
-  "notes": "More premium Liquid Glass effect across Messages, tabs, search, chat list and option menus."
+  "name": "PAVORA v121",
+  "notes": "Removed extra divider lines inside Liquid Glass chat cards."
 }
