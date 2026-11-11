@@ -21,7 +21,7 @@ if(cssLink){
 /* PAVORA v115: one release notice per installed browser/device and version.
    A dismissal is stored persistently on this device; a future version has a new key.
    A newer deployed version also prompts while the old app is still open. */
-const VERSION=134;
+const VERSION=135;
 const RELEASE_KEY_PREFIX='pavora-update-seen-';
 const LEGACY_BANNER_ID='pvAppUpdateNotice';
 const banner=document.createElement('section');
