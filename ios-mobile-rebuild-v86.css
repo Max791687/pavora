@@ -1,0 +1,101 @@
+/* PAVORA v86 — iPhone Home/Profile shell rebuild. LAST mobile theme layer. */
+@media(max-width:600px){
+:root{--pv86-ink:#1d1728;--pv86-sub:#777184;--pv86-lilac:#f8f6ff;--pv86-veil:#efe9f9;--pv86-accent:#933ee4}
+html,body{background:var(--pv86-lilac)!important;color:var(--pv86-ink)!important;overflow-x:hidden}
+body:not(.pvReelsMode):not(.pvMessagesMode) header,
+body.pvMessagesMode header{
+ height:55px!important;min-height:55px!important;box-shadow:none!important;background:#fbfafff7!important;
+ border-bottom:1px solid #eee9f5!important;z-index:11!important;
+}
+header .top{height:55px!important;min-width:0;padding:0 13px!important;gap:9px!important;display:flex!important;justify-content:flex-start!important}
+header .top .brand{margin-right:auto!important;font-size:19px!important;letter-spacing:-.7px!important;min-width:0!important;gap:7px!important;color:#1f192b!important}
+header .top .brand .pvBrandMark{width:30px!important;height:30px!important}
+header .top>small,header #reset,header #signout{display:none!important}
+header .pvTopAction.pvCreateTop{display:grid!important;place-items:center!important;width:34px!important;min-width:34px!important;height:35px!important;padding:0!important;margin:0!important;
+ background:#f3effa!important;border:1px solid #e9e2f2!important;border-radius:11px!important;color:#3e2b56!important}
+header .pvCreateTop::before{content:'⊞';font-size:25px;line-height:1}
+header .pvMobileActivity{display:grid!important;place-items:center!important;flex:0 0 35px!important;width:35px!important;height:35px!important;margin:0!important;
+ color:#281f34!important;background:transparent!important;border:0!important;box-shadow:none!important}
+header .pvMobileActivity svg{width:23px!important;height:23px!important;color:#30253b!important;stroke:currentColor!important}
+header .pvPushToggle{display:none!important}
+header .pvTopAction:not(.pvCreateTop){display:none!important}
+#cloudStatus{display:none!important}
+/* Safe, equal bottom navigation with actual Reels icon—not overlaid by the rail brand. */
+body .pvIconRail{position:fixed!important;bottom:0!important;top:auto!important;left:0!important;right:0!important;
+ width:100%!important;height:calc(58px + env(safe-area-inset-bottom,0px))!important;display:flex!important;flex-direction:row!important;
+ justify-content:space-around!important;gap:0!important;align-items:flex-start!important;
+ padding:4px 5px env(safe-area-inset-bottom,0px)!important;
+ background:#fbfafff0!important;border-top:1px solid #e9e2f2!important;box-shadow:0 -5px 22px #60408b10!important;
+ -webkit-backdrop-filter:blur(22px)!important;backdrop-filter:blur(22px)!important;z-index:15!important}
+body .pvIconRail .pvRailBrand{display:none!important}
+body .pvIconRail .pvRailButton[data-rail-view]{display:grid!important;visibility:visible!important;place-items:center!important;
+ flex:1 1 0!important;min-width:0!important;width:auto!important;height:48px!important;min-height:48px!important;
+ margin:0!important;padding:4px!important;border-radius:12px!important;background:transparent!important;color:#2a2535!important;order:10}
+body .pvIconRail .pvRailButton[data-rail-view="home"]{order:1}
+body .pvIconRail .pvRailButton[data-rail-view="explore"]{order:2}
+body .pvIconRail .pvRailButton[data-rail-view="reels"]{order:3}
+body .pvIconRail .pvRailButton[data-rail-view="messages"]{order:4}
+body .pvIconRail .pvRailButton[data-rail-view="profile"]{order:5}
+body .pvIconRail .pvRailButton[data-rail-view].active{background:#ede0fc!important;color:var(--pv86-accent)!important}
+body .pvIconRail .pvRailButton[data-rail-view].active::after{display:none!important}
+body .pvIconRail .pvRailButton[data-rail-view] svg{width:24px!important;height:24px!important}
+body .pvIconRail>.pvRailButton:not([data-rail-view]),
+body .pvIconRail .pvRailMore,
+body .pvIconRail .pvDesktopActivity{display:none!important}
+body:not(.pvReelsMode):not(.pvMessagesMode) main{padding:0 0 calc(77px + env(safe-area-inset-bottom,0px))!important;margin:0!important;max-width:100%!important}
+body:not(.pvReelsMode):not(.pvMessagesMode) main>.feed{padding:0!important;margin:0!important;background:var(--pv86-lilac)!important}
+#home,#explore,#profile{color:var(--pv86-ink)!important}
+#home .story{margin:0 0 7px!important;padding:12px 13px 11px!important;min-height:92px!important;
+ background:#fff!important;border:0!important;border-bottom:1px solid #ece7f2!important;box-shadow:none!important;gap:13px!important}
+#home .story .profilepic{width:56px!important;height:56px!important;min-width:56px!important}
+#home .pvFeedModeTabs{display:flex!important;gap:20px!important;padding:0 17px!important;margin:0 0 8px!important;
+ min-height:42px!important;align-items:stretch!important;background:#fff!important;border-bottom:1px solid #ede7f4!important}
+#home .pvFeedModeTabs button{padding:9px 7px!important;min-height:42px!important;min-width:0!important;background:none!important;
+ font-size:13px!important;font-weight:750!important;color:#847c91!important;border-bottom:2px solid transparent!important}
+#home .pvFeedModeTabs button[aria-pressed=true]{color:var(--pv86-accent)!important;border-bottom-color:var(--pv86-accent)!important}
+#home #posts{background:var(--pv86-lilac)!important}
+body:not(.pvReelsMode):not(.pvMessagesMode) #home #posts>article.post{width:100%!important;max-width:100%!important;
+ background:#fff!important;border:0!important;border-bottom:1px solid #ebe5f2!important;
+ border-radius:0!important;margin:0 0 8px!important;padding:0!important;box-shadow:none!important;overflow:hidden!important}
+#home #posts>article.post .posthead{padding:10px 12px!important;min-height:57px!important;background:#fff!important}
+#home #posts>article.post .posthead .profilepic{width:39px!important;height:39px!important;min-width:39px!important;flex:0 0 39px!important}
+#home #posts>article.post .posthead .pvPersonButton,#home #posts>article.post .posthead .pvDailyUsername{
+ color:#24192f!important;font-size:13px!important;font-weight:800!important}
+#home #posts>article.post .posthead .muted{font-size:10px!important;color:#8a8192!important}
+#home #posts>article.post .postbody{padding:2px 13px 11px!important;background:#fff!important;color:#382c42!important;font-size:13px!important}
+#home #posts>article.post>img{display:block!important;width:100%!important;height:auto!important;max-height:none!important;
+ aspect-ratio:auto!important;object-fit:contain!important;background:#fff!important}
+#home #posts>article.post .pvDailyPhotoWrap{width:100%!important;height:auto!important;max-height:none!important;background:#eeeaf5!important}
+#home #posts>article.post .pvDailyPhotoWrap img{display:block!important;width:100%!important;height:auto!important;max-height:550px!important;object-fit:contain!important}
+#home #posts>article.post .postfoot{padding:10px 11px 13px!important;min-height:48px!important;background:#fff!important;gap:3px!important}
+#home #posts>article.post .postfoot button{font-size:12px!important;color:#352b3d!important;margin-right:7px!important}
+/* Reference-style profile: strong contrast, compact identity and a secondary tools sheet. */
+body:not(.pvReelsMode):not(.pvMessagesMode) #profile{background:#fff!important;min-height:calc(100dvh - 120px)!important;padding:0 0 20px!important}
+#profile .panel{padding:14px 14px 18px!important;border:0!important;box-shadow:none!important;background:#fff!important;border-radius:0!important}
+#profile .pvTopLine,#profile .pvProfileHeader{gap:11px!important;min-width:0!important}
+#profile :is(h1,h2,h3,strong,b){color:#21172a!important}
+#profile :is(p,.muted,small){color:#595065!important;opacity:1!important}
+#profile #pvOfficialType{color:#695a75!important}
+#profile .profilepic{width:79px!important;height:79px!important;min-width:79px!important}
+#profile .pvTabs{margin-top:16px!important}
+#profile #pvOfficialHub{background:#f6f1fc!important;border:1px solid #e7dcef!important;border-radius:17px!important;
+ box-shadow:none!important;padding:15px!important;margin:13px 0!important}
+#profile #pvOfficialHub h3{color:#25172e!important;font-size:16px!important;line-height:1.35!important}
+#profile #pvOfficialHub p{color:#5b4c67!important;font-size:12px!important;line-height:1.5!important}
+#profile #pvOfficialHub .pvOfficialEyebrow{color:#7d46ad!important}
+#profile #pvOfficialHub button{background:#e9dcf6!important;border:1px solid #dac3ec!important;color:#4d2777!important;font-size:12px!important}
+#profile .pvProfileBio,#profile .pvBio{color:#4e405c!important;opacity:1!important}
+#profile #pvProfileToolsRow{display:none!important;gap:8px!important;margin:0!important;padding:13px 0 3px!important}
+#profile .pvMobileToolsOpen #pvProfileToolsRow{display:flex!important}
+#profile .pvMobileToolsToggle{display:flex!important;align-items:center;justify-content:space-between;width:100%;min-height:41px;
+ padding:9px 13px;margin:4px 0 13px;background:#f1ebfa!important;color:#492669!important;border:1px solid #e5d8f2!important;
+ border-radius:11px!important;font-size:13px!important;font-weight:750!important}
+#profile #pvProfileToolsRow button,#profile #pvProfileToolsRow .pvHubLauncher{
+ background:#efe6fa!important;color:#4d3270!important;border:1px solid #e1d0f1!important;
+ font-size:12px!important;border-radius:10px!important;min-height:38px!important;white-space:normal!important;height:auto!important}
+#profile .pvMobileToolsOpen .pvMobileToolsToggle{background:#e5d5f6!important}
+#profile #pvMobileSignout{display:block!important;width:100%;margin-top:12px;background:#f6e8ef!important;color:#a02a5a!important;border:1px solid #edd4df!important;border-radius:10px!important;padding:10px!important}
+#profile .pvMobileSettings{padding:0 14px}
+body:not(.pvReelsMode):not(.pvMessagesMode) #explore{background:#fff!important;padding:12px 10px!important}
+body:not(.pvReelsMode):not(.pvMessagesMode) #explore .pvExploreSearchWrap{margin:0 0 11px!important}
+}
