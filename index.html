@@ -949,6 +949,42 @@ body.pvIntroFinished #pvLaunchScreen,body.pvLaunchReady #pvLaunchScreen,body.pvE
 #pvLaunchScreen .pvLaunchLine::after{animation:pvLaunchProgress .55s ease-in-out infinite alternate!important}
 @keyframes pvQuickStart{from{opacity:.35;transform:translateY(6px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(prefers-reduced-motion:reduce){#pvLaunchScreen *,#pvLaunchScreen *::after{animation:none!important}#pvLaunchScreen{transition:none!important}}
+</style><style id="pvIosDmKeyboardFixV108">
+/* iOS DM: visual viewport owns the conversation height, regardless of browser keyboard. */
+@media(max-width:700px){
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvInboxLayout{
+  display:block!important;height:100%!important;max-height:100%!important;min-height:0!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatArea{
+  display:flex!important;flex-direction:column!important;height:100%!important;
+  max-height:100%!important;min-height:0!important;overflow:hidden!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatTop{
+  flex:0 0 auto!important;min-height:54px!important;max-height:72px!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessages{
+  flex:1 1 0!important;min-height:0!important;height:0!important;
+  overflow-y:auto!important;overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatComposerWrap{
+  flex:0 0 auto!important;margin-top:auto!important;
+  padding:6px 10px max(8px,env(safe-area-inset-bottom,0px))!important;
+ }
+ /* Large profile card must not crowd actual messages when typing on iPhone. */
+ body.pvMessagesMode #pvInboxView.pvChatSelected:focus-within .pvChatIntro{
+  display:none!important;
+ }
+ body.pvMessagesMode.pvDmKeyboardOpen #pvInboxView.pvChatSelected .pvChatIntro{
+  display:none!important;
+ }
+ body.pvMessagesMode.pvDmKeyboardOpen #pvInboxView.pvChatSelected .pvChatComposerWrap{
+  padding-bottom:6px!important;
+ }
+ body.pvMessagesMode #pvInboxView .pvMessageForm input{
+  font-size:16px!important;min-width:0!important;
+ }
+}
 </style></head><body class="pvBooting pvFeedLoading"><div id="pvLaunchScreen" aria-label="PAVORA starting"><img class="pvLaunchLogo" src="./app-icon.svg" alt=""><div class="pvLaunchWord">PAVORA</div><div class="pvLaunchLine" aria-hidden="true"></div></div><script>
 /* Time-box only the visual intro. Keep auth, posts and navigation owned by existing app logic. */
 (()=>{'use strict';
