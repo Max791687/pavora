@@ -1,6 +1,6 @@
 {
-  "version": 137,
+  "version": 138,
   "release": "2026-11-11",
-  "name": "PAVORA v137",
-  "notes": "Compact iPhone-style Liquid Glass DM header and composer with camera/gallery actions and tighter keyboard spacing."
+  "name": "PAVORA v138",
+  "notes": "Removed empty chat composer gap above iPhone keyboard and added guarded left-edge swipe Back across app screens."
 }
