@@ -1,0 +1,231 @@
+/* PAVORA v95: Desktop Liquid Glass
+   Apple-inspired translucent surfaces with PAVORA's own purple identity.
+   Deliberately desktop-only: iPhone, Reels, mobile calls and message behavior unchanged.
+*/
+@media(min-width:901px){
+ :root{
+  --pv95-ink:#252037;--pv95-sub:#796d8e;--pv95-edge:#ffffffd9;
+  --pv95-glass:#ffffffa9;--pv95-glass-solid:#fdfafff2;
+  --pv95-purple:#8d43d9;--pv95-shine:#c399f4;
+  --pv95-shadow:0 16px 45px #5f448b16,0 2px 12px #7c59a10b;
+  --pv95-ease:cubic-bezier(.22,1,.36,1);
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode){
+  background:
+   radial-gradient(ellipse 670px 410px at 9% 12%,#e2d4f7a8,transparent 88%),
+   radial-gradient(ellipse 730px 500px at 91% 21%,#d4edffae,transparent 84%),
+   radial-gradient(ellipse 550px 360px at 65% 91%,#f5d9f0a5,transparent 91%),
+   linear-gradient(135deg,#f7f2ff 0%,#f2f7ff 52%,#fbf4fa 100%) fixed!important;
+  background-attachment:fixed!important;color:var(--pv95-ink)!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode)::before{
+  content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:linear-gradient(118deg,#ffffff63 0%,transparent 34%,#ffffff35 71%,transparent 100%);
+ }
+ /* Floating translucency, not a traditional website banner */
+ body:not(.pvReelsMode):not(.pvMessagesMode) header{
+  position:sticky!important;top:0!important;height:74px!important;
+  background:#f9f6ffb8!important;border-bottom:1px solid #ffffffde!important;
+  box-shadow:0 5px 28px #6c508a12!important;
+  -webkit-backdrop-filter:blur(28px) saturate(1.65)!important;
+  backdrop-filter:blur(28px) saturate(1.65)!important;z-index:12!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) header .top{
+  height:100%!important;max-width:1270px!important;
+  display:flex!important;align-items:center!important;gap:18px!important;
+  padding:0 30px!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) header .brand{
+  display:inline-flex!important;align-items:center!important;gap:9px!important;
+  font-size:24px!important;letter-spacing:-.8px!important;color:#2e194b!important;
+  background:none!important;-webkit-text-fill-color:#2e194b!important;
+  font-weight:850!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) header .brand .pvBrandMark{
+  width:38px!important;height:38px!important;
+  border-radius:13px!important;filter:drop-shadow(0 5px 9px #8547b62a);
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) header :is(button,.pvTopAction){
+  border-radius:13px!important;
+  transition:background .22s ease,box-shadow .25s ease,transform .22s var(--pv95-ease)!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) header button:hover{transform:translateY(-1px)}
+ body:not(.pvReelsMode):not(.pvMessagesMode) header :is(#signout,.pvPushToggle){
+  background:#ffffffae!important;border:1px solid #ffffffd9!important;
+  color:#3d2654!important;box-shadow:0 4px 16px #71519613!important;
+ }
+ /* Desktop icon dock: bevel, soft light and a luminous active selection */
+ body:not(.pvReelsMode):not(.pvMessagesMode) .pvIconRail{
+  background:linear-gradient(145deg,#ffffffe8,#f2eaffba)!important;
+  border-right:1px solid #ffffffd9!important;
+  -webkit-backdrop-filter:blur(26px) saturate(1.6)!important;
+  backdrop-filter:blur(26px) saturate(1.6)!important;
+  box-shadow:7px 0 32px #63458110,inset -1px 0 #ffffffc9!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) .pvIconRail .pvRailBrand{
+  background:#ffffffa1;border:1px solid #fff;border-radius:17px!important;
+  box-shadow:0 7px 18px #7352981b,inset 0 1px #fff;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) .pvIconRail .pvRailButton{
+  color:#534368!important;border-radius:16px!important;position:relative;
+  transition:transform .25s var(--pv95-ease),background-color .2s ease,box-shadow .22s ease!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) .pvIconRail .pvRailButton:hover{
+  transform:translateY(-2px)!important;background:#ffffffad!important;
+  box-shadow:0 6px 15px #7a559122!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) .pvIconRail .pvRailButton.active{
+  color:#7532c8!important;
+  background:linear-gradient(140deg,#f7e7ff,#e8d4ffb8)!important;
+  border:1px solid #ffffffd2!important;
+  box-shadow:0 6px 20px #a368df33,inset 0 1px #fff!important;
+ }
+ /* Preserve reliable v85 center layout; increase apparent content weight. */
+ body:not(.pvReelsMode):not(.pvMessagesMode) main{
+  padding-top:25px!important;padding-bottom:60px!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) main>.feed{
+  position:relative;min-width:0!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .story{
+  background:linear-gradient(145deg,#ffffffd6,#fff8ff9d)!important;
+  border:1px solid #fffffff0!important;border-radius:25px!important;
+  box-shadow:var(--pv95-shadow),inset 0 1px #fff!important;
+  -webkit-backdrop-filter:blur(19px) saturate(1.3)!important;
+  backdrop-filter:blur(19px) saturate(1.3)!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) .pvFeedModeTabs{
+  background:#ffffff96!important;
+  border:1px solid #ffffffed!important;border-radius:18px!important;
+  padding:5px 9px!important;margin:12px 0 18px!important;
+  box-shadow:0 6px 20px #76538c0d,inset 0 1px #fff!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) .pvFeedModeTabs button{
+  border-radius:11px!important;border-bottom:0!important;min-height:43px!important;
+  padding:9px 18px!important;color:#736386!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) .pvFeedModeTabs button[aria-pressed=true]{
+  background:linear-gradient(125deg,#f1dfff,#e7d0ff)!important;
+  color:#65249f!important;box-shadow:0 4px 12px #8f59c624!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .post,
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .pvDailyCard{
+  background:#fffefbe9!important;
+  border:1px solid #ffffffeb!important;border-radius:24px!important;
+  box-shadow:var(--pv95-shadow)!important;overflow:hidden!important;
+  -webkit-backdrop-filter:blur(15px) saturate(1.1)!important;
+  backdrop-filter:blur(15px) saturate(1.1)!important;
+  transition:transform .25s var(--pv95-ease),box-shadow .3s ease!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .post:hover,
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .pvDailyCard:hover{
+  transform:translateY(-2px)!important;
+  box-shadow:0 23px 55px #6f4d951d,0 4px 15px #7959a216!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home :is(.posthead,.postbody,.postfoot){
+  background:transparent!important;color:#2b2035!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .posthead{
+  border-bottom:1px solid #f0eaf750!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .postfoot{
+  border-top:1px solid #eae1f170!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .postfoot button:hover{
+  background:#eee1ffb5!important;color:#713ac0!important;border-radius:10px!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .pvFeedMenu{
+  background:#ffffffed!important;color:#261b36!important;
+  border:1px solid #ffffffeb!important;border-radius:18px!important;
+  -webkit-backdrop-filter:blur(22px)!important;backdrop-filter:blur(22px)!important;
+  box-shadow:0 15px 45px #3e2b6a30!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .pvFeedMenu button{
+  color:#3b2c4a!important;
+ }
+ /* Profile glass hero + photo gallery */
+ body:not(.pvReelsMode):not(.pvMessagesMode) #profile .panel,
+ body:not(.pvReelsMode):not(.pvMessagesMode) #profile .pvProfile{
+  background:linear-gradient(150deg,#fffffff0,#fbf6ffe2)!important;
+  border:1px solid #ffffffec!important;border-radius:28px!important;
+  box-shadow:var(--pv95-shadow)!important;
+  padding:23px!important;overflow:visible!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #profile #pvProfileHead{
+  border-radius:21px!important;padding:12px!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #profile .pvAvatar{
+  box-shadow:0 0 0 4px #f5e9ff,0 13px 28px #8654bd24!important;
+  border:2px solid #bc86ed!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #profile #pvEditToggle,
+ body:not(.pvReelsMode):not(.pvMessagesMode) #profile .pvEditButton{
+  background:linear-gradient(125deg,#f1e3ff,#e8d7f9)!important;color:#4b2872!important;
+  border:1px solid #fff!important;border-radius:14px!important;
+  box-shadow:0 6px 18px #a478cd1a!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #profile #pvOfficialHub{
+  background:linear-gradient(145deg,#f5eaff,#f9f4ffdd)!important;
+  border:1px solid #fff!important;border-radius:20px!important;
+  box-shadow:0 9px 25px #75549915!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #profile .pvTabs{
+  border-color:#e7d7f2!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #profile .pvTile{
+  border-radius:9px!important;overflow:hidden!important;
+ }
+ /* Explore glass search and crisp masonry */
+ body:not(.pvReelsMode):not(.pvMessagesMode) #explore .pvExploreSearchWrap{
+  background:#ffffffbc!important;border:1px solid #ffffffeb!important;
+  border-radius:18px!important;box-shadow:0 8px 24px #71518b15,inset 0 1px #fff!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #explore .pvExploreSearch{
+  background:transparent!important;color:#2c1f3b!important;
+  border:0!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #explore .pvExploreTile{
+  border-radius:13px!important;overflow:hidden!important;
+  box-shadow:0 5px 14px #5c4f7317!important;
+  transition:transform .22s var(--pv95-ease)!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #explore .pvExploreTile:hover{
+  transform:scale(1.025)!important;z-index:2;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) :is(.composer,.panel,.pvCreateTop){
+  border-radius:20px;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) :is(button,input,textarea):focus-visible{
+  outline:2px solid #a768ed!important;outline-offset:3px!important;
+ }
+ /* Preserve sidebar drawer functionality, but style it as frosted glass. */
+ body:not(.pvReelsMode):not(.pvMessagesMode) aside.left{
+  background:#fffcfff0!important;border:1px solid #fff!important;
+  border-radius:0 23px 23px 0!important;
+  -webkit-backdrop-filter:blur(25px)!important;backdrop-filter:blur(25px)!important;
+  box-shadow:12px 9px 40px #39245728!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) aside.left .nav{
+  border-radius:13px!important;color:#463254!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) aside.left .nav.active{
+  background:#e8d6ff!important;color:#7132bd!important;
+ }
+ /* Desktop dialogs / create */
+ .pvComposeOverlay .pvUnifiedCreate{
+  background:#fcfaffea!important;
+  border:1px solid #ffffffed!important;border-radius:26px!important;
+  -webkit-backdrop-filter:blur(32px) saturate(1.3)!important;
+  backdrop-filter:blur(32px) saturate(1.3)!important;
+  box-shadow:0 26px 75px #33235138!important;
+ }
+ .pvComposeOverlay .pvIOSCreateTile{
+  box-shadow:0 10px 24px #71489c1d,inset 0 1px #fff!important;
+  border:1px solid #fff!important;
+ }
+}
+@media(min-width:901px) and (prefers-reduced-motion:reduce){
+ body:not(.pvReelsMode):not(.pvMessagesMode) :is(.post,.pvDailyCard,.pvRailButton,.pvExploreTile){
+  transition:none!important;transform:none!important
+ }
+}
