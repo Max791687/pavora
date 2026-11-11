@@ -6,7 +6,7 @@
  if(window.__pvSlideSelect133)return;
  window.__pvSlideSelect133=true;
  const groups=[
-  {host:'.pvIconRail',item:'.pvRailButton[data-rail-view]'},
+  {host:'.pvIconRail',item:'.pvRailButton:not(.pvRailMore)'},
   {host:'#home .pvFeedModeTabs',item:'button'}
  ];
  let gesture=null,synthetic=false;
