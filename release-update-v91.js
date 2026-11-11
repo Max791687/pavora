@@ -21,7 +21,7 @@ if(cssLink){
 /* PAVORA v115: one release notice per installed browser/device and version.
    A dismissal is stored persistently on this device; a future version has a new key.
    A newer deployed version also prompts while the old app is still open. */
-const VERSION=121;
+const VERSION=122;
 const RELEASE_KEY_PREFIX='pavora-update-seen-';
 const LEGACY_BANNER_ID='pvAppUpdateNotice';
 const banner=document.createElement('section');
@@ -53,7 +53,7 @@ style.textContent=`
 @media(max-width:380px){#pvAppUpdateNotice{gap:6px;padding:9px}#pvAppUpdateNotice .pvReleaseIcon{display:none}#pvAppUpdateNotice .pvApplyUpdate{padding:7px 8px}}
 `;
 document.head.appendChild(style);document.body.appendChild(banner);
-let displayedVersion=null,checking=false,availableVersion=null;
+let displayedVersion=null,checking=false,availableVersion=null,refreshing=false;
 const storageKey=v=>RELEASE_KEY_PREFIX+String(v);
 function alreadySeen(version){
  try{return localStorage.getItem(storageKey(version))==='1'}
@@ -74,24 +74,52 @@ function show(version,notes){
 }
 function dismiss(){
  if(displayedVersion)remember(displayedVersion);
- banner.hidden=true;
- displayedVersion=null;
+ banner.hidden=true;displayedVersion=null;
 }
-const haveDraft=()=>!!document.querySelector('.pvComposeOpen, #profileEditor:not([hidden])')||
- [...document.querySelectorAll('textarea')].some(el=>document.activeElement===el&&el.value.trim().length>0);
+// Protect active typing, uploads and calls; do not silently discard user's work.
+// Typing with an empty message is safe, but a non-empty composer must be preserved.
+function haveDraft(){
+ if(document.querySelector('.pvComposeOpen,#profileEditor:not([hidden]),.pvCallActive,.pvCallOverlay:not([hidden]),.pvRecording,.pvUploading,[data-uploading="true"]'))return true;
+ if([...document.querySelectorAll('input[type="file"]')].some(el=>el.files?.length&&!el.disabled))return true;
+ const active=document.activeElement;
+ if(active?.isContentEditable&&active.textContent?.trim())return true;
+ if(active?.matches?.('input:not([type="checkbox"]):not([type="radio"]),textarea')&&active.value?.trim())return true;
+ return false;
+}
+function autoRefresh(version){
+ if(refreshing||haveDraft())return false;
+ // A temporary guard avoids reload loops when an outdated service worker
+ // serves the old page even after a refresh.
+ const guardKey='pavora-update-auto-attempt-'+version;
+ try{
+  const last=Number(sessionStorage.getItem(guardKey)||0);
+  if(Date.now()-last<90000)return false;
+  sessionStorage.setItem(guardKey,String(Date.now()));
+ }catch(e){}
+ refreshing=true;
+ if('serviceWorker' in navigator)navigator.serviceWorker.getRegistration().then(reg=>reg?.update()).catch(()=>{});
+ const url=new URL(location.href);
+ url.searchParams.set('pvupdate',String(version));
+ location.replace(url.href);
+ return true;
+}
 banner.querySelector('.pvDismissUpdate').onclick=dismiss;
 banner.querySelector('.pvApplyUpdate').onclick=()=>{
  const v=displayedVersion;
  if(!v)return;
  if(v<=VERSION){dismiss();return}
- if(haveDraft()&&!confirm('Refresh PAVORA? Unsaved text or an upload may be interrupted.'))return;
- remember(v);
+ if(haveDraft()){
+  banner.querySelector('.pvReleaseDescription').textContent='Finish typing, uploading or calling before updating automatically.';
+  return;
+ }
+ // Manual Update remains available if a previous automatic attempt was blocked.
+ refreshing=true;
  if('serviceWorker' in navigator)navigator.serviceWorker.getRegistration().then(reg=>reg?.update()).catch(()=>{});
  const url=new URL(location.href);url.searchParams.set('pvupdate',String(v));
  location.replace(url.href);
 };
 async function check(){
- if(checking||document.hidden||!navigator.onLine)return;
+ if(checking||refreshing||document.hidden||!navigator.onLine)return;
  checking=true;
  try{
   const response=await fetch('./app-version.json?check='+Date.now(),{cache:'no-store'});
@@ -99,16 +127,22 @@ async function check(){
   const data=await response.json();
   const deployed=Number(data.version);
   if(!Number.isSafeInteger(deployed)||deployed<1)return;
-  // Do not announce an uninstalled newer release over an already displayed one.
-  if(!banner.hidden)return;
-  if(deployed>VERSION)show(deployed,'A new PAVORA version is ready. Refresh to get the latest features.');
-  else if(deployed===VERSION)show(deployed,String(data.notes||'Latest improvements and fixes are available.'));
- }catch(e){/* Retry on next focus/online. No fake update notices. */}
+  if(deployed>VERSION){
+   // Keep the prior behavior of a single notice per version if we must wait.
+   if(autoRefresh(deployed))return;
+   if(!alreadySeen(deployed))show(deployed,'Update ready. PAVORA will refresh automatically when your current work is safe.');
+  }else if(deployed===VERSION){
+   if(!banner.hidden&&displayedVersion===VERSION)return;
+   show(deployed,String(data.notes||'Latest improvements and fixes are available.'));
+  }
+ }catch(e){/* Offline or staged deployment: check again on focus/next interval. */}
  finally{checking=false}
 }
 window.addEventListener('focus',check);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});
 window.addEventListener('online',check);
-setInterval(check,10*60*1000);
+// A newly deployed GitHub Pages version is detected while the PWA remains open.
+// A push/SW update cannot make GitHub Pages live before deployment finishes.
+setInterval(check,30000);
 setTimeout(check,1100);
 })();
