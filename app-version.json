@@ -1,6 +1,6 @@
 {
-  "version": 126,
+  "version": 127,
   "release": "2026-11-11",
-  "name": "PAVORA v126",
-  "notes": "Restored smooth brand opening and fixed delayed chat switching and inbox jumping."
+  "name": "PAVORA v127",
+  "notes": "Restored the one-time PAVORA startup logo animation and removed redundant chat scrolling transitions."
 }
