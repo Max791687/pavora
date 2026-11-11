@@ -1,0 +1,134 @@
+/* PAVORA v89 — immersive iPhone Reels shell.
+   Reels are edge-to-edge with floating iOS-inspired navigation and native controls.
+   Real feed, messaging and desktop styles stay unchanged. */
+@media(max-width:700px){
+ body.pvReelsMode{
+  background:#000!important;color:#fff!important;
+  overflow:hidden!important;overscroll-behavior:none!important;
+ }
+ body.pvReelsMode>header{display:none!important}
+ body.pvReelsMode main{
+  position:fixed!important;inset:0!important;top:0!important;bottom:0!important;
+  left:0!important;right:0!important;
+  width:100vw!important;height:100dvh!important;min-height:0!important;max-height:none!important;
+  padding:0!important;margin:0!important;background:#000!important;
+  overflow:hidden!important;z-index:4!important;
+ }
+ body.pvReelsMode main>.feed,
+ body.pvReelsMode #reels,body.pvReelsMode #reelList,
+ body.pvReelsMode .pvReelStage,body.pvReelsMode .pvReelStack,
+ body.pvReelsMode .pvReelCard,body.pvReelsMode .pvReelScreen{
+  width:100%!important;height:100%!important;min-height:0!important;max-height:100%!important;
+  margin:0!important;padding:0!important;overflow:hidden!important;
+  border:0!important;border-radius:0!important;
+ }
+ body.pvReelsMode .pvReelCard{inset:0!important;box-sizing:border-box!important}
+ body.pvReelsMode .pvReelScreen{
+  position:relative!important;background:#000!important;
+ }
+ body.pvReelsMode .pvReelScreen video{
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+  max-width:none!important;max-height:none!important;object-fit:cover!important;
+  object-position:50% 50%!important;background:#000!important;
+ }
+ /* Dark scrim makes status bar legible without creating a separate header band. */
+ body.pvReelsMode .pvReelScreen::before{
+  content:'';position:absolute;inset:0 0 auto;z-index:4!important;pointer-events:none;
+  height:max(135px,calc(env(safe-area-inset-top,0px) + 94px));
+  background:linear-gradient(#0005,transparent);
+ }
+ /* Use the existing real For You / Following controls directly on top of the video. */
+ body.pvReelsMode #reels .pvSmartReelTabs{
+  position:fixed!important;top:calc(env(safe-area-inset-top,0px) + 13px)!important;
+  left:50%!important;transform:translateX(-50%)!important;right:auto!important;
+  z-index:31!important;gap:0!important;padding:3px!important;border-radius:999px!important;
+  background:#1e1d22b5!important;border:1px solid #ffffff40!important;
+  box-shadow:0 8px 22px #0004!important;
+  -webkit-backdrop-filter:blur(18px)!important;backdrop-filter:blur(18px)!important;
+ }
+ body.pvReelsMode #reels .pvSmartReelTab{
+  padding:9px 16px!important;font-size:13px!important;border-radius:999px!important;
+  min-height:39px!important;color:#e2dfe7!important;
+ }
+ body.pvReelsMode #reels .pvSmartReelTab.active{background:#ffffff34!important;color:#fff!important}
+ body.pvReelsMode #reels .pvSmartNotInterested{
+  position:fixed!important;top:calc(env(safe-area-inset-top,0px) + 76px)!important;
+  right:10px!important;font-size:10px!important;padding:6px 10px!important;
+  background:#1413189c!important;z-index:32!important;
+ }
+ body.pvReelsMode .pvReelMeta{
+  position:absolute!important;bottom:calc(env(safe-area-inset-bottom,0px) + 113px)!important;
+  left:0!important;right:0!important;z-index:12!important;
+  padding:55px 70px 12px 14px!important;
+  background:linear-gradient(transparent,#0008)!important;
+  pointer-events:none!important;
+ }
+ body.pvReelsMode .pvReelAuthor{gap:9px!important;align-items:center!important}
+ body.pvReelsMode .pvReelCreator{font-size:14px!important;font-weight:850!important}
+ body.pvReelsMode .pvReelFollow{
+  border-radius:999px!important;padding:6px 11px!important;
+  border:1px solid #ffffffa0!important;background:#ffffff20!important;
+  font-size:11px!important;color:#fff!important;
+ }
+ body.pvReelsMode .pvReelCaption{font-size:12px!important;max-height:42px!important}
+ body.pvReelsMode .pvReelCard .pvReelActions{
+  position:absolute!important;bottom:calc(env(safe-area-inset-bottom,0px) + 155px)!important;
+  right:7px!important;z-index:17!important;width:55px!important;min-width:55px!important;
+  gap:3px!important;padding:0!important;
+ }
+ body.pvReelsMode .pvSuiteReelActions{gap:9px!important}
+ body.pvReelsMode .pvSuiteIconAction{width:52px!important;min-height:51px!important;padding:4px 0!important}
+ body.pvReelsMode .pvSuiteIconAction svg{width:29px!important;height:29px!important}
+ body.pvReelsMode .pvReelSound{
+  bottom:calc(env(safe-area-inset-bottom,0px) + 178px)!important;right:66px!important;
+  z-index:18!important;
+ }
+ body.pvReelsMode .pvReelScreen .pvReelSeek{
+  position:absolute!important;z-index:21!important;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 92px)!important;
+  left:13px!important;right:13px!important;width:auto!important;
+  padding:0!important;min-height:18px!important;background:none!important;
+ }
+ body.pvReelsMode .pvReelSeekRange{height:18px!important;min-height:18px!important}
+ body.pvReelsMode .pvReelSeekTime{display:none!important}
+ body.pvReelsMode .pvReelSeek:focus-within .pvReelSeekTime{display:flex!important}
+ /* The nav floats over the Reel; there is no separate white footer or black strip. */
+ body.pvReelsMode .pvIconRail{
+  position:fixed!important;top:auto!important;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 13px)!important;
+  left:5%!important;right:5%!important;
+  width:90%!important;height:60px!important;min-height:60px!important;
+  display:flex!important;flex-direction:row!important;align-items:center!important;
+  justify-content:space-around!important;padding:4px 9px!important;
+  z-index:40!important;overflow:visible!important;
+  border:1px solid #ffffff57!important;border-radius:36px!important;
+  background:#17161aba!important;box-shadow:0 8px 28px #0007!important;
+  -webkit-backdrop-filter:blur(22px) saturate(1.4)!important;
+  backdrop-filter:blur(22px) saturate(1.4)!important;
+ }
+ body.pvReelsMode .pvIconRail .pvRailBrand,
+ body.pvReelsMode .pvIconRail>.pvRailButton:not([data-rail-view]){display:none!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view]{
+  display:grid!important;place-items:center!important;flex:1 1 0!important;
+  min-width:0!important;height:48px!important;min-height:48px!important;
+  margin:0!important;padding:0!important;
+  border-radius:25px!important;color:#f7f6ff!important;background:transparent!important;
+  box-shadow:none!important;
+ }
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view="home"]{order:1!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view="reels"]{order:2!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view="messages"]{order:3!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view="explore"]{order:4!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view="profile"]{order:5!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view].active{
+  color:#fff!important;background:#ffffff34!important;
+ }
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view].active::after{display:none!important}
+ body.pvReelsMode .pvIconRail svg{stroke:currentColor!important;width:24px!important;height:24px!important}
+ body.pvReelsMode .pvReelLoadState{z-index:25!important}
+}
+@media(max-width:700px) and (max-height:680px){
+ body.pvReelsMode .pvReelCard .pvReelActions{bottom:calc(env(safe-area-inset-bottom,0px) + 130px)!important}
+ body.pvReelsMode .pvReelMeta{bottom:calc(env(safe-area-inset-bottom,0px) + 98px)!important}
+ body.pvReelsMode .pvReelScreen .pvReelSeek{bottom:calc(env(safe-area-inset-bottom,0px) + 83px)!important}
+}
