@@ -1,6 +1,6 @@
 {
-  "version": 139,
+  "version": 140,
   "release": "2026-11-11",
-  "name": "PAVORA v139",
-  "notes": "Followers and Following Liquid Glass sheet: spring open/close animation, animated profile rows and swipe-down close."
+  "name": "PAVORA v140",
+  "notes": "Followers and Following redesigned with light Liquid Glass, Apple-style spring opening, and staggered animations for asynchronously loaded users."
 }
