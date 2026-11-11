@@ -1074,6 +1074,24 @@ body.pvIntroFinished #pvLaunchScreen,body.pvLaunchReady #pvLaunchScreen,body.pvE
 @media(max-width:520px){#pvProfileToolsRow{gap:7px}#pvProfileToolsRow > :is(#pvHintLauncher,#pvOwnerLauncher,.pvHubLauncher){height:39px;min-height:39px;max-height:39px;font-size:12px!important;padding:0 10px!important}}
 </style>
 <style>
+/* v111 iPhone DM input: remove accidental rectangular focus ring around message text only.
+   Preserve a visible accessible focus state on the rounded composer instead. */
+@media(max-width:700px){
+ body.pvMessagesMode #pvInboxView .pvMessageForm input,
+ body.pvMessagesMode #pvInboxView .pvMessageForm input:focus,
+ body.pvMessagesMode #pvInboxView .pvMessageForm input:focus-visible{
+  outline:none!important;outline-offset:0!important;
+  border:0!important;box-shadow:none!important;
+  -webkit-appearance:none!important;appearance:none!important;
+  background:transparent!important;border-radius:0!important;
+  -webkit-tap-highlight-color:transparent!important;
+ }
+ body.pvMessagesMode #pvInboxView .pvMessageForm:focus-within{
+  outline:2px solid #a970e1!important;outline-offset:0!important;
+  border-color:#a970e1!important;
+  border-radius:30px!important;
+ }
+}
 /* PAVORA v70: consistent keyboard focus and system motion preferences */
 :where(button,a,input,textarea,select,[tabindex]):focus-visible{outline:3px solid #d1a1ff!important;outline-offset:3px!important}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
