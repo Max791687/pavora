@@ -22,7 +22,25 @@ const css=E('style');css.textContent=[
 '#pvStudioLauncher{display:inline-flex;align-items:center;justify-content:center;border:1px solid #8a69b4;background:#4c3271;color:#fff;border-radius:11px;padding:10px 13px;font-size:12px;font-weight:800;cursor:pointer;margin:8px 0}',
 '.pvsDismiss{border:0;background:#473754;border-radius:9px;color:white;padding:8px 12px;cursor:pointer}',
 '@media(prefers-reduced-motion:reduce){.pvStudioOpen *,#pvStudio *,#pvStudio *:before,#pvStudio *:after{animation-duration:0.01ms!important;transition-duration:0.01ms!important}}',
-'@media(max-width:600px){#pvStudio{padding:0}.pvsDialog{height:100dvh;width:100%;border-radius:0}.pvsBody{padding:11px}.pvsHead{padding:13px}}'
+'@media(max-width:600px){#pvStudio{padding:0}.pvsDialog{height:100dvh;width:100%;border-radius:0}.pvsBody{padding:11px}.pvsHead{padding:13px}}',
+'/* Creator Studio v104: scoped Liquid Glass readability and touch targets */',
+'#pvStudio .pvsDialog{background:linear-gradient(145deg,#fffafd,#f3ebff)!important;border:1px solid #dcc8f0!important;box-shadow:0 24px 75px #13082655!important;color:#2b1c3c!important}',
+'#pvStudio .pvsHead{background:linear-gradient(110deg,#f3e6ff,#faf5ff)!important;border-bottom:1px solid #e5d3f2!important}',
+'#pvStudio .pvsHead h2{color:#2e1c43!important;-webkit-text-fill-color:#2e1c43!important}',
+'#pvStudio .pvsDismiss{min-height:42px!important;background:#633296!important;color:#fff!important;-webkit-text-fill-color:#fff!important;font-weight:800!important}',
+'#pvStudio .pvsTabs{background:#f9f3ff!important;border-bottom:1px solid #e5d4f0!important;scrollbar-width:thin}',
+'#pvStudio .pvsTabs button{min-height:42px!important;flex:0 0 auto!important;background:#ede1fa!important;color:#4b2f64!important;-webkit-text-fill-color:#4b2f64!important;border:1px solid #dac5eb!important;font-size:13px!important}',
+'#pvStudio .pvsTabs button[aria-selected="true"]{background:#643399!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border-color:#643399!important;box-shadow:0 4px 12px #6a359729!important}',
+'#pvStudio .pvsBody{background:transparent!important;color:#362448!important}',
+'#pvStudio .pvsRow{background:#fffaff!important;border:1px solid #e7d7ef!important;border-radius:14px!important;color:#2c1e3d!important;box-shadow:0 4px 12px #5b30800c!important}',
+'#pvStudio .pvsRow strong{color:#2a1b3a!important;-webkit-text-fill-color:#2a1b3a!important}',
+'#pvStudio .pvsRow small,#pvStudio .pvsNotice{color:#62516e!important;-webkit-text-fill-color:#62516e!important;line-height:1.55!important}',
+'#pvStudio .pvsBtn{min-height:42px!important;background:#65369b!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border-color:#65369b!important;font-weight:750!important}',
+'#pvStudio .pvsBtn:disabled{opacity:.65!important}',
+'#pvStudio .pvsInput{background:#fff!important;color:#251636!important;-webkit-text-fill-color:#251636!important;border:1px solid #cdb3e1!important;min-height:43px!important}',
+'#pvStudio .pvsInput::placeholder{color:#82708d!important}',
+'#pvStudio :is(button,input,textarea,select):focus-visible{outline:3px solid #9661d7!important;outline-offset:2px!important}',
+'@media(max-width:600px){#pvStudio .pvsDialog{height:100dvh!important;border-radius:0!important}#pvStudio .pvsTabs{padding:9px!important}#pvStudio .pvsTabs button{font-size:12px!important}#pvStudio .pvsBody{padding:12px!important}}'
 ].join('');document.head.append(css);
 const overlay=E('section');overlay.id='pvStudio';overlay.hidden=true;overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','PAVORA Creator Studio');
 const dialog=E('div','pvsDialog'),head=E('div','pvsHead'),heading=E('h2','','✦ Creator Studio'),dismiss=E('button','pvsDismiss','Close ×'),tabs=E('nav','pvsTabs'),body=E('div','pvsBody');
