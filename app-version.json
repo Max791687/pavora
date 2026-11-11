@@ -1,6 +1,6 @@
 {
-  "version": 127,
+  "version": 128,
   "release": "2026-11-11",
-  "name": "PAVORA v127",
-  "notes": "Restored the one-time PAVORA startup logo animation and removed redundant chat scrolling transitions."
+  "name": "PAVORA v128",
+  "notes": "Premium Liquid Glass Home page with frosted header, story strip, feed tabs, post cards and bottom navigation."
 }
