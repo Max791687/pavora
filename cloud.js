@@ -2578,23 +2578,6 @@ function pvDmLoadingChat(){
  return shell;
 }
 function pvEmptyChat(){const empty=node('div','pvEmptyChat');empty.innerHTML='<div class="pvEmptyIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m21 3-8.5 18-3.5-7.5L2 10z"/><path d="M21 3 9 13.5"/></svg></div><h2>Your messages</h2><p>Send private photos and messages to a friend.</p>';const btn=node('button','pvStartMessage','Send message');btn.onclick=()=>pvNavigate('explore');empty.append(btn);return empty}
-function pvShowPreparedChat(id){
- if(!id||selectedPeer!==id)return;
- const area=document.getElementById('pvChatArea'),list=area?.querySelector('.pvMessages');
- if(!list)return;
- // Remove transitional placeholders before making the prepared chat visible.
- area.querySelector('.pvDmLoadingShell')?.remove();
- // The chat is already built; reveal it in one frame after reserving the final pane size.
- requestAnimationFrame(()=>{
-  if(selectedPeer!==id||!area.isConnected)return;
-  inboxView.classList.add('pvChatSelected');
-  requestAnimationFrame(()=>{
-   if(selectedPeer!==id||!list.isConnected)return;
-   list.scrollTop=list.scrollHeight;
-   requestAnimationFrame(()=>{if(selectedPeer===id&&list.isConnected)list.scrollTop=list.scrollHeight});
-  });
- });
-}
 async function loadInbox(){if(!user)return;
 const layout=node('div','pvInboxLayout'),side=node('div','pvInboxSide'),right=node('div','pvChatArea');right.id='pvChatArea';right.append(selectedPeer?pvDmLoadingChat():pvEmptyChat());layout.append(side,right);inboxView.replaceChildren(layout);
 // Keep inbox visible until real chat content is ready; avoid switching to an empty/skeleton pane.
@@ -2616,7 +2599,7 @@ if(!pvPrefsReady){const note=node('p','pvEmptyThreads','Inbox folders need setup
 const allIds=[...new Set(visible.map(m=>m.sender_id===user.id?m.recipient_id:m.sender_id))];if(selectedPeer&&!allIds.includes(selectedPeer))allIds.unshift(selectedPeer);
 const ids=allIds.filter(id=>pvInboxTab==='Requests'?requestIds.has(id):!requestIds.has(id)&&pvConversationSetting(id).folder===(pvInboxTab==='General'?'general':'primary'));
 if(pvInboxTab==='Requests'&&ids.length)tabs.querySelectorAll('button')[2].textContent='Requests ('+ids.length+')';
-if(!ids.length){threads.append(node('p','pvEmptyThreads',pvInboxTab==='Requests'?'No message requests yet.':pvInboxTab==='General'?'No General chats yet. Open the ⋯ menu in Primary and select Move to General.':'No conversations yet. Discover people and tap Message.'));if(selectedPeer){const peer=selectedPeer;await renderChat(peer);if(selectedPeer===peer)pvShowPreparedChat(peer)}return}
+if(!ids.length){threads.append(node('p','pvEmptyThreads',pvInboxTab==='Requests'?'No message requests yet.':pvInboxTab==='General'?'No General chats yet. Open the ⋯ menu in Primary and select Move to General.':'No conversations yet. Discover people and tap Message.'));if(selectedPeer)await renderChat(selectedPeer);return}
 const {data:people}=await db.from('profiles').select('id,username,display_name,avatar_url').in('id',ids);
 const names=new Map((people||[]).map(p=>[p.id,p]));
 const orderedIds=ids.slice().sort((a,b)=>Number(pvConversationSetting(b).pinned)-Number(pvConversationSetting(a).pinned));
@@ -2715,7 +2698,7 @@ const controls=node('div','pvChatMenuWrap');controls.append(menuButton,menu);
 entry.append(b,controls);threads.append(entry);rows.push({entry,p})}
 const filter=()=>{const q=pvInboxSearch.toLowerCase();for(const {entry,p} of rows)entry.classList.toggle('hide',!(p.display_name||'').toLowerCase().includes(q)&&!(p.username||'').toLowerCase().includes(q))};
 search.oninput=()=>{pvInboxSearch=search.value;filter()};filter();
-if(selectedPeer){const peer=selectedPeer;await renderChat(peer);if(selectedPeer===peer)pvShowPreparedChat(peer)}await pvCheckUnread();
+if(selectedPeer)await renderChat(selectedPeer);await pvCheckUnread();
 }
 async function openChat(id,navigate=true){if(!user||id===user.id)return;if(pvHiddenChats.has(id)){const {error}=await db.from('hidden_conversations').delete().eq('owner_id',user.id).eq('peer_id',id);if(!error)pvHiddenChats.delete(id)}if(selectedPeer&&selectedPeer!==id)pvClearTyping(selectedPeer);pvDmTypingLastSeen=0;selectedPeer=id;window.dispatchEvent(new Event('pv-chat-peer-changed'));if(navigate){
  // Start showing the conversation loading shell before the request-status lookup.
@@ -2729,7 +2712,7 @@ async function openChat(id,navigate=true){if(!user||id===user.id)return;if(pvHid
  const area=document.getElementById('pvChatArea');
  if(area&&!area.querySelector('.pvMessageForm'))area.replaceChildren(pvDmLoadingChat());
  await renderChat(id);
- if(selectedPeer===id)pvShowPreparedChat(id);
+ 
 }pvRememberInboxPosition();if(!chatPoll)chatPoll=setInterval(()=>{if(!inboxView.classList.contains('hide')&&selectedPeer&&!pvChatPollBusy){pvChatPollBusy=true;renderChat(selectedPeer,true).catch(e=>console.warn('Chat poll:',e)).finally(()=>{pvChatPollBusy=false})}},pvDmRealtimeStatus==='live'?12000:4000)}
 async function renderChat(id,silent=false){const area=document.getElementById('pvChatArea');if(!area||!user||selectedPeer!==id)return;
 const pollingExisting=!!(silent&&area.querySelector('.pvMessageForm'));
@@ -2964,15 +2947,13 @@ const typingLabel=node('div','pvDmTypingLabel','● typing…');typingLabel.hidd
 area.append(list,typingLabel,composerWrap);emojiButton.disabled=input.disabled;pvDmUpdateReceipt(list,visibleMessages);pvDmDecorateRows(list);pvDmDecorateContent(list,visibleMessages,id);pvScheduleDmReactionRefresh(90);pvCheckTyping();
 list.scrollTop=list.scrollHeight;
 if(pvOpeningSkeleton){
+ // Read the final scroll extent after the chat is laid out. Reveal only once.
+ // Avoid repeated scroll writes, which visibly bounce the iOS viewport.
  const openingPeer=id;
  requestAnimationFrame(()=>{
-  if(selectedPeer!==openingPeer||!area.contains(list))return;
+  if(selectedPeer!==openingPeer||!list.isConnected)return;
   list.scrollTop=list.scrollHeight;
-  requestAnimationFrame(()=>{
-   if(selectedPeer!==openingPeer||!area.contains(list))return;
-   list.scrollTop=list.scrollHeight;
-   pvOpeningSkeleton.remove();
-  });
+  pvOpeningSkeleton.remove();
  });
 }
 }
