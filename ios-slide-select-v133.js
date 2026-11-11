@@ -38,21 +38,45 @@
   const layer=document.createElement('div');
   layer.className='pvSlideGlass133';
   layer.setAttribute('aria-hidden','true');
+  layer.innerHTML='<span class="pvSlideGlassShine134"></span>';
   g.host.appendChild(layer);
   return layer;
  }
- function paint(g,item){
+ function paint(g,item,x){
   if(!item)return;
   g.hover=item;
   const host=g.host.getBoundingClientRect(),rect=item.getBoundingClientRect();
-  g.layer.style.width=rect.width+'px';
-  g.layer.style.height=rect.height+'px';
-  g.layer.style.left=(rect.left-host.left)+'px';
-  g.layer.style.top=(rect.top-host.top)+'px';
+  const width=rect.width,height=rect.height;
+  // Finger-following glass, not the stepped target button positions.
+  const center=x==null?rect.left+width/2:Math.max(host.left+width/2+2,
+   Math.min(host.right-width/2-2,x));
+  g.toX=center-host.left-width/2;
+  g.toY=rect.top-host.top;
+  g.layer.style.width=width+'px';
+  g.layer.style.height=height+'px';
+  if(g.currentX==null){
+   g.currentX=g.toX;g.currentY=g.toY;
+   g.layer.style.transform='translate3d('+g.currentX+'px,'+g.currentY+'px,0) scale(1.03)';
+  }
   g.layer.classList.add('pvSlideGlassVisible133');
+ }
+ function frame(g){
+  if(gesture!==g)return;
+  if(g.currentX!=null){
+   const dx=g.toX-g.currentX,dy=g.toY-g.currentY;
+   // Fast but damped spring-like tracking; no jumps between item centers.
+   const strength=reduced()?1:.44;
+   g.currentX+=dx*strength;g.currentY+=dy*strength;
+   if(Math.abs(dx)<.15)g.currentX=g.toX;
+   if(Math.abs(dy)<.15)g.currentY=g.toY;
+   g.layer.style.transform='translate3d('+g.currentX.toFixed(2)+'px,'+
+     g.currentY.toFixed(2)+'px,0) scale(1.03)';
+  }
+  g.raf=requestAnimationFrame(()=>frame(g));
  }
  function cleanup(){
   const g=gesture;gesture=null;if(!g)return;
+  if(g.raf)cancelAnimationFrame(g.raf);
   g.host.classList.remove('pvSlideSelecting133');
   g.layer.remove();
  }
@@ -63,11 +87,12 @@
   const t=e.touches[0];
   cleanup();
   const g={...group,id:t.identifier,startX:t.clientX,startY:t.clientY,
-   hover:group.item,moved:false,cancelled:false,layer:null};
+   hover:group.item,moved:false,cancelled:false,layer:null,raf:null,currentX:null,currentY:null};
   g.layer=indicator(g);
   g.host.classList.add('pvSlideSelecting133');
-  paint(g,g.item);
+  paint(g,g.item,t.clientX);
   gesture=g;
+  g.raf=requestAnimationFrame(()=>frame(g));
  },{capture:true,passive:true});
  document.addEventListener('touchmove',e=>{
   const g=gesture;if(!g)return;
@@ -79,7 +104,7 @@
   if(Math.abs(dx)>10)g.moved=true;
   if(g.moved){
    const button=targetAt(g,t.clientX,t.clientY);
-   if(button)paint(g,button);
+   if(button)paint(g,button,t.clientX);
    // Prevent mobile WebKit from treating this intentional horizontal button
    // selection gesture as a back swipe or scrolling the tab row.
    if(e.cancelable&&Math.abs(dx)>14)e.preventDefault();
@@ -107,7 +132,7 @@
    setTimeout(()=>document.removeEventListener('click',once,true),430);
   }
   if(choose){
-   paint(g,selected);
+   paint(g,selected,t.clientX);
    const dest=selected;
    // Trigger existing app click handlers, never recreate navigation logic.
    requestAnimationFrame(()=>{
