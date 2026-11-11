@@ -2414,7 +2414,44 @@ window.addEventListener('resize',pvScheduleMobileDmViewport,{passive:true});
 document.addEventListener('focusin',e=>{if(e.target.matches?.('#pvInboxView .pvMessageForm input'))pvScheduleMobileDmViewport()});
 document.addEventListener('focusout',e=>{if(e.target.matches?.('#pvInboxView .pvMessageForm input'))pvScheduleMobileDmViewport()});
 pvSyncMobileDmViewport();
-function pvNavigate(view){if(view!=='reels')pvPauseAllReels();pvVirtualView.classList.add('hide');pvActiveVirtual=null;pvCloseVirtualChat();pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');document.body.classList.toggle('pvExploreMode',view==='explore');document.body.classList.toggle('pvReelsMode',view==='reels');try{window.PVKit?.onNavigate?.(view)}catch(e){console.warn('Feature navigation:',e)}if(view==='messages'){loadInbox();requestAnimationFrame(pvSyncDesktopChatHeight)}else{pvDmTypingLastSeen=0;pvClearTyping(selectedPeer)}if(view==='reels'){requestAnimationFrame(pvFitReelsViewport);loadReels()}if(view==='explore')pvLoadExplore();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
+// In-app navigation trail for iPhone's left-edge Back gesture. Do not
+// manipulate browser history or interfere with native media swipes.
+let pvEdgeNavCurrent='home',pvEdgeNavTrail=[],pvEdgeGoingBack=false;
+function pvNavigate(view){
+ if(view!==pvEdgeNavCurrent){
+  if(!pvEdgeGoingBack)pvEdgeNavTrail.push(pvEdgeNavCurrent);
+  if(pvEdgeNavTrail.length>20)pvEdgeNavTrail.shift();
+  pvEdgeNavCurrent=view;
+ }
+if(view!=='reels')pvPauseAllReels();pvVirtualView.classList.add('hide');pvActiveVirtual=null;pvCloseVirtualChat();pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');document.body.classList.toggle('pvExploreMode',view==='explore');document.body.classList.toggle('pvReelsMode',view==='reels');try{window.PVKit?.onNavigate?.(view)}catch(e){console.warn('Feature navigation:',e)}if(view==='messages'){loadInbox();requestAnimationFrame(pvSyncDesktopChatHeight)}else{pvDmTypingLastSeen=0;pvClearTyping(selectedPeer)}if(view==='reels'){requestAnimationFrame(pvFitReelsViewport);loadReels()}if(view==='explore')pvLoadExplore();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
+window.PAVORA_EDGE_BACK=()=>{
+ if(!user)return false;
+ const focused=document.activeElement;
+ if(focused?.matches?.('input,textarea,[contenteditable="true"]')&&
+  document.body.classList.contains('pvDmKeyboardOpen')){
+  focused.blur();return true;
+ }
+ if(!pvSettingsScreen.hidden){pvCloseSettings();return true}
+ if(!pvVirtualChat.hidden){pvCloseVirtualChat();return true}
+ if(!pvVirtualView.classList.contains('hide')){pvVirtualView.classList.add('hide');return true}
+ if(pvEdgeNavCurrent==='messages'&&selectedPeer){
+  pvInboxMobileBack();return true;
+ }
+ if(pvEdgeNavTrail.length){
+  const previous=pvEdgeNavTrail.pop();
+  if(previous&&previous!==pvEdgeNavCurrent){
+   pvEdgeGoingBack=true;
+   try{pvNavigate(previous)}finally{pvEdgeGoingBack=false}
+   return true;
+  }
+ }
+ if(pvEdgeNavCurrent!=='home'){
+  pvEdgeGoingBack=true;
+  try{pvNavigate('home')}finally{pvEdgeGoingBack=false}
+  return true;
+ }
+ return false;
+};
 // Legacy demo's button.onclick only hides/shows HTML. Connect each section
 // to the real cloud navigation so desktop rail opens Reels Mode + autoplay.
 document.querySelectorAll('aside.left [data-view="home"],aside.left [data-view="reels"],aside.left [data-view="profile"]').forEach(button=>{
@@ -2842,7 +2879,7 @@ let pvLastMessageDay='';
 for(const m of visibleMessages){
 const stamp=new Date(m.created_at),dayKey=stamp.toDateString();if(dayKey!==pvLastMessageDay){pvLastMessageDay=dayKey;const marker=node('div','pvChatDayDivider',stamp.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}));marker.dataset.dayKey=dayKey;list.append(marker)}
 const mine=m.sender_id===user.id,row=node('div','pvMessageRow'+(mine?' mine':'')),bubble=node('div','pvBubble'+(mine?' mine':''),m.body);
-row.dataset.messageId=String(m.id);bubble.title=new Date(m.created_at).toLocaleString();row.append(bubble);if(mine){const del=node('button','pvDeleteMessage','Delete');del.type='button';del.title='Delete this message for everyone';del.setAttribute('aria-label','Delete message for everyone');del.onclick=async()=>{if(!confirm('Delete this message for everyone? This cannot be undone.'))return;del.disabled=true;const {error}=await db.from('direct_messages').delete().eq('id',m.id).eq('sender_id',user.id);if(error){alert('Could not delete message: '+error.message);del.disabled=false;return}await renderChat(id);await pvCheckUnread()};row.append(del)}list.append(row)}if(!visibleMessages.length)list.append(node('p','pvChatEmptyMessage','Say hello! 👋'));const form=node('form','pvMessageForm'),input=node('input');input.placeholder='Message…';input.maxLength=2000;input.required=true;input.setAttribute('aria-label','Message');
+row.dataset.messageId=String(m.id);bubble.title=new Date(m.created_at).toLocaleString();row.append(bubble);if(mine){const del=node('button','pvDeleteMessage','Delete');del.type='button';del.title='Delete this message for everyone';del.setAttribute('aria-label','Delete message for everyone');del.onclick=async()=>{if(!confirm('Delete this message for everyone? This cannot be undone.'))return;del.disabled=true;const {error}=await db.from('direct_messages').delete().eq('id',m.id).eq('sender_id',user.id);if(error){alert('Could not delete message: '+error.message);del.disabled=false;return}await renderChat(id);await pvCheckUnread()};row.append(del)}list.append(row)}if(!visibleMessages.length)list.append(node('p','pvChatEmptyMessage','Say hello! 👋'));const form=node('form','pvMessageForm'),input=node('input');input.placeholder='Message…';input.maxLength=2000;input.setAttribute('enterkeyhint','send');input.required=true;input.setAttribute('aria-label','Message');
 const emojiButton=node('button','pvChatEmojiButton');emojiButton.type='button';emojiButton.title='Add emoji';emojiButton.setAttribute('aria-label','Add emoji');emojiButton.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 14c2 3 6 3 8 0"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/></svg>';
 const emojiTray=node('div','pvChatEmojiTray pvDmPicker');emojiTray.hidden=true;
 emojiTray.id='pvDmPicker-'+id.replace(/[^a-zA-Z0-9_-]/g,'');
