@@ -1,6 +1,6 @@
 {
-  "version": 121,
+  "version": 122,
   "release": "2026-11-11",
-  "name": "PAVORA v121",
-  "notes": "Removed extra divider lines inside Liquid Glass chat cards."
+  "name": "PAVORA v122",
+  "notes": "Removed the actual divider inside chat cards. New versions now refresh automatically after deployment when no unsaved work is in progress."
 }
