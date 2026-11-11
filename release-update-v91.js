@@ -54,6 +54,8 @@ style.textContent=`
 `;
 document.head.appendChild(style);document.body.appendChild(banner);
 let displayedVersion=null,checking=false,availableVersion=null,refreshing=false;
+const pvStartedAt=Date.now();
+
 const storageKey=v=>RELEASE_KEY_PREFIX+String(v);
 function alreadySeen(version){
  try{return localStorage.getItem(storageKey(version))==='1'}
@@ -119,7 +121,7 @@ banner.querySelector('.pvApplyUpdate').onclick=()=>{
  location.replace(url.href);
 };
 async function check(){
- if(checking||refreshing||document.hidden||!navigator.onLine)return;
+ if(checking||refreshing||document.hidden||!navigator.onLine||Date.now()-pvStartedAt<12000)return;
  checking=true;
  try{
   const response=await fetch('./app-version.json?check='+Date.now(),{cache:'no-store'});
@@ -144,5 +146,5 @@ window.addEventListener('online',check);
 // A newly deployed GitHub Pages version is detected while the PWA remains open.
 // A push/SW update cannot make GitHub Pages live before deployment finishes.
 setInterval(check,30000);
-setTimeout(check,1100);
+setTimeout(check,14000);
 })();
