@@ -9,7 +9,7 @@ const uid=()=>kit?.getUser?.()?.id||'guest';
 const prefKey=()=> 'pavora-app-prefs-v94:'+uid();
 const defaults={hideDemos:false,reduceMotion:false,dataSaver:false};
 const fromStore=()=>{
- try{return {...defaults,...JSON.parse(localStorage.getItem(prefKey())||'{}')}}catch{return {...defaults}}
+ try{const stored=JSON.parse(localStorage.getItem(prefKey())||'{}');const existingSaver=localStorage.getItem('pavora-data-saver')==='on';return {...defaults,dataSaver:existingSaver,...stored}}catch{return {...defaults,dataSaver:localStorage.getItem('pavora-data-saver')==='on'}}
 };
 let preferences=fromStore(),lastUid=uid();
 const css=document.createElement('style');
@@ -146,7 +146,7 @@ function photoError(event){
   button.disabled=true;button.textContent='Retrying photo…';
   img.dataset.pv94Retrying='true';
   img.classList.remove('pv94FailedMedia');
-  const clean=()=>{img.dataset.pv94Retrying='false';button.disabled=false;button.removeEventListener('click',clean)};
+  const clean=()=>{img.dataset.pv94Retrying='false';button.disabled=false;void 0};
   img.addEventListener('load',()=>{clean();button.remove()},{once:true});
   img.addEventListener('error',()=>{img.dataset.pv94Retrying='false';button.disabled=false;img.classList.add('pv94FailedMedia');button.textContent='Photo did not load · Tap to retry'},{once:true});
   const url=new URL(src,location.href);url.searchParams.set('pv-media-retry',String(Date.now()));
