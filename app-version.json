@@ -1,6 +1,6 @@
 {
-  "version": 128,
+  "version": 129,
   "release": "2026-11-11",
-  "name": "PAVORA v128",
-  "notes": "Premium Liquid Glass Home page with frosted header, story strip, feed tabs, post cards and bottom navigation."
+  "name": "PAVORA v129",
+  "notes": "Apple-style smooth tap animations for Home buttons, feed actions and bottom navigation."
 }
