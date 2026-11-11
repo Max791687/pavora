@@ -1,6 +1,6 @@
 {
-  "version": 94,
+  "version": 95,
   "release": "2026-11-11",
-  "name": "PAVORA v94",
-  "notes": "Connectivity, account preferences, image retries and feed shortcuts"
+  "name": "PAVORA v95",
+  "notes": "Desktop-only Liquid Glass visual refresh; iPhone and Reels unchanged"
 }
