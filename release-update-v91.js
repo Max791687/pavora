@@ -18,8 +18,8 @@ if(cssLink){
  });
  observer.observe(document.head,{childList:true});
 }
-const VERSION='93';
-const key='pavora-release-v93';
+const VERSION='94';
+const key='pavora-release-v94';
 try{sessionStorage.setItem(key,VERSION)}catch(e){}
 const banner=document.createElement('div');
 banner.id='pvAppUpdateNotice';
