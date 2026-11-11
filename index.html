@@ -1757,4 +1757,31 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
   animation:none!important;transition:none!important;
  }
 }
-</style></body></html>
+</style><style id="pvTactileMotionV130">
+/* Touch animation driven by pointerdown/up, not Safari's fleeting :active.
+   Keep animation on controls only: never shift a feed card or chat viewport. */
+@media(max-width:700px) and (prefers-reduced-motion:no-preference){
+ .pvTouchPressed130{
+  transform:scale(.91)!important;
+  transition:transform 90ms cubic-bezier(.2,.7,.2,1)!important;
+  -webkit-tap-highlight-color:transparent!important;
+ }
+ .pvTouchPop130{
+  animation:pvApplePop130 390ms cubic-bezier(.2,.7,.25,1) both!important;
+  -webkit-tap-highlight-color:transparent!important;
+ }
+ @keyframes pvApplePop130{
+  0%{transform:scale(.91)}
+  43%{transform:scale(1.075)}
+  73%{transform:scale(.982)}
+  100%{transform:scale(1)}
+ }
+ .pvIconRail .pvRailButton.pvTouchPressed130 svg,
+ #home button.pvTouchPressed130 svg{
+  transform:scale(.94)!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ .pvTouchPressed130,.pvTouchPop130{transform:none!important;animation:none!important}
+}
+</style><script src="./ios-tactile-tap-v130.js?v=20261111-touch-spring-v130"></script></body></html>
