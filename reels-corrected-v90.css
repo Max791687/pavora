@@ -1,0 +1,115 @@
+/* PAVORA v90 — Reels correction after v89 rollback.
+ * Preserve creator details and video's actual framing.
+ * Floating navigation only on iPhone Reels. */
+@media(max-width:700px){
+ body.pvReelsMode{background:#09080c!important;color:white!important;overflow:hidden!important}
+ body.pvReelsMode>header{display:none!important}
+ body.pvReelsMode main{
+  position:fixed!important;top:0!important;bottom:0!important;left:0!important;right:0!important;
+  margin:0!important;padding:0!important;width:100vw!important;max-width:none!important;
+  height:100dvh!important;min-height:0!important;overflow:hidden!important;
+  background:#0a090c!important;z-index:3!important;
+ }
+ body.pvReelsMode main>.feed,body.pvReelsMode #reels,
+ body.pvReelsMode #reelList,body.pvReelsMode .pvReelStage,
+ body.pvReelsMode .pvReelStack,body.pvReelsMode .pvReelCard,
+ body.pvReelsMode .pvReelScreen{
+  width:100%!important;height:100%!important;max-height:100%!important;min-height:0!important;
+  margin:0!important;padding:0!important;overflow:hidden!important;border:0!important;
+  border-radius:0!important;
+ }
+ body.pvReelsMode .pvReelCard{inset:0!important}
+ body.pvReelsMode .pvReelScreen{position:relative!important;background:#0a090c!important}
+ body.pvReelsMode .pvReelScreen video{
+  width:100%!important;height:100%!important;max-width:100%!important;max-height:none!important;
+  object-fit:contain!important;object-position:center center!important;display:block!important;
+  background:#0a090c!important
+ }
+ body.pvReelsMode #reels .pvSmartReelTabs{
+  position:fixed!important;top:calc(env(safe-area-inset-top,0px) + 12px)!important;
+  left:50%!important;right:auto!important;transform:translateX(-50%)!important;
+  z-index:30!important;background:#1a1920ab!important;border:1px solid #ffffff45!important;
+  border-radius:999px!important;padding:4px!important;gap:1px!important;
+  -webkit-backdrop-filter:blur(16px)!important;backdrop-filter:blur(16px)!important;
+ }
+ body.pvReelsMode #reels .pvSmartReelTab{font-size:12px!important;padding:8px 13px!important}
+ body.pvReelsMode #reels .pvSmartNotInterested{
+  position:fixed!important;right:10px!important;
+  top:calc(env(safe-area-inset-top,0px) + 64px)!important;
+  z-index:28!important;font-size:10px!important;padding:5px 10px!important;
+  background:#1a1821b0!important;
+ }
+ body.pvReelsMode .pvReelMeta{
+  display:block!important;visibility:visible!important;opacity:1!important;
+  position:absolute!important;left:0!important;right:0!important;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 119px)!important;
+  padding:36px 68px 16px 15px!important;z-index:17!important;
+  background:linear-gradient(transparent,#000b)!important;
+  color:#fff!important;pointer-events:none!important;
+ }
+ body.pvReelsMode .pvReelMeta .pvReelAuthor{
+  display:flex!important;align-items:center!important;gap:9px!important;min-height:37px!important;
+ }
+ body.pvReelsMode .pvReelCreator{
+  display:inline-flex!important;color:#fff!important;font-size:14px!important;
+  font-weight:800!important;text-shadow:0 1px 5px #000b;
+  pointer-events:auto!important;
+ }
+ body.pvReelsMode .pvReelFollow{
+  color:#fff!important;border:1px solid #ffffff85!important;background:#ffffff22!important;
+  border-radius:999px!important;padding:5px 10px!important;pointer-events:auto!important
+ }
+ body.pvReelsMode .pvReelCaption{
+  display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;
+  max-height:42px!important;color:#f7f6f9!important;font-size:12px!important;
+ }
+ body.pvReelsMode .pvReelCard .pvReelActions{
+  position:absolute!important;right:8px!important;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 160px)!important;
+  z-index:20!important;width:53px!important;min-width:53px!important;
+  padding:0!important;gap:2px!important;
+ }
+ body.pvReelsMode .pvSuiteReelActions{gap:7px!important}
+ body.pvReelsMode .pvSuiteIconAction{width:51px!important;min-height:48px!important;padding:2px!important}
+ body.pvReelsMode .pvSuiteIconAction svg{width:27px!important;height:27px!important}
+ body.pvReelsMode .pvReelSound{
+  right:65px!important;bottom:calc(env(safe-area-inset-bottom,0px) + 158px)!important;
+  z-index:21!important;
+ }
+ body.pvReelsMode .pvReelScreen .pvReelSeek{
+  bottom:calc(env(safe-area-inset-bottom,0px) + 91px)!important;
+  left:14px!important;right:14px!important;
+  width:auto!important;min-height:16px!important;
+  padding:0!important;background:none!important;z-index:22!important;
+ }
+ body.pvReelsMode .pvReelScreen .pvReelSeekTime{display:none!important}
+ body.pvReelsMode .pvReelScreen .pvReelSeek:focus-within .pvReelSeekTime{display:flex!important}
+ body.pvReelsMode .pvIconRail{
+  position:fixed!important;top:auto!important;bottom:calc(env(safe-area-inset-bottom,0px) + 10px)!important;
+  left:5%!important;right:5%!important;width:90%!important;
+  height:61px!important;min-height:61px!important;
+  display:flex!important;flex-direction:row!important;align-items:center!important;
+  padding:5px 8px!important;z-index:40!important;
+  background:#17151dbf!important;border:1px solid #ffffff4d!important;
+  border-radius:999px!important;box-shadow:0 8px 26px #0008!important;
+  -webkit-backdrop-filter:blur(19px)!important;backdrop-filter:blur(19px)!important;
+ }
+ body.pvReelsMode .pvIconRail .pvRailBrand,
+ body.pvReelsMode .pvIconRail>.pvRailButton:not([data-rail-view]){display:none!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view]{
+  display:grid!important;place-items:center!important;flex:1 1 0!important;
+  min-width:0!important;width:auto!important;height:48px!important;min-height:48px!important;
+  margin:0!important;padding:0!important;border-radius:999px!important;
+  background:transparent!important;color:#fff!important;box-shadow:none!important;
+ }
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view="home"]{order:1!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view="reels"]{order:2!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view="messages"]{order:3!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view="explore"]{order:4!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view="profile"]{order:5!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view].active{
+  background:#ffffff34!important;color:white!important;
+ }
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view].active::after{display:none!important}
+ body.pvReelsMode .pvIconRail .pvRailButton svg{width:24px!important;height:24px!important;stroke:currentColor!important}
+}
