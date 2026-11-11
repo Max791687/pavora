@@ -1,6 +1,6 @@
 {
-  "version": 141,
+  "version": 142,
   "release": "2026-11-11",
-  "name": "PAVORA v141",
-  "notes": "Fixed followers/following popup height jumping while loading, with stable glass skeleton and animated user reveal."
+  "name": "PAVORA v142",
+  "notes": "Stronger iPhone-style spring pop when opening Followers and Following, without changing user-row animations."
 }
