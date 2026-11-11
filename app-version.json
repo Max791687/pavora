@@ -1,6 +1,6 @@
 {
-  "version": 93,
+  "version": 94,
   "release": "2026-11-11",
-  "name": "PAVORA v93",
-  "notes": "Reference-style Reels and Friends layout; iPhone viewport alignment"
+  "name": "PAVORA v94",
+  "notes": "Connectivity, account preferences, image retries and feed shortcuts"
 }
