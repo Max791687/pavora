@@ -1826,4 +1826,33 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
 @media(prefers-reduced-motion:reduce){
  .pvSlideGlass133{transition:none!important}
 }
-</style><script src="./ios-slide-select-v133.js?v=20261111-finger-glass-v134"></script></body></html>
+</style><script src="./ios-slide-select-v133.js?v=20261111-icon-pop-v135"></script><style id="pvSlideIconPopV135">
+/* The icon rises out of the moving glass lens, with a spring on entry.
+   Unlike scaling entire navigation, it never changes button hit areas. */
+@media(max-width:700px) and (pointer:coarse) and (prefers-reduced-motion:no-preference){
+ .pvIconRail .pvRailButton>svg,
+ .pvIconRail .pvRailButton>img,
+ .pvIconRail .pvRailButton>.pvRailIcon{
+  transform-origin:center!important;
+  transition:transform .3s cubic-bezier(.22,1.6,.38,1),filter .23s ease!important;
+ }
+ .pvIconRail.pvSlideSelecting133 .pvRailButton.pvSlideIconHovered135>svg,
+ .pvIconRail.pvSlideSelecting133 .pvRailButton.pvSlideIconHovered135>img,
+ .pvIconRail.pvSlideSelecting133 .pvRailButton.pvSlideIconHovered135>.pvRailIcon{
+  transform:translateY(-3px) scale(1.28)!important;
+  filter:drop-shadow(0 3px 5px rgba(134,72,186,.28))!important;
+ }
+ #home .pvFeedModeTabs>button{
+  transform-origin:center!important;
+  transition:transform .29s cubic-bezier(.22,1.6,.38,1),color .18s ease!important;
+ }
+ #home .pvFeedModeTabs.pvSlideSelecting133>button.pvSlideIconHovered135{
+  transform:translateY(-2px) scale(1.10)!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ .pvSlideIconHovered135,.pvSlideIconHovered135 svg{
+  transition:none!important;transform:none!important;filter:none!important;
+ }
+}
+</style></body></html>
