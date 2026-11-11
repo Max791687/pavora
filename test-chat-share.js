@@ -9,7 +9,40 @@
  let button=null,notice=null,working=false;
  const getUser=()=>kit.getUser()?.id||null;
  const css=document.createElement('style');
- css.textContent='#pvTestSharingBar{display:flex;flex-direction:column;gap:5px;align-items:stretch;margin:8px 0;padding:8px;border:1px solid #514263;border-radius:10px;background:#211b2d;color:#f1e8ff;font-size:11px;max-width:100%;min-width:0}#pvTestSharingBar button{border:1px solid #8063b1;border-radius:9px;background:#51357c;color:white;padding:7px 11px;font-weight:700}#pvTestSharingBar small{display:block;min-width:0;overflow-wrap:anywhere;line-height:1.3;color:#c2b3d4}';
+ css.textContent=`
+/* Test sharing: readable in both light Liquid Glass and dark themes */
+#pvTestSharingBar{
+ display:flex!important;flex-direction:column!important;gap:10px!important;align-items:stretch!important;
+ margin:12px 0!important;padding:14px!important;min-width:0!important;max-width:100%!important;
+ border:1px solid rgba(125,88,185,.34)!important;border-radius:16px!important;
+ background:linear-gradient(135deg,rgba(255,255,255,.88),rgba(241,231,255,.91))!important;
+ box-shadow:0 8px 24px rgba(69,39,106,.1)!important;
+ color:#352247!important;font-size:13px!important;
+}
+#pvTestSharingBar button{
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ width:100%!important;min-height:46px!important;padding:12px 16px!important;
+ border:1px solid #6d3da7!important;border-radius:12px!important;
+ background:#65369b!important;color:#ffffff!important;-webkit-text-fill-color:#ffffff!important;
+ font-size:14px!important;font-weight:800!important;line-height:1.25!important;letter-spacing:.01em!important;
+ opacity:1!important;text-shadow:none!important;box-shadow:0 4px 12px rgba(85,39,148,.22)!important;
+}
+#pvTestSharingBar button[data-enabled="true"]{
+ background:#fff3f5!important;border-color:#ba405c!important;color:#872139!important;
+ -webkit-text-fill-color:#872139!important;box-shadow:none!important;
+}
+#pvTestSharingBar button:focus-visible{outline:3px solid #9e72de!important;outline-offset:3px!important}
+#pvTestSharingBar button:disabled{opacity:.65!important;cursor:wait!important}
+#pvTestSharingBar small{
+ display:block!important;min-width:0!important;overflow-wrap:anywhere!important;
+ line-height:1.55!important;font-size:12px!important;font-weight:600!important;
+ color:#51415f!important;-webkit-text-fill-color:#51415f!important;opacity:1!important;
+}
+@media(prefers-color-scheme:dark){
+ #pvTestSharingBar{background:linear-gradient(135deg,rgba(45,31,66,.97),rgba(33,24,49,.98))!important;border-color:#77599d!important;color:#f4eaff!important}
+ #pvTestSharingBar small{color:#e1d0f0!important;-webkit-text-fill-color:#e1d0f0!important}
+}
+`
  document.head.append(css);
  async function read(){
   if(!getUser()||!button)return;
