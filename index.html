@@ -1056,7 +1056,36 @@ body.pvIntroFinished #pvLaunchScreen,body.pvLaunchReady #pvLaunchScreen,body.pvE
  }
 }
 </style><link rel="stylesheet" href="./public-profile-glass-v117.css?v=20261111-public-profile-glass-v117">
-</head><body class="pvBooting pvFeedLoading"><div id="pvLaunchScreen" aria-label="PAVORA starting"><img class="pvLaunchLogo" src="./app-icon.svg" alt=""><div class="pvLaunchWord">PAVORA</div><div class="pvLaunchLine" aria-hidden="true"></div></div><script>
+<style id="pvSingleLaunchAndChatV127">
+/* One short branded HTML animation per genuine app launch.
+   Never replay it when applying an automatic in-place version update. */
+body:not(.pvIntroFinished):not(.pvSkipIntro) #pvLaunchScreen{
+ display:flex!important;position:fixed!important;inset:0!important;
+ z-index:9999!important;visibility:visible!important;opacity:1!important;
+ pointer-events:none!important;transition:opacity .22s ease,visibility .22s ease!important;
+}
+body.pvIntroFinished #pvLaunchScreen,
+body.pvSkipIntro #pvLaunchScreen{
+ opacity:0!important;visibility:hidden!important;pointer-events:none!important;
+}
+@media(prefers-reduced-motion:reduce){
+ #pvLaunchScreen *,#pvLaunchScreen *::after{animation:none!important}
+ #pvLaunchScreen{transition:none!important}
+}
+@media(max-width:700px){
+ body.pvMessagesMode #pvInboxView .pvThreadEntry,
+ body.pvMessagesMode #pvInboxView .pvThreadPerson{
+  transform:none!important;animation:none!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatArea:has(>.pvDmLoadingShell)>.pvDmLoadingShell{
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+  z-index:90!important;pointer-events:none!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvDmLoadingShell .pvDmLoadingHead{
+  min-height:60px!important;padding-top:10px!important;
+ }
+}
+</style></head><body class="pvBooting pvFeedLoading"><div id="pvLaunchScreen" aria-label="PAVORA starting"><img class="pvLaunchLogo" src="./app-icon.svg" alt=""><div class="pvLaunchWord">PAVORA</div><div class="pvLaunchLine" aria-hidden="true"></div></div><script>
 /* Single launch: keep the brand visible for a short time, but never replay on auto update. */
 (()=>{'use strict';
  const url=new URL(location.href);
@@ -1607,35 +1636,6 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
  }
  body.pvMessagesMode #pvInboxView.pvChatSelected .pvDmAttachment{
   max-height:195px!important;
- }
-}
-</style><style id="pvSingleLaunchAndChatV127">
-/* One short branded HTML animation per genuine app launch.
-   Never replay it when applying an automatic in-place version update. */
-#pvLaunchScreen{
- display:flex!important;position:fixed!important;inset:0!important;
- z-index:9999!important;visibility:visible!important;opacity:1!important;
- pointer-events:none!important;transition:opacity .22s ease,visibility .22s ease!important;
-}
-body.pvIntroFinished #pvLaunchScreen,
-body.pvSkipIntro #pvLaunchScreen{
- opacity:0!important;visibility:hidden!important;pointer-events:none!important;
-}
-@media(prefers-reduced-motion:reduce){
- #pvLaunchScreen *,#pvLaunchScreen *::after{animation:none!important}
- #pvLaunchScreen{transition:none!important}
-}
-@media(max-width:700px){
- body.pvMessagesMode #pvInboxView .pvThreadEntry,
- body.pvMessagesMode #pvInboxView .pvThreadPerson{
-  transform:none!important;animation:none!important;
- }
- body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatArea:has(>.pvDmLoadingShell)>.pvDmLoadingShell{
-  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
-  z-index:90!important;pointer-events:none!important;
- }
- body.pvMessagesMode #pvInboxView.pvChatSelected .pvDmLoadingShell .pvDmLoadingHead{
-  min-height:60px!important;padding-top:10px!important;
  }
 }
 </style></body></html>
