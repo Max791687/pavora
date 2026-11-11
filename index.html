@@ -1538,4 +1538,24 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
    border-bottom:0!important;
  }
 }
+</style><style id="pvDmActualDividerFixV122">
+/* v122: the line was on the INNER .pvThreadPerson button from ios-reference-v84,
+   not the outer .pvThreadEntry card. Override it without losing the glass edge. */
+@media(max-width:700px){
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvThreadList .pvThreadEntry > button.pvThreadPerson,
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvThreadList .pvThreadEntry .pvThreadPerson,
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvThreadList .pvThreadEntry .pvChatMenuWrap > button.pvChatMore{
+  border-bottom:0!important;border-top:0!important;
+  border-left:0!important;border-right:0!important;
+  box-shadow:none!important;
+ }
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvThreadList .pvThreadEntry > button.pvThreadPerson::before,
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvThreadList .pvThreadEntry > button.pvThreadPerson::after{
+  content:none!important;display:none!important;
+ }
+ /* Keep the intentional frosted outlines of the outer glass cards. */
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvThreadList .pvThreadEntry{
+  border:1px solid rgba(255,255,255,.90)!important;
+ }
+}
 </style></body></html>
