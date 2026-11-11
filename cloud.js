@@ -2831,7 +2831,11 @@ function pvDmLoadingChat(){
  return shell;
 }
 function pvEmptyChat(){const empty=node('div','pvEmptyChat');empty.innerHTML='<div class="pvEmptyIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m21 3-8.5 18-3.5-7.5L2 10z"/><path d="M21 3 9 13.5"/></svg></div><h2>Your messages</h2><p>Send private photos and messages to a friend.</p>';const btn=node('button','pvStartMessage','Send message');btn.onclick=()=>pvNavigate('explore');empty.append(btn);return empty}
+let pvInboxLastRenderedTab=null;
 async function loadInbox(){if(!user)return;
+// Keep real, clickable conversation rows visible while inbox data refreshes.
+const previousThreads=inboxView.querySelector('.pvThreadList');
+const canReuseThreads=!!(previousThreads&&pvInboxLastRenderedTab===pvInboxTab&&previousThreads.querySelector('.pvThreadEntry'));
 const layout=node('div','pvInboxLayout'),side=node('div','pvInboxSide'),right=node('div','pvChatArea');right.id='pvChatArea';right.append(selectedPeer?pvDmLoadingChat():pvEmptyChat());layout.append(side,right);inboxView.replaceChildren(layout);
 // Keep inbox visible until real chat content is ready; avoid switching to an empty/skeleton pane.
 inboxView.classList.toggle('pvChatSelected',!!selectedPeer);
@@ -2841,6 +2845,7 @@ const top=node('div','pvInboxTop'),name=node('strong','',profile?.username||'Mes
 const tabs=node('div','pvInboxTabs');for(const t of ['Primary','General','Requests']){const tab=node('button',pvInboxTab===t?'active':'',t);tab.type='button';tab.onclick=()=>{pvInboxTab=t;selectedPeer=null;pvRememberInboxPosition();loadInbox()};tabs.append(tab)}side.append(tabs);
 const searchBox=node('div','pvInboxSearch'),searchIcon=node('span','','⌕'),search=node('input');search.type='search';search.placeholder='Search';search.setAttribute('aria-label','Search conversations');search.value=pvInboxSearch;searchBox.append(searchIcon,search);side.append(searchBox);
 const threads=node('div','pvThreadList');side.append(threads);
+if(canReuseThreads){while(previousThreads.firstChild)threads.append(previousThreads.firstChild)}
 const {data,error}=await db.from('direct_messages').select('sender_id,recipient_id,body,created_at').or('sender_id.eq.'+user.id+',recipient_id.eq.'+user.id).order('created_at',{ascending:false}).limit(400);
 if(error){threads.append(node('p','muted','Messaging setup needed: '+error.message));return}
 const visible=(data||[]).filter(m=>!pvIsHiddenMessage(m));
@@ -2854,6 +2859,9 @@ const ids=allIds.filter(id=>pvInboxTab==='Requests'?requestIds.has(id):!requestI
 if(pvInboxTab==='Requests'&&ids.length)tabs.querySelectorAll('button')[2].textContent='Requests ('+ids.length+')';
 if(!ids.length){threads.append(node('p','pvEmptyThreads',pvInboxTab==='Requests'?'No message requests yet.':pvInboxTab==='General'?'No General chats yet. Open the ⋯ menu in Primary and select Move to General.':'No conversations yet. Discover people and tap Message.'));if(selectedPeer)await renderChat(selectedPeer);return}
 const {data:people}=await db.from('profiles').select('id,username,display_name,avatar_url').in('id',ids);
+if(!layout.isConnected)return; // Ignore an older refresh after navigation.
+const hadVisibleRows=canReuseThreads&&!!threads.querySelector('.pvThreadEntry');
+threads.replaceChildren();
 const names=new Map((people||[]).map(p=>[p.id,p]));
 const orderedIds=ids.slice().sort((a,b)=>Number(pvConversationSetting(b).pinned)-Number(pvConversationSetting(a).pinned));
 const rows=[];
@@ -2949,7 +2957,8 @@ menuButton.onclick=e=>{
 };
 const controls=node('div','pvChatMenuWrap');controls.append(menuButton,menu);
 entry.append(b,controls);threads.append(entry);rows.push({entry,p})}
-if(!selectedPeer)requestAnimationFrame(()=>pvDmAnimateInboxRowsV144(threads));
+pvInboxLastRenderedTab=pvInboxTab;
+if(!selectedPeer&&!hadVisibleRows)requestAnimationFrame(()=>pvDmAnimateInboxRowsV144(threads));
 const filter=()=>{const q=pvInboxSearch.toLowerCase();for(const {entry,p} of rows)entry.classList.toggle('hide',!(p.display_name||'').toLowerCase().includes(q)&&!(p.username||'').toLowerCase().includes(q))};
 search.oninput=()=>{pvInboxSearch=search.value;filter()};filter();
 if(selectedPeer)await renderChat(selectedPeer);await pvCheckUnread();
