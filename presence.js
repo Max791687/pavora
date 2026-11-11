@@ -127,6 +127,11 @@ const css=document.createElement('style');
 css.textContent=`
 .pvPresenceLabel{display:inline-flex;align-items:center;gap:5px;color:#a9a4b3;font-size:11px;font-weight:600;line-height:1.4;white-space:nowrap}
 .pvPresenceLabel[hidden]{display:none!important}
+/* Keep DM rows and chat headers at a stable height while async presence loads.
+   Hidden status occupies its final line; only its text becomes visible. */
+.pvPresence-thread,.pvPresence-chat{min-height:14px;line-height:14px;max-width:100%;animation:none!important;transition:none!important;transform:none!important}
+.pvPresence-thread[hidden],.pvPresence-chat[hidden]{display:block!important;visibility:hidden!important}
+.pvPresence-thread:not([hidden]),.pvPresence-chat:not([hidden]){visibility:visible!important}
 .pvPresenceLabel[data-pv-presence="online"]{color:#53d98a}
 .pvPresenceLabel[data-pv-presence="online"]::before{content:"";width:7px;height:7px;background:#43d881;border-radius:50%;box-shadow:0 0 0 2px #43d88125}
 .pvPresence-chat{display:block;font-size:10px;margin-top:2px}
