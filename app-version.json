@@ -1,6 +1,6 @@
 {
-  "version": 115,
+  "version": 116,
   "release": "2026-11-11",
-  "name": "PAVORA v115",
-  "notes": "Liquid Glass chat improvements, iPhone fixes and update notifications. This announcement appears once per version on each device."
+  "name": "PAVORA v116",
+  "notes": "Smoother chat opening: removed the temporary Your messages screen while conversations load."
 }
