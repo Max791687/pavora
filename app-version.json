@@ -1,6 +1,6 @@
 {
-  "version": 125,
+  "version": 126,
   "release": "2026-11-11",
-  "name": "PAVORA v125",
-  "notes": "Removed duplicate startup splash and fixed chat opening flash by showing the conversation only after loading."
+  "name": "PAVORA v126",
+  "notes": "Restored smooth brand opening and fixed delayed chat switching and inbox jumping."
 }
