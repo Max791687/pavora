@@ -1,0 +1,132 @@
+/* PAVORA iOS Glass UI v82.1 | Presentation only: no backend or feature changes */
+:root{
+ --pv-ios-bg:#f5f2ff;--pv-ios-ink:#1d1830;--pv-ios-sub:#766f87;
+ --pv-ios-line:#e1d9ef;--pv-ios-glass:rgba(255,255,255,.84);
+ --pv-ios-purple:#8242df;--pv-ios-shadow:0 9px 30px rgba(84,53,135,.09);
+ --pv-ios-spring:cubic-bezier(.22,1,.36,1);
+}
+body:not(.pvReelsMode):not(.pvMessagesMode){
+ background:radial-gradient(ellipse 700px 400px at 100% 0%,#e8dcff 0%,transparent 90%),#f5f3fd!important;
+ color:var(--pv-ios-ink);
+}
+body:not(.pvReelsMode):not(.pvMessagesMode) header{
+ background:rgba(250,248,255,.88)!important;backdrop-filter:blur(23px) saturate(1.4);
+ -webkit-backdrop-filter:blur(23px) saturate(1.4);border-color:#e7e0ef!important;color:var(--pv-ios-ink);
+}
+header .brand{background:linear-gradient(105deg,#332048,#a043c8)!important;background-clip:text!important;-webkit-background-clip:text!important}
+header .top small{color:#8a8198}
+body:not(.pvReelsMode):not(.pvMessagesMode) .pvIconRail{
+ background:rgba(250,248,255,.86)!important;border-color:#e6dff0!important;
+ -webkit-backdrop-filter:blur(22px) saturate(1.4);backdrop-filter:blur(22px) saturate(1.4);
+}
+body:not(.pvReelsMode):not(.pvMessagesMode) .pvRailButton{color:#5e536b!important}
+body:not(.pvReelsMode):not(.pvMessagesMode) .pvRailButton.active{color:#7136cf!important;background:#eadbfd!important}
+body:not(.pvReelsMode):not(.pvMessagesMode) .pvRailButton:hover{background:#efe4fc!important}
+body:not(.pvReelsMode):not(.pvMessagesMode) .pvRailButton svg{stroke:currentColor!important}
+body:not(.pvReelsMode):not(.pvMessagesMode) :is(.panel,.post,.composer,.pvDailyCard){
+ background:var(--pv-ios-glass)!important;color:var(--pv-ios-ink)!important;
+ border-color:var(--pv-ios-line)!important;box-shadow:var(--pv-ios-shadow);
+}
+body:not(.pvReelsMode):not(.pvMessagesMode) #home .post{
+ border-radius:15px!important;overflow:hidden;background:#fff!important;
+ border:1px solid #e6e0ee!important;margin-bottom:18px!important;
+}
+body:not(.pvReelsMode):not(.pvMessagesMode) #home .pvDailyCard{
+ border:1px solid #e6e0ee!important;border-radius:15px!important;overflow:hidden;
+}
+body:not(.pvReelsMode):not(.pvMessagesMode) #home .posthead{background:#fff;color:#241c31}
+body:not(.pvReelsMode):not(.pvMessagesMode) #home .postbody{color:#25202c!important;background:#fff!important}
+body:not(.pvReelsMode):not(.pvMessagesMode) #home .postfoot{background:#fff;color:#28202f}
+body:not(.pvReelsMode):not(.pvMessagesMode) #home .postfoot button{color:#31243f!important}
+body:not(.pvReelsMode):not(.pvMessagesMode) #home .postfoot button[aria-pressed=true]{color:#983ee5!important}
+body:not(.pvReelsMode):not(.pvMessagesMode) .muted,
+body:not(.pvReelsMode):not(.pvMessagesMode) .hint{color:#7d7488!important}
+body:not(.pvReelsMode):not(.pvMessagesMode) #home .post .pvPersonButton{color:#573288!important}
+body:not(.pvReelsMode):not(.pvMessagesMode) .pvDailyUsername{color:#59318b!important}
+body:not(.pvReelsMode):not(.pvMessagesMode) .pvDailyBadge{color:#83778f!important}
+body:not(.pvReelsMode):not(.pvMessagesMode) .pvFeedModeTabs{border-bottom:1px solid #e8e1ef}
+body:not(.pvReelsMode):not(.pvMessagesMode) .pvFeedModeTabs button{color:#7d718c}
+body:not(.pvReelsMode):not(.pvMessagesMode) .pvFeedModeTabs button[aria-pressed=true]{color:#702ecc;border-color:#aa76e7}
+body:not(.pvReelsMode):not(.pvMessagesMode) .story{background:rgba(255,255,255,.83)!important;border:1px solid #e6dff0!important;border-radius:18px;box-shadow:0 6px 19px #6351820a}
+body:not(.pvReelsMode):not(.pvMessagesMode) .story :is(span,p,small,strong){color:#3d3150}
+body:not(.pvReelsMode):not(.pvMessagesMode) :is(#profile,#explore,#pvPublicView){color:var(--pv-ios-ink)}
+body:not(.pvReelsMode):not(.pvMessagesMode) #profile .panel{
+ background:rgba(255,255,255,.88)!important;border-radius:19px!important
+}
+body:not(.pvReelsMode):not(.pvMessagesMode) :is(#profile,#explore,#pvPublicView) :is(h1,h2,h3,b,strong){color:#21172d}
+body:not(.pvReelsMode):not(.pvMessagesMode) :is(.pvPublicGrid,.pvProfileGrid,.pvExploreGrid){gap:3px}
+body:not(.pvReelsMode):not(.pvMessagesMode) :is(#profile,#explore) :is(input,textarea){
+ background:#fff!important;color:#30253a!important;border-color:#dfd4e9!important
+}
+body:not(.pvReelsMode):not(.pvMessagesMode) :is(.pvTabs button,.nav){color:#6d617a!important}
+body:not(.pvReelsMode):not(.pvMessagesMode) .pvTabs button.active{color:#8139ce!important;border-color:#914adc!important}
+body:not(.pvReelsMode):not(.pvMessagesMode) :is(#profile,#explore) button:where(.secondary,.nav){background:rgba(232,221,248,.72)!important;color:#513371!important}
+body:not(.pvReelsMode):not(.pvMessagesMode) .pvTopAction{color:#51356c}
+/* Auth: align with the iOS light welcome card without rewriting the login flow. */
+#authOverlay{background:#f8f6ff!important}
+#authOverlay .authShowcase{background:linear-gradient(155deg,#fdfaff,#eae0ff)!important}
+#authOverlay .authLogo{color:#4f287a!important;filter:drop-shadow(0 6px 13px #986ad829)}
+#authOverlay :is(.authMainBtn,.authSwitch){transition:transform .21s var(--pv-ios-spring),box-shadow .21s ease}
+#authOverlay :is(.authMainBtn,.authSwitch):active{transform:scale(.985)}
+/* Frosted iOS dialogs and create sheet, while keeping upload click handlers intact. */
+.pvComposeOverlay{backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:#29203977!important}
+.pvComposeOverlay .pvUnifiedCreate{
+ background:rgba(251,248,255,.98)!important;border:1px solid #f4edff!important;
+ box-shadow:0 25px 80px #28154a48!important;border-radius:23px!important;color:#21192d!important;
+}
+.pvComposeOverlay :is(.pvCreateHeader,.pvCreateDetails){background:#faf8ff!important;color:#2b1e38!important;border-color:#e3dbea!important}
+.pvComposeOverlay .pvCreateDrop{color:#53386b!important}
+.pvComposeOverlay .pvCreateDrop h2{color:#2f223a!important}
+.pvComposeOverlay .pvMediaHint{color:#776a86!important}
+.pvComposeOverlay .pvChooseMedia,
+.pvComposeOverlay .pvUnifiedPublish{background:linear-gradient(120deg,#7d3dda,#b75de2)!important;border-radius:13px!important;box-shadow:0 6px 20px #a45ee53b}
+.pvComposeOverlay .pvCreateCaption{background:#fff!important;color:#271c34!important;border-color:#ddcdec!important}
+.pvComposeOverlay .pvCreateClose{color:#47344f!important}
+@media(min-width:701px){
+ body:not(.pvReelsMode):not(.pvMessagesMode) main{max-width:min(1120px,calc(100vw - 115px))!important}
+ body:not(.pvReelsMode):not(.pvMessagesMode) .pvIconRail{box-shadow:5px 0 27px #624a8d0b}
+}
+/* Messages remain dark in conversation view for contrast; give the inbox frosted lavender surfaces. */
+body.pvMessagesMode :is(#pvInboxView,.pvInboxSide){border-radius:16px}
+body.pvMessagesMode .pvThreadEntry{transition:background-color .18s ease,transform .18s var(--pv-ios-spring)}
+body.pvMessagesMode .pvThreadEntry:active{transform:scale(.985)}
+body.pvMessagesMode .pvBubble{border-radius:18px}
+body.pvMessagesMode .pvBubble.mine{border-bottom-right-radius:6px}
+body.pvMessagesMode .pvBubble:not(.mine){border-bottom-left-radius:6px}
+/* Reels must stay immersive and dark. */
+body.pvReelsMode .pvReelAction{transition:transform .2s var(--pv-ios-spring),opacity .2s}
+body.pvReelsMode .pvReelAction:active{transform:scale(.89)}
+body.pvReelsMode .pvReelScreen{background:#000}
+@media(max-width:700px){
+ body:not(.pvReelsMode):not(.pvMessagesMode) header{background:rgba(252,250,255,.92)!important}
+ body:not(.pvReelsMode):not(.pvMessagesMode) .pvIconRail{
+  background:rgba(253,251,255,.91)!important;
+  border-top:1px solid #e7ddf0!important;
+  box-shadow:0 -6px 30px #4f347b13;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) .pvRailButton.active{background:transparent!important;color:#813dd4!important}
+ body:not(.pvReelsMode):not(.pvMessagesMode) .pvRailButton.active::after{background:#8d44db!important}
+ body:not(.pvReelsMode):not(.pvMessagesMode) main{padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))!important}
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .post{
+  border-left:0!important;border-right:0!important;border-radius:0!important;
+  box-shadow:none!important;margin-bottom:9px!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .pvDailyCard{
+  border-left:0!important;border-right:0!important;border-radius:0!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) .story{border-radius:0!important;border-left:0!important;border-right:0!important}
+ body:not(.pvReelsMode):not(.pvMessagesMode) .pvFeedModeTabs{padding:0 11px}
+ .pvComposeOverlay .pvUnifiedCreate{border-radius:24px 24px 0 0!important;max-height:95dvh}
+ .pvComposeOverlay{align-items:flex-end!important;padding:0!important}
+}
+@media(prefers-reduced-motion:no-preference){
+ body:not(.pvReelsMode):not(.pvMessagesMode) :is(.pvRailButton,.pvFeedModeTabs button,.pvTopAction,.primary,.secondary){
+  transition:color .18s,background-color .18s,transform .24s var(--pv-ios-spring),box-shadow .2s ease
+ }
+ body :is(.primary,.secondary,.pvFeedModeTabs button):active{transform:scale(.974)}
+ .pvComposeOverlay:not(.hide) .pvUnifiedCreate{animation:pvGlassSheetIn .3s var(--pv-ios-spring) both}
+ @keyframes pvGlassSheetIn{from{opacity:.65;transform:translateY(24px) scale(.975)}to{opacity:1;transform:none}}
+}
+@media(prefers-reduced-motion:reduce){
+ .pvComposeOverlay .pvUnifiedCreate{animation:none!important}
+}
