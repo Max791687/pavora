@@ -2578,9 +2578,25 @@ function pvDmLoadingChat(){
  return shell;
 }
 function pvEmptyChat(){const empty=node('div','pvEmptyChat');empty.innerHTML='<div class="pvEmptyIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m21 3-8.5 18-3.5-7.5L2 10z"/><path d="M21 3 9 13.5"/></svg></div><h2>Your messages</h2><p>Send private photos and messages to a friend.</p>';const btn=node('button','pvStartMessage','Send message');btn.onclick=()=>pvNavigate('explore');empty.append(btn);return empty}
+function pvShowPreparedChat(id){
+ if(!id||selectedPeer!==id)return;
+ const area=document.getElementById('pvChatArea'),list=area?.querySelector('.pvMessages');
+ if(!list)return;
+ // The chat is already built; reveal it in one frame after reserving the final pane size.
+ requestAnimationFrame(()=>{
+  if(selectedPeer!==id||!area.isConnected)return;
+  inboxView.classList.add('pvChatSelected');
+  requestAnimationFrame(()=>{
+   if(selectedPeer!==id||!list.isConnected)return;
+   list.scrollTop=list.scrollHeight;
+   requestAnimationFrame(()=>{if(selectedPeer===id&&list.isConnected)list.scrollTop=list.scrollHeight});
+  });
+ });
+}
 async function loadInbox(){if(!user)return;
 const layout=node('div','pvInboxLayout'),side=node('div','pvInboxSide'),right=node('div','pvChatArea');right.id='pvChatArea';right.append(selectedPeer?pvDmLoadingChat():pvEmptyChat());layout.append(side,right);inboxView.replaceChildren(layout);
-inboxView.classList.toggle('pvChatSelected',!!selectedPeer);
+// Keep inbox visible until real chat content is ready; avoid switching to an empty/skeleton pane.
+inboxView.classList.remove('pvChatSelected');
 requestAnimationFrame(pvSyncDesktopChatHeight);
 requestAnimationFrame(pvSyncMobileDmViewport);
 const top=node('div','pvInboxTop'),name=node('strong','',profile?.username||'Messages'),compose=node('button','pvInboxCompose','✎');compose.title='New message';compose.setAttribute('aria-label','New message');compose.onclick=()=>pvNavigate('explore');const pvInboxBell=pvMakeBell('pvInboxBell');const pvInboxActions=node('div','pvInboxActions');pvInboxActions.append(pvInboxBell,compose);top.append(name,pvInboxActions);side.append(top);
@@ -2598,7 +2614,7 @@ if(!pvPrefsReady){const note=node('p','pvEmptyThreads','Inbox folders need setup
 const allIds=[...new Set(visible.map(m=>m.sender_id===user.id?m.recipient_id:m.sender_id))];if(selectedPeer&&!allIds.includes(selectedPeer))allIds.unshift(selectedPeer);
 const ids=allIds.filter(id=>pvInboxTab==='Requests'?requestIds.has(id):!requestIds.has(id)&&pvConversationSetting(id).folder===(pvInboxTab==='General'?'general':'primary'));
 if(pvInboxTab==='Requests'&&ids.length)tabs.querySelectorAll('button')[2].textContent='Requests ('+ids.length+')';
-if(!ids.length){threads.append(node('p','pvEmptyThreads',pvInboxTab==='Requests'?'No message requests yet.':pvInboxTab==='General'?'No General chats yet. Open the ⋯ menu in Primary and select Move to General.':'No conversations yet. Discover people and tap Message.'));if(selectedPeer)await renderChat(selectedPeer);return}
+if(!ids.length){threads.append(node('p','pvEmptyThreads',pvInboxTab==='Requests'?'No message requests yet.':pvInboxTab==='General'?'No General chats yet. Open the ⋯ menu in Primary and select Move to General.':'No conversations yet. Discover people and tap Message.'));if(selectedPeer){const peer=selectedPeer;await renderChat(peer);if(selectedPeer===peer)pvShowPreparedChat(peer)}return}
 const {data:people}=await db.from('profiles').select('id,username,display_name,avatar_url').in('id',ids);
 const names=new Map((people||[]).map(p=>[p.id,p]));
 const orderedIds=ids.slice().sort((a,b)=>Number(pvConversationSetting(b).pinned)-Number(pvConversationSetting(a).pinned));
@@ -2697,14 +2713,20 @@ const controls=node('div','pvChatMenuWrap');controls.append(menuButton,menu);
 entry.append(b,controls);threads.append(entry);rows.push({entry,p})}
 const filter=()=>{const q=pvInboxSearch.toLowerCase();for(const {entry,p} of rows)entry.classList.toggle('hide',!(p.display_name||'').toLowerCase().includes(q)&&!(p.username||'').toLowerCase().includes(q))};
 search.oninput=()=>{pvInboxSearch=search.value;filter()};filter();
-if(selectedPeer)await renderChat(selectedPeer);await pvCheckUnread();
+if(selectedPeer){const peer=selectedPeer;await renderChat(peer);if(selectedPeer===peer)pvShowPreparedChat(peer)}await pvCheckUnread();
 }
 async function openChat(id,navigate=true){if(!user||id===user.id)return;if(pvHiddenChats.has(id)){const {error}=await db.from('hidden_conversations').delete().eq('owner_id',user.id).eq('peer_id',id);if(!error)pvHiddenChats.delete(id)}if(selectedPeer&&selectedPeer!==id)pvClearTyping(selectedPeer);pvDmTypingLastSeen=0;selectedPeer=id;window.dispatchEvent(new Event('pv-chat-peer-changed'));if(navigate){
  // Start showing the conversation loading shell before the request-status lookup.
  // This prevents an extra flash of the previous profile or empty chat screen.
  inboxView.classList.add('pvChatSelected');
  pvNavigate('messages');
- const {data:req}=await db.from('message_requests').select('sender_id').eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null).maybeSingle();const {data:following}=req?await db.from('follows').select('follower_id').eq('follower_id',id).eq('following_id',user.id).maybeSingle():{data:null};pvInboxTab=req&&!following?'Requests':pvConversationSetting(id).folder==='general'?'General':'Primary';}else{inboxView.classList.add('pvChatSelected');inboxView.querySelectorAll('.pvThreadPerson').forEach(b=>b.classList.toggle('active',b.dataset.peerId===id));const area=document.getElementById('pvChatArea');if(area&&!area.querySelector('.pvMessageForm'))area.replaceChildren(pvDmLoadingChat());await renderChat(id)}pvRememberInboxPosition();if(!chatPoll)chatPoll=setInterval(()=>{if(!inboxView.classList.contains('hide')&&selectedPeer&&!pvChatPollBusy){pvChatPollBusy=true;renderChat(selectedPeer,true).catch(e=>console.warn('Chat poll:',e)).finally(()=>{pvChatPollBusy=false})}},pvDmRealtimeStatus==='live'?12000:4000)}
+ const {data:req}=await db.from('message_requests').select('sender_id').eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null).maybeSingle();const {data:following}=req?await db.from('follows').select('follower_id').eq('follower_id',id).eq('following_id',user.id).maybeSingle():{data:null};pvInboxTab=req&&!following?'Requests':pvConversationSetting(id).folder==='general'?'General':'Primary';}else{
+ inboxView.querySelectorAll('.pvThreadPerson').forEach(b=>b.classList.toggle('active',b.dataset.peerId===id));
+ const area=document.getElementById('pvChatArea');
+ if(area&&!area.querySelector('.pvMessageForm'))area.replaceChildren(pvDmLoadingChat());
+ await renderChat(id);
+ if(selectedPeer===id)pvShowPreparedChat(id);
+}pvRememberInboxPosition();if(!chatPoll)chatPoll=setInterval(()=>{if(!inboxView.classList.contains('hide')&&selectedPeer&&!pvChatPollBusy){pvChatPollBusy=true;renderChat(selectedPeer,true).catch(e=>console.warn('Chat poll:',e)).finally(()=>{pvChatPollBusy=false})}},pvDmRealtimeStatus==='live'?12000:4000)}
 async function renderChat(id,silent=false){const area=document.getElementById('pvChatArea');if(!area||!user||selectedPeer!==id)return;
 const pollingExisting=!!(silent&&area.querySelector('.pvMessageForm'));
 const uid=user.id;
