@@ -2557,7 +2557,11 @@ async function pvShowConnections(ownerId,kind){
  const people=node('div','pvConnectionsPeople'),more=node('button','pvConnectionsMore','Load more');
  more.type='button';more.hidden=true;card.append(head,people,more);
  pvConnectionsDialog.replaceChildren(card);pvConnectionsDialog.hidden=false;
- requestAnimationFrame(()=>{if(!pvConnectionsDialog.hidden)pvConnectionsDialog.classList.add('pvConnectionsOpen')});
+ // Let WebKit commit the initial small sheet before running the spring pop.
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  if(request===pvConnectionsRequest&&!pvConnectionsDialog.hidden)
+   pvConnectionsDialog.classList.add('pvConnectionsOpen');
+ }));
  let offset=0,loading=false;
  async function loadPage(){
   if(loading||request!==pvConnectionsRequest)return;
@@ -2585,7 +2589,18 @@ async function pvShowConnections(ownerId,kind){
     info.append(name,node('small','',person.display_name||''));
     row.append(avatar,info);
     row.onclick=()=>{pvCloseConnections();openCreator(id)};
+    // Rows arrive asynchronously; CSS nth-child animations often complete
+    // before iOS paints the list. Animate each inserted row explicitly.
+    row.classList.add('pvConnectionEnteringV140');
+    row.style.setProperty('--pvConnectionOrder',String(Math.min(12,people.querySelectorAll('.pvConnectionPerson').length)));
     people.append(row);
+    if(!window.matchMedia('(prefers-reduced-motion:reduce)').matches&&typeof row.animate==='function'){
+     row.animate([
+      {opacity:0,transform:'translate3d(0,18px,0) scale(.94)',filter:'blur(5px)'},
+      {opacity:1,transform:'translate3d(0,-3px,0) scale(1.012)',filter:'blur(0px)',offset:.72},
+      {opacity:1,transform:'translate3d(0,0,0) scale(1)',filter:'blur(0px)'}
+     ],{duration:490,delay:Math.min(420,people.querySelectorAll('.pvConnectionPerson').length*48),easing:'cubic-bezier(.2,.78,.24,1)',fill:'both'}).onfinish=()=>row.classList.remove('pvConnectionEnteringV140');
+    }else row.classList.remove('pvConnectionEnteringV140');
    }
   }
   offset+=rows.length;
