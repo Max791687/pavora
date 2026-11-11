@@ -121,3 +121,27 @@ body:not(.pvReelsMode):not(.pvMessagesMode) header{position:sticky!important;top
 #home #posts>article.post .postfoot button.pvNativeFooterIcon[aria-pressed=true]{color:#9e43e0!important}
 #home #posts>article.post .postfoot button.pvNativeFooterIcon.pvNativeReport{margin-left:auto!important;color:#8f8597!important}
 }
+
+/* v106 iPhone: keep the actual top navigation visible below Dynamic Island/status bar.
+   Fixed header avoids Safari sticky/scroll clipping; reserve exactly its content height. */
+@media(max-width:600px){
+ body:not(.pvReelsMode):not(.pvMessagesMode) > header{
+  display:block!important;visibility:visible!important;opacity:1!important;
+  position:fixed!important;top:env(safe-area-inset-top,0px)!important;left:0!important;right:0!important;
+  width:100%!important;height:55px!important;min-height:55px!important;
+  transform:none!important;filter:none!important;z-index:120!important;
+  background:#fbfafff7!important;border-bottom:1px solid #e9e2f3!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) > header .top{
+  display:flex!important;align-items:center!important;height:55px!important;min-height:55px!important;
+  padding:0 14px!important;visibility:visible!important;opacity:1!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) > header .top .brand{
+  display:inline-flex!important;visibility:visible!important;opacity:1!important;
+  color:#241431!important;-webkit-text-fill-color:#241431!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) > main{
+  padding-top:calc(55px + env(safe-area-inset-top,0px))!important;
+ }
+ body:not(.pvReelsMode):not(.pvMessagesMode) #home .story{margin-top:0!important}
+}
