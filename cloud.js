@@ -2493,9 +2493,43 @@ document.body.append(pvConnectionsDialog);
 let pvConnectionsRequest=0;
 let pvConnectionsCloseTimer=0;
 let pvConnectionsSwipe=null;
+let pvConnectionsPopRaf=0;
+function pvConnectionsPopOpen(card,request){
+ cancelAnimationFrame(pvConnectionsPopRaf);
+ if(!card||!card.isConnected)return;
+ const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ if(reduce)return;
+ const duration=560,start=performance.now();
+ // Inline important overrides old !important scale rules; the actual visible
+ // optical pop must not depend on Safari's transition scheduling.
+ card.style.setProperty('transition','none','important');
+ const smooth=t=>t*t*(3-2*t);
+ function tick(now){
+  if(request!==pvConnectionsRequest||!card.isConnected||pvConnectionsDialog.hidden){
+   card.style.removeProperty('transform');card.style.removeProperty('transition');return;
+  }
+  const t=Math.min(1,(now-start)/duration);
+  let scale,lift;
+  if(t<.48){const p=smooth(t/.48);scale=.76+.30*p;lift=31*(1-p)}
+  else if(t<.75){const p=smooth((t-.48)/.27);scale=1.06-.075*p;lift=-6*(1-p)}
+  else{const p=smooth((t-.75)/.25);scale=.985+.015*p;lift=2*(1-p)}
+  card.style.setProperty('transform',
+   'translate3d(0,'+lift.toFixed(2)+'px,0) scale('+scale.toFixed(4)+')','important');
+  if(t<1)pvConnectionsPopRaf=requestAnimationFrame(tick);
+  else{
+   card.style.removeProperty('transform');
+   card.style.removeProperty('transition');
+   pvConnectionsPopRaf=0;
+  }
+ }
+ pvConnectionsPopRaf=requestAnimationFrame(tick);
+}
 function pvCloseConnections(){
  if(pvConnectionsDialog.hidden||pvConnectionsDialog.classList.contains('pvConnectionsClosing'))return;
  pvConnectionsRequest++;
+ cancelAnimationFrame(pvConnectionsPopRaf);pvConnectionsPopRaf=0;
+ const previousCard=pvConnectionsDialog.querySelector('.pvConnectionsCard');
+ if(previousCard){previousCard.style.removeProperty('transform');previousCard.style.removeProperty('transition')}
  pvConnectionsDialog.classList.remove('pvConnectionsOpen');
  pvConnectionsDialog.classList.add('pvConnectionsClosing');
  clearTimeout(pvConnectionsCloseTimer);
@@ -2559,8 +2593,9 @@ async function pvShowConnections(ownerId,kind){
  pvConnectionsDialog.replaceChildren(card);pvConnectionsDialog.hidden=false;
  // Let WebKit commit the initial small sheet before running the spring pop.
  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-  if(request===pvConnectionsRequest&&!pvConnectionsDialog.hidden)
-   pvConnectionsDialog.classList.add('pvConnectionsOpen');
+  if(request!==pvConnectionsRequest||pvConnectionsDialog.hidden)return;
+  pvConnectionsDialog.classList.add('pvConnectionsOpen');
+  pvConnectionsPopOpen(card,request);
  }));
  let offset=0,loading=false;
  async function loadPage(){
