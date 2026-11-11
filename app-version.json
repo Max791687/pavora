@@ -1,6 +1,6 @@
 {
-  "version": 142,
+  "version": 143,
   "release": "2026-11-11",
-  "name": "PAVORA v142",
-  "notes": "Stronger iPhone-style spring pop when opening Followers and Following, without changing user-row animations."
+  "name": "PAVORA v143",
+  "notes": "Apple-inspired pop and spring settling when opening a chat, without repeating on message updates or typing."
 }
