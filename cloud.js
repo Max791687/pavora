@@ -2582,6 +2582,8 @@ function pvShowPreparedChat(id){
  if(!id||selectedPeer!==id)return;
  const area=document.getElementById('pvChatArea'),list=area?.querySelector('.pvMessages');
  if(!list)return;
+ // Remove transitional placeholders before making the prepared chat visible.
+ area.querySelector('.pvDmLoadingShell')?.remove();
  // The chat is already built; reveal it in one frame after reserving the final pane size.
  requestAnimationFrame(()=>{
   if(selectedPeer!==id||!area.isConnected)return;
