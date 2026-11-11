@@ -1,6 +1,6 @@
 {
-  "version": 123,
+  "version": 124,
   "release": "2026-11-11",
-  "name": "PAVORA v123",
-  "notes": "Smoothed iPhone chat opening by stabilizing loading layout and removing unwanted transition jump."
+  "name": "PAVORA v124",
+  "notes": "Fixed the chat opening jump by preparing latest-message scroll before displaying messages and reserving media height."
 }
