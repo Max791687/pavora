@@ -2540,7 +2540,24 @@ async function pvLoadConversationSettings(){if(!user)return;const {data,error}=a
 function pvConversationSetting(peer){return pvConversationSettings.get(peer)||{folder:'primary',pinned:false,muted:false}}
 async function pvSaveConversationSetting(peer,changes){if(!pvPrefsReady){alert('Run supabase/conversation-preferences.sql in Supabase SQL Editor first.');return false}const next={...pvConversationSetting(peer),...changes};const {error}=await db.from('conversation_preferences').upsert({owner_id:user.id,peer_id:peer,...next,updated_at:new Date().toISOString()},{onConflict:'owner_id,peer_id'});if(error){alert('Cannot update conversation: '+error.message+' — Run supabase/conversation-preferences.sql first.');return false}pvConversationSettings.set(peer,next);return true}
 
-function pvInboxMobileBack(){inboxView.classList.remove('pvChatSelected');pvClearTyping(selectedPeer);pvDmTypingLastSeen=0;selectedPeer=null;window.dispatchEvent(new Event('pv-chat-peer-changed'));pvRememberInboxPosition();const area=document.getElementById('pvChatArea');if(area)area.replaceChildren(pvEmptyChat());}
+function pvInboxMobileBack(){
+ // iOS can keep a tapped thread in :hover/:focus and the old .active state.
+ // Always clear all transient conversation selection state before showing the list.
+ const focus=document.activeElement;
+ if(focus?.closest?.('#pvInboxView'))try{focus.blur()}catch(e){}
+ inboxView.querySelectorAll('.pvThreadPerson.active').forEach(el=>{
+  el.classList.remove('active');
+  el.setAttribute('aria-selected','false');
+ });
+ inboxView.querySelectorAll('.pvChatContextMenu:not(.hide)').forEach(menu=>menu.classList.add('hide'));
+ inboxView.querySelectorAll('.pvChatMore[aria-expanded="true"]').forEach(btn=>btn.setAttribute('aria-expanded','false'));
+ inboxView.classList.remove('pvChatSelected');
+ pvClearTyping(selectedPeer);pvDmTypingLastSeen=0;selectedPeer=null;
+ window.dispatchEvent(new Event('pv-chat-peer-changed'));
+ pvRememberInboxPosition();
+ const area=document.getElementById('pvChatArea');
+ if(area)area.replaceChildren(pvEmptyChat());
+}
 function pvEmptyChat(){const empty=node('div','pvEmptyChat');empty.innerHTML='<div class="pvEmptyIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m21 3-8.5 18-3.5-7.5L2 10z"/><path d="M21 3 9 13.5"/></svg></div><h2>Your messages</h2><p>Send private photos and messages to a friend.</p>';const btn=node('button','pvStartMessage','Send message');btn.onclick=()=>pvNavigate('explore');empty.append(btn);return empty}
 async function loadInbox(){if(!user)return;
 const layout=node('div','pvInboxLayout'),side=node('div','pvInboxSide'),right=node('div','pvChatArea');right.id='pvChatArea';right.append(pvEmptyChat());layout.append(side,right);inboxView.replaceChildren(layout);
