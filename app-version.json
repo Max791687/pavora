@@ -1,6 +1,6 @@
 {
-  "version": 92,
+  "version": 93,
   "release": "2026-11-11",
-  "name": "PAVORA v92",
-  "notes": "Reels layout consolidation and iPhone viewport geometry fix"
+  "name": "PAVORA v93",
+  "notes": "Reference-style Reels and Friends layout; iPhone viewport alignment"
 }
