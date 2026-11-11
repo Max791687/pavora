@@ -1638,4 +1638,93 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
   max-height:195px!important;
  }
 }
+</style><style id="pvHomeLiquidGlassV128">
+/* PAVORA mobile Home: scoped premium Liquid Glass; feed/chat data untouched. */
+@media(max-width:700px){
+ body:not(.pvMessagesMode):not(.pvReelsMode):has(#home:not(.hide)){
+  background:
+   radial-gradient(ellipse 74% 25% at 4% 8%,rgba(183,125,255,.24),transparent 100%),
+   radial-gradient(ellipse 68% 27% at 99% 68%,rgba(247,155,215,.18),transparent 100%),
+   linear-gradient(180deg,#f9f5ff,#f3edfc 52%,#faf6ff)!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode):has(#home:not(.hide)) > header{
+  background:rgba(252,248,255,.69)!important;
+  border-bottom:1px solid rgba(255,255,255,.85)!important;
+  -webkit-backdrop-filter:blur(22px) saturate(1.55)!important;
+  backdrop-filter:blur(22px) saturate(1.55)!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.9),0 6px 24px rgba(97,57,145,.085)!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode):has(#home:not(.hide)) > header :is(.pvTopAction,.pvActivityBell,.pvMobileActivity){
+  border:1px solid rgba(255,255,255,.85)!important;
+  border-radius:14px!important;background:rgba(248,241,255,.57)!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.92),0 4px 12px rgba(92,48,135,.075)!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home .story{
+  width:100%!important;margin:0 0 10px!important;padding:14px 13px 17px!important;
+  background:linear-gradient(125deg,rgba(255,255,255,.68),rgba(245,233,255,.52))!important;
+  border:1px solid rgba(255,255,255,.93)!important;
+  border-radius:19px!important;
+  -webkit-backdrop-filter:blur(15px) saturate(1.35)!important;
+  backdrop-filter:blur(15px) saturate(1.35)!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.96),0 8px 23px rgba(108,62,151,.07)!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home .pvFeedModeTabs{
+  display:flex!important;align-items:center!important;gap:8px!important;
+  min-height:56px!important;margin:0 0 13px!important;padding:7px 10px!important;
+  background:rgba(255,255,255,.59)!important;
+  border:1px solid rgba(255,255,255,.90)!important;
+  border-radius:18px!important;
+  -webkit-backdrop-filter:blur(15px) saturate(1.3)!important;
+  backdrop-filter:blur(15px) saturate(1.3)!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.9),0 5px 15px rgba(104,63,145,.07)!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home .pvFeedModeTabs button{
+  min-height:41px!important;padding:8px 16px!important;
+  border:1px solid rgba(255,255,255,.65)!important;
+  border-radius:14px!important;
+  background:rgba(252,248,255,.42)!important;
+  color:#685575!important;-webkit-text-fill-color:#685575!important;
+  box-shadow:none!important;font-weight:750!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home .pvFeedModeTabs button[aria-pressed=true]{
+  background:linear-gradient(120deg,#8d45de,#c451cf)!important;
+  color:#fff!important;-webkit-text-fill-color:#fff!important;
+  border:1px solid rgba(255,255,255,.45)!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.28),0 5px 13px rgba(130,65,190,.18)!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home :is(#posts > article.post,#posts > .post,.pvDailyCard){
+  margin:0 0 14px!important;width:100%!important;
+  border-radius:20px!important;overflow:hidden!important;
+  border:1px solid rgba(255,255,255,.93)!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(250,243,255,.73))!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.96),0 9px 26px rgba(98,55,143,.085)!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home :is(.posthead,.postbody,.postfoot){
+  background:rgba(255,255,255,.27)!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home .postfoot{
+  border-top:1px solid rgba(222,204,239,.42)!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home #posts .post img{
+  border-radius:0!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode):has(#home:not(.hide)) .pvIconRail{
+  background:rgba(250,246,255,.74)!important;
+  border-top:1px solid rgba(255,255,255,.92)!important;
+  -webkit-backdrop-filter:blur(24px) saturate(1.5)!important;
+  backdrop-filter:blur(24px) saturate(1.5)!important;
+  box-shadow:0 -7px 27px rgba(95,59,135,.11),inset 0 1px rgba(255,255,255,.96)!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode):has(#home:not(.hide)) .pvIconRail .pvRailButton.active{
+  border-radius:17px!important;
+  background:linear-gradient(135deg,rgba(220,189,255,.57),rgba(241,220,255,.64))!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.95),0 4px 15px rgba(128,72,193,.1)!important;
+ }
+}
+@media(prefers-reduced-transparency:reduce){
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home :is(.story,.pvFeedModeTabs,#posts > .post){
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  background:#faf6ff!important;
+ }
+}
 </style></body></html>
