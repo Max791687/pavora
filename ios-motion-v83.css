@@ -58,13 +58,6 @@
  .pvIconRail{touch-action:manipulation;overscroll-behavior:contain}
  .pvRailButton{touch-action:manipulation;user-select:none;-webkit-user-select:none}
  .pvComposeOverlay .pvUnifiedCreate{padding-bottom:max(0px,env(safe-area-inset-bottom,0px))}
- #home .post,#home .pvDailyCard{
-  contain:layout style;
-  content-visibility:auto;
-  contain-intrinsic-size:auto 460px;
- }
- /* Never virtualize focused/interactive cards or overlays. */
- #home .post:focus-within{content-visibility:visible}
 }
 @media(prefers-reduced-motion:reduce){
  body.pvIOSSwitching #home,body.pvIOSSwitching #explore,
