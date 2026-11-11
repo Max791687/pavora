@@ -5,6 +5,7 @@
 'use strict';
 const REFRESH_MS=20000,HEARTBEAT_MS=15000,ONLINE_AGE_MS=300000;
 let db=null,uid=null,timer=null,heartbeatTimer=null,inFlight=null,busy=false,request=0,heartbeatBusy=false,pendingHeartbeat=false;
+const lastPresence=new Map(); // Reuse known status immediately when the inbox is rebuilt.
 const fmt=t=>{
  const ms=Date.now()-new Date(t).getTime();
  if(!Number.isFinite(ms)||ms<0)return 'Last seen recently';
@@ -22,6 +23,7 @@ function label(node,text,state){
  node.textContent=text;
  node.dataset.pvPresence=state;
  node.hidden=!text;
+ if(text&&node.dataset.pvPresencePeer)lastPresence.set(node.dataset.pvPresencePeer,{text,state});
 }
 function targets(){
  return [...document.querySelectorAll('[data-pv-presence-peer]')].filter(e=>e.isConnected);
@@ -86,6 +88,7 @@ function stop(){
    if(error)console.warn('PAVORA presence sign-out:',error.message)
   });
  }
+ lastPresence.clear();
  document.querySelectorAll('[data-pv-presence-peer]').forEach(n=>label(n,'','private'));
 }
 function start(client,userId){
@@ -105,7 +108,10 @@ function attach(parent,peerId,style='inline'){
  const n=document.createElement('span');
  n.className='pvPresenceLabel pvPresence-'+style;
  n.dataset.pvPresencePeer=peerId;n.setAttribute('aria-live','off');
- n.hidden=true;parent.append(n);
+ const cached=lastPresence.get(peerId);
+ if(cached){n.textContent=cached.text;n.dataset.pvPresence=cached.state;n.hidden=false}
+ else n.hidden=true;
+ parent.append(n);
  // Coalesce many attachments into one server request when loading an inbox.
  if(!inFlight)inFlight=setTimeout(()=>{inFlight=null;refresh()},140);
  return n;
