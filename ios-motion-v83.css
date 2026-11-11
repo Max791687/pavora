@@ -1,0 +1,73 @@
+/* PAVORA v83 | iOS-inspired motion polish. No behavioral or data changes. */
+:root{
+ --pv-motion-ease:cubic-bezier(.22,1,.36,1);
+ --pv-motion-soft:cubic-bezier(.2,.8,.2,1);
+}
+@media(prefers-reduced-motion:no-preference){
+ .pvRailButton,.pvFeedModeTabs button,.pvTopAction,.pvCreateTop,
+ .pvProfileTabs button,.pvTabs button,.pvStoryAdd,.pvStoryItem,
+ #profile button,#explore button,.pvIconRail button{
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .24s var(--pv-motion-ease),background-color .2s ease,color .2s ease,box-shadow .25s ease,opacity .2s ease;
+ }
+ .pvRailButton:active,.pvTopAction:active,.pvCreateTop:active,
+ .pvFeedModeTabs button:active,.pvTabs button:active,
+ .pvStoryAdd:active,.pvStoryItem:active{
+  transform:scale(.91)!important;
+ }
+ #profile button:active,#explore button:active{transform:scale(.965)}
+ #home .post .postfoot button,#home .post .pvFeedMenuTrigger{
+  transition:transform .19s var(--pv-motion-ease),color .18s ease!important;
+ }
+ #home .post .postfoot button:active{transform:scale(.88)}
+ #home .post .postfoot button[aria-pressed=true]{transform:scale(1.025)}
+ #home .pvDailyPhotoWrap img,#home .post>img{
+  backface-visibility:hidden;
+ }
+ body.pvIOSSwitching #home:not(.hide),
+ body.pvIOSSwitching #explore:not(.hide),
+ body.pvIOSSwitching #profile:not(.hide),
+ body.pvIOSSwitching #pvInboxView:not(.hide){
+  animation:pvIOSScreenArrive .26s var(--pv-motion-ease) both!important;
+ }
+ @keyframes pvIOSScreenArrive{
+  from{opacity:.86;transform:translate3d(0,9px,0)}
+  to{opacity:1;transform:translate3d(0,0,0)}
+ }
+ .pvComposeOverlay:not(.hide){
+  animation:pvIOSBackdropIn .22s ease both;
+ }
+ @keyframes pvIOSBackdropIn{from{opacity:.7}to{opacity:1}}
+ .pvComposeOverlay:not(.hide) .pvUnifiedCreate{
+  animation:pvIOSSheetIn .38s var(--pv-motion-ease) both!important;
+ }
+ @keyframes pvIOSSheetIn{
+  from{transform:translate3d(0,32px,0) scale(.985);opacity:.55}
+  to{transform:translate3d(0,0,0) scale(1);opacity:1}
+ }
+ .pvCreateDrop,.pvChooseMedia,.pvUnifiedPublish{
+  transition:transform .22s var(--pv-motion-ease),background-color .2s ease,box-shadow .2s ease;
+ }
+ .pvChooseMedia:active,.pvUnifiedPublish:active{transform:scale(.965)}
+ .pvReelAction:active,.pvSuiteIconAction:active{transform:scale(.88)!important}
+ #pvInboxView .pvThreadEntry:active{transform:scale(.985)}
+ .pvChatSend:active{transform:scale(.91)}
+}
+@media(max-width:700px){
+ /* Keep the tactile home indicator clear of navigation and sheets. */
+ .pvIconRail{touch-action:manipulation;overscroll-behavior:contain}
+ .pvRailButton{touch-action:manipulation;user-select:none;-webkit-user-select:none}
+ .pvComposeOverlay .pvUnifiedCreate{padding-bottom:max(0px,env(safe-area-inset-bottom,0px))}
+ #home .post,#home .pvDailyCard{
+  contain:layout style;
+  content-visibility:auto;
+  contain-intrinsic-size:auto 460px;
+ }
+ /* Never virtualize focused/interactive cards or overlays. */
+ #home .post:focus-within{content-visibility:visible}
+}
+@media(prefers-reduced-motion:reduce){
+ body.pvIOSSwitching #home,body.pvIOSSwitching #explore,
+ body.pvIOSSwitching #profile,body.pvIOSSwitching #pvInboxView,
+ .pvComposeOverlay .pvUnifiedCreate,.pvComposeOverlay{animation:none!important;transition:none!important}
+}
