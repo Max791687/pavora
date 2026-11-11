@@ -1,6 +1,6 @@
 {
-  "version": 143,
+  "version": 144,
   "release": "2026-11-11",
-  "name": "PAVORA v143",
-  "notes": "Apple-inspired pop and spring settling when opening a chat, without repeating on message updates or typing."
+  "name": "PAVORA v144",
+  "notes": "Visible one-time spring pop on opening real chat and staggered user-card animations in Messages inbox."
 }
