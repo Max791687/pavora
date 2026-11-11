@@ -1784,4 +1784,47 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
 @media(prefers-reduced-motion:reduce){
  .pvTouchPressed130,.pvTouchPop130{transform:none!important;animation:none!important}
 }
-</style><script src="./ios-tactile-tap-v130.js?v=20261111-touch-spring-v130"></script><script src="./post-double-tap-ios-v131.js?v=20261111-post-doubletap-v131"></script></body></html>
+</style><script src="./ios-tactile-tap-v130.js?v=20261111-touch-spring-v130"></script><script src="./post-double-tap-ios-v131.js?v=20261111-virtual-wrapper-v132"></script><style id="pvGlassButtonsV132">
+/* Frosted, tactile controls on mobile PAVORA home only. Preserve all JS handlers. */
+@media(max-width:700px){
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home :is(.pvFeedModeTabs button,.postfoot button,.pvStoryAdd,.story button,.pvDailyPostTools button),
+ body:not(.pvMessagesMode):not(.pvReelsMode):has(#home:not(.hide)) :is(.pvIconRail .pvRailButton,header .pvTopAction,header .pvMobileActivity){
+  position:relative!important;
+  border-radius:15px!important;
+  border:1px solid rgba(255,255,255,.78)!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.72),rgba(238,221,255,.42))!important;
+  -webkit-backdrop-filter:blur(16px) saturate(1.45)!important;
+  backdrop-filter:blur(16px) saturate(1.45)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.96),inset 0 -1px 0 rgba(170,120,210,.1),0 5px 14px rgba(103,65,141,.11)!important;
+  color:#604576!important;-webkit-text-fill-color:#604576!important;
+  -webkit-tap-highlight-color:transparent!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home .postfoot button{
+  padding:7px 9px!important;min-height:39px!important;
+  margin-right:5px!important;
+  font-size:12px!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home .pvFeedModeTabs button[aria-pressed=true],
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home .postfoot button[aria-pressed=true],
+ body:not(.pvMessagesMode):not(.pvReelsMode):has(#home:not(.hide)) .pvIconRail .pvRailButton.active{
+  background:linear-gradient(140deg,rgba(175,114,238,.57),rgba(245,190,230,.43))!important;
+  border-color:rgba(255,255,255,.93)!important;
+  color:#7133b3!important;-webkit-text-fill-color:#7133b3!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 5px 18px rgba(142,83,192,.19)!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home .postfoot button[data-pv-like-post]{
+  color:#7949a3!important;-webkit-text-fill-color:#7949a3!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home .pvDailyPhotoWrap{
+  touch-action:pan-y!important;position:relative;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home .pvDailyPhotoWrap img{
+  pointer-events:auto;
+ }
+}
+@media(prefers-reduced-transparency:reduce){
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home .postfoot button{
+  background:#f6efff!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+ }
+}
+</style></body></html>
