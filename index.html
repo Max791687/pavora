@@ -1727,4 +1727,34 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
   background:#faf6ff!important;
  }
 }
+</style><style id="pvAppleTapMotionV129">
+/* PAVORA v129: Apple-inspired tactile press & spring release.
+   Only small Home controls animate; never transform scrolling cards or video. */
+@media(max-width:700px) and (prefers-reduced-motion:no-preference){
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home :is(.pvFeedModeTabs button,.postfoot button,.story button,.pvStoryAdd,.pv96Creator button),
+ body:not(.pvMessagesMode):not(.pvReelsMode):has(#home:not(.hide)) :is(.pvIconRail .pvRailButton,header .pvTopAction,header .pvActivityBell,header .pvMobileActivity){
+  -webkit-tap-highlight-color:transparent!important;
+  transform-origin:center center!important;
+  transition:transform .28s cubic-bezier(.22,1.55,.45,1),background-color .18s ease,box-shadow .2s ease!important;
+  will-change:auto!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home :is(.pvFeedModeTabs button,.postfoot button,.story button,.pvStoryAdd,.pv96Creator button):active,
+ body:not(.pvMessagesMode):not(.pvReelsMode):has(#home:not(.hide)) :is(.pvIconRail .pvRailButton,header .pvTopAction,header .pvActivityBell,header .pvMobileActivity):active{
+  transform:scale(.94)!important;
+  transition-duration:.11s!important;
+  transition-timing-function:cubic-bezier(.2,.7,.25,1)!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode):has(#home:not(.hide)) .pvIconRail .pvRailButton:active svg{
+  transform:scale(.91)!important;transition:transform .11s ease-out!important;
+ }
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home .postfoot button:active{
+  color:#8f44d4!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ body:not(.pvMessagesMode):not(.pvReelsMode) #home :is(.pvFeedModeTabs button,.postfoot button,.story button,.pvStoryAdd),
+ body:not(.pvMessagesMode):not(.pvReelsMode) .pvIconRail .pvRailButton{
+  animation:none!important;transition:none!important;
+ }
+}
 </style></body></html>
