@@ -44,7 +44,11 @@
  }
  function paint(g,item,x){
   if(!item)return;
-  g.hover=item;
+  if(g.hover!==item){
+   g.hover?.classList.remove('pvSlideIconHovered135');
+   g.hover=item;
+  }
+  item.classList.add('pvSlideIconHovered135');
   const host=g.host.getBoundingClientRect(),rect=item.getBoundingClientRect();
   const width=rect.width,height=rect.height;
   // Finger-following glass, not the stepped target button positions.
@@ -78,6 +82,7 @@
   const g=gesture;gesture=null;if(!g)return;
   if(g.raf)cancelAnimationFrame(g.raf);
   g.host.classList.remove('pvSlideSelecting133');
+  g.hover?.classList.remove('pvSlideIconHovered135');
   g.layer.remove();
  }
  document.addEventListener('touchstart',e=>{
