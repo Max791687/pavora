@@ -2745,7 +2745,23 @@ async function pvLoadConversationSettings(){if(!user)return;const {data,error}=a
 function pvConversationSetting(peer){return pvConversationSettings.get(peer)||{folder:'primary',pinned:false,muted:false}}
 async function pvSaveConversationSetting(peer,changes){if(!pvPrefsReady){alert('Run supabase/conversation-preferences.sql in Supabase SQL Editor first.');return false}const next={...pvConversationSetting(peer),...changes};const {error}=await db.from('conversation_preferences').upsert({owner_id:user.id,peer_id:peer,...next,updated_at:new Date().toISOString()},{onConflict:'owner_id,peer_id'});if(error){alert('Cannot update conversation: '+error.message+' — Run supabase/conversation-preferences.sql first.');return false}pvConversationSettings.set(peer,next);return true}
 
+function pvDmPlayOpenPopV143(area,peer){
+ if(window.innerWidth>700||window.matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+ if(!area?.isConnected||selectedPeer!==peer||document.activeElement?.matches?.('#pvInboxView .pvMessageForm input'))return;
+ area.classList.remove('pvDmOpenPopV143');
+ // Trigger once when the real chat replaces the loading skeleton.
+ requestAnimationFrame(()=>{
+  if(!area.isConnected||selectedPeer!==peer||!inboxView.classList.contains('pvChatSelected'))return;
+  void area.offsetWidth;
+  area.classList.add('pvDmOpenPopV143');
+  const clean=()=>{area.classList.remove('pvDmOpenPopV143');area.removeEventListener('animationend',finish)};
+  const finish=e=>{if(e.target===area&&e.animationName==='pvChatSpringPopV143')clean()};
+  area.addEventListener('animationend',finish);
+  setTimeout(clean,680);
+ });
+}
 function pvInboxMobileBack(){
+ document.getElementById('pvChatArea')?.classList.remove('pvDmOpenPopV143');
  // iOS can keep a tapped thread in :hover/:focus and the old .active state.
  // Always clear all transient conversation selection state before showing the list.
  const focus=document.activeElement;
@@ -3151,6 +3167,7 @@ if(pvOpeningSkeleton){
   if(selectedPeer!==openingPeer||!list.isConnected)return;
   list.scrollTop=list.scrollHeight;
   pvOpeningSkeleton.remove();
+  pvDmPlayOpenPopV143(area,openingPeer);
  });
 }
 }
