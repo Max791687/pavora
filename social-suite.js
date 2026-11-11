@@ -161,12 +161,19 @@ const launch=async()=>{
 
 const pvOwnStoryStyle=el('style');
 pvOwnStoryStyle.textContent=`
-#stories .pvStoryMine{position:relative;overflow:visible;background:#efe3ff;color:#573276}
+#stories .pvStoryAdd.pvStoryNoActive{position:relative!important;overflow:visible!important}
+#stories .pvStoryMine{position:relative;overflow:hidden;background:#efe3ff;color:#573276}
 #stories .pvStoryMine img{border-radius:50%;overflow:hidden}
-#stories .pvStoryMinePlus{position:absolute;right:-5px;bottom:-3px;display:grid;place-items:center;
- width:21px;height:21px;background:#8d43df;color:#fff;font:800 15px/1 system-ui,sans-serif;
- border:2px solid #fff;border-radius:50%;box-shadow:0 2px 5px #55357830}
-#stories .pvStoryMine.pvStoryIsActive{border:3px solid #bd4ee4}
+#stories .pvStoryAdd.pvStoryNoActive .pvStoryMine{border:2px solid #e8def3!important;box-shadow:none!important}
+#stories .pvStoryAdd.pvStoryNoActive .pvStoryMinePlus{
+ position:absolute!important;right:1px!important;top:37px!important;bottom:auto!important;
+ z-index:5!important;display:grid!important;place-items:center!important;
+ width:22px!important;height:22px!important;min-width:22px!important;
+ background:#8d43df!important;color:#fff!important;font:800 17px/1 system-ui,sans-serif!important;
+ border:2px solid #fff!important;border-radius:50%!important;box-shadow:0 2px 6px #55357845!important;
+ pointer-events:none!important;
+}
+#stories .pvStoryMine.pvStoryIsActive{border:3px solid #bd4ee4!important}
 `;
 document.head.append(pvOwnStoryStyle);
 const pvViewStyle=el('style');pvViewStyle.textContent="\n.pvLiveViews{padding:15px;background:#26212e;border:1px solid #43364e;border-radius:14px;margin:7px 0}\n.pvLiveViewsTop{display:flex;justify-content:space-between;align-items:center;gap:12px}\n.pvLiveViewsTop strong{font-size:17px}.pvLiveViewsTop strong span{color:#d9afff;font-variant-numeric:tabular-nums}\n.pvLiveViewsTop small{color:#bca4d3;font-size:11px}\n.pvLiveViewList{display:flex;flex-direction:column;max-height:290px;overflow:auto;margin-top:10px}\n.pvLiveViewRow{display:flex;align-items:center;gap:11px;padding:11px 2px;border-bottom:1px solid #403648}\n.pvLiveViewRow:last-child{border-bottom:0}\n.pvLiveViewAvatar{height:39px;width:39px;flex:none;display:grid;place-items:center;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#8852dd,#c85d9f);font-weight:800}\n.pvLiveViewAvatar img{width:100%;height:100%;object-fit:cover}\n.pvLiveViewIdentity{flex:1;min-width:0}.pvLiveViewIdentity strong{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pvLiveViewIdentity small{display:block;font-size:11px;color:#b9aac9}\n.pvLiveViewTime{white-space:nowrap;color:#ad9dbd;font-size:11px}.pvLiveViewEmpty{color:#bba9cf;font-size:12px;line-height:1.6;padding:16px 3px}\n";document.head.append(pvViewStyle);
@@ -359,11 +366,15 @@ kit.renderStories=async(bar,opts={})=>{
    circle.append(img);
   }else circle.textContent=(myDetails.username||'?')[0].toUpperCase();
   if(myActiveStory)circle.classList.add('pvStoryIsActive');
-  else{
+  else add.classList.add('pvStoryNoActive');
+  add.append(circle);
+  if(!myActiveStory){
+   // Badge must sit OUTSIDE the cropped circular avatar.
    const plus=el('span','pvStoryMinePlus','+');
-   circle.append(plus);
+   plus.setAttribute('aria-hidden','true');
+   add.append(plus);
   }
-  add.append(circle,el('small','','Your story'));
+  add.append(el('small','','Your story'));
   add.onclick=()=>myActiveStory?showStory(myActiveStory):launch();
   fragment.append(add);
   const grouped=new Set([person.id]);
