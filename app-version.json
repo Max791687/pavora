@@ -1,6 +1,6 @@
 {
-  "version": 119,
+  "version": 120,
   "release": "2026-11-11",
-  "name": "PAVORA v119",
-  "notes": "Fixed iPhone chat row alignment and made General/Primary conversation menu actions tappable."
+  "name": "PAVORA v120",
+  "notes": "More premium Liquid Glass effect across Messages, tabs, search, chat list and option menus."
 }
