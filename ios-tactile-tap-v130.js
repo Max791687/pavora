@@ -30,10 +30,11 @@
  const enabled=()=>window.matchMedia('(max-width:700px)').matches&&!reduced.matches;
  const current=new Map();
  const match=(node)=>node?.closest?.(selector);
- let preventSyntheticClickUntil=0;
+ const recentlyReleased=new WeakMap();
  function reset(el,animate){
   const state=current.get(el);if(!state)return;
   current.delete(el);
+  recentlyReleased.set(el,performance.now());
   if(state.timer)clearTimeout(state.timer);
   const remaining=Math.max(0,95-(performance.now()-state.started));
   setTimeout(()=>{
@@ -72,7 +73,7 @@
   // Some iOS controls navigate immediately after pointerup; run a visible
   // pop on the still-mounted nav control without changing its click behavior.
   const el=match(event.target);
-  if(!el||current.has(el))return;
+  if(!el||current.has(el)||performance.now()-(recentlyReleased.get(el)||0)<500)return;
   el.classList.remove('pvTouchPop130');
   void el.offsetWidth;
   el.classList.add('pvTouchPop130');
