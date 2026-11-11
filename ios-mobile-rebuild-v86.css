@@ -94,8 +94,11 @@ body:not(.pvReelsMode):not(.pvMessagesMode) #profile{background:#fff!important;m
  background:#efe6fa!important;color:#4d3270!important;border:1px solid #e1d0f1!important;
  font-size:12px!important;border-radius:10px!important;min-height:38px!important;white-space:normal!important;height:auto!important}
 #profile .pvMobileToolsOpen .pvMobileToolsToggle{background:#e5d5f6!important}
-#profile #pvMobileSignout{display:block!important;width:100%;margin-top:12px;background:#f6e8ef!important;color:#a02a5a!important;border:1px solid #edd4df!important;border-radius:10px!important;padding:10px!important}
+#profile #signout.pvMobileSignout{display:block!important;width:100%;margin-top:12px;background:#f6e8ef!important;color:#a02a5a!important;border:1px solid #edd4df!important;border-radius:10px!important;padding:10px!important}
 #profile .pvMobileSettings{padding:0 14px}
+#profile .pvMobileSettings .pvMobileToolsBody[hidden]{display:none!important}
+#profile .pvMobileSettings .pvMobilePushSetting{display:inline-flex;max-width:none!important;width:100%;justify-content:center;white-space:normal;background:#efe6f9!important;color:#50306d!important;border-radius:11px!important;padding:11px!important;margin:8px 0!important}
+#profile .pvMobileSettings #signout{margin:9px 0 0!important;font-size:13px!important;min-height:40px!important}
 body:not(.pvReelsMode):not(.pvMessagesMode) #explore{background:#fff!important;padding:12px 10px!important}
 body:not(.pvReelsMode):not(.pvMessagesMode) #explore .pvExploreSearchWrap{margin:0 0 11px!important}
 }
