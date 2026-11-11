@@ -145,3 +145,30 @@ body:not(.pvReelsMode):not(.pvMessagesMode) header{position:sticky!important;top
  }
  body:not(.pvReelsMode):not(.pvMessagesMode) #home .story{margin-top:0!important}
 }
+
+/* v107: iPhone message inbox uses the full viewport; remove legacy 180px thread cap. */
+@media(max-width:700px){
+ body.pvMessagesMode #pvInboxView .pvInboxLayout{
+  display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+  height:calc(100dvh - 63px - env(safe-area-inset-bottom,0px))!important;
+  min-height:0!important;max-height:none!important;overflow:hidden!important;
+ }
+ body.pvMessagesMode #pvInboxView .pvInboxSide{
+  display:flex!important;flex-direction:column!important;
+  height:100%!important;min-height:0!important;max-height:none!important;
+  overflow:hidden!important;
+ }
+ body.pvMessagesMode #pvInboxView .pvThreadList{
+  flex:1 1 auto!important;min-height:0!important;max-height:none!important;
+  height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvInboxSide{display:none!important}
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatArea{
+  display:flex!important;min-height:0!important;height:100%!important;
+ }
+ body.pvMessagesMode #pvInboxView .pvThreadEntry{
+  flex-shrink:0!important;min-height:70px!important;
+ }
+}
