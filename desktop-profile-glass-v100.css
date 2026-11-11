@@ -154,3 +154,36 @@
   width:93px!important;height:93px!important;min-width:93px!important
  }
 }
+
+/* v102: contrast-safe profile controls; supersede broad profile button text-fill */
+body:not(.pvReelsMode):not(.pvMessagesMode) #profile #pvTestSharingBar{
+  background:linear-gradient(135deg,#ffffffed,#f0e5ffed)!important;
+  border:1px solid #dac3f1!important;
+  box-shadow:0 8px 24px #60408517!important;
+}
+body:not(.pvReelsMode):not(.pvMessagesMode) #profile #pvTestSharingBar button:not([data-enabled="true"]){
+  background:#63319b!important;
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+  border:1px solid #63319b!important;
+  opacity:1!important;
+}
+body:not(.pvReelsMode):not(.pvMessagesMode) #profile #pvTestSharingBar button[data-enabled="true"]{
+  background:#fff0f3!important;
+  color:#8b2140!important;
+  -webkit-text-fill-color:#8b2140!important;
+  border:1px solid #bb6380!important;
+}
+body:not(.pvReelsMode):not(.pvMessagesMode) #profile #pvTestSharingBar small{
+  color:#4c3b60!important;
+  -webkit-text-fill-color:#4c3b60!important;
+  opacity:1!important;
+}
+body:not(.pvReelsMode):not(.pvMessagesMode) #profile #pvProfileToolsRow .pvHubLauncher,
+body:not(.pvReelsMode):not(.pvMessagesMode) #profile .pvHubLauncher{
+  color:#ffffff!important;
+  -webkit-text-fill-color:#ffffff!important;
+  background:#59318c!important;
+  border:1px solid #7749ae!important;
+  opacity:1!important;
+}
