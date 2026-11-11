@@ -2505,4 +2505,79 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
   object-fit:contain!important;
  }
 }
+</style>
+<style id="pvDmReadableHeaderV147">
+/* DM-only: protect the identity from translucent background artwork and iOS blur.
+   Do not modify the existing chat entrance animation or message positioning. */
+@media(max-width:700px){
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatTop{
+  position:relative!important;z-index:35!important;
+  isolation:isolate!important;opacity:1!important;visibility:visible!important;
+  background:rgba(255,255,255,.97)!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  border-bottom:1px solid rgba(86,58,109,.12)!important;
+  box-shadow:0 4px 18px rgba(60,36,84,.06)!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatTop::before,
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatTop::after{
+  filter:none!important;opacity:0!important;pointer-events:none!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatWho{
+  display:flex!important;align-items:center!important;min-width:0!important;
+  flex:1 1 0!important;gap:9px!important;
+  opacity:1!important;visibility:visible!important;
+  filter:none!important;transform:none!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatHeaderAvatar{
+  flex:0 0 42px!important;width:42px!important;min-width:42px!important;
+  height:42px!important;border-radius:50%!important;
+  overflow:hidden!important;opacity:1!important;filter:none!important;
+  background:#efe8f3!important;border:1px solid rgba(92,58,116,.14)!important;
+  padding:0!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatHeaderAvatar img{
+  display:block!important;width:100%!important;height:100%!important;
+  object-fit:cover!important;opacity:1!important;filter:none!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatHeaderIdentity{
+  display:flex!important;flex:1 1 0!important;flex-direction:column!important;
+  align-items:flex-start!important;justify-content:center!important;
+  gap:2px!important;min-width:0!important;padding:0!important;
+  background:transparent!important;border:0!important;
+  opacity:1!important;visibility:visible!important;filter:none!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  text-align:left!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatHeaderIdentity h3{
+  display:block!important;width:100%!important;max-width:100%!important;
+  margin:0!important;font-size:16px!important;font-weight:800!important;
+  line-height:1.2!important;letter-spacing:-.2px!important;
+  color:#211629!important;-webkit-text-fill-color:#211629!important;
+  opacity:1!important;visibility:visible!important;filter:none!important;
+  overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatHeaderIdentity p{
+  display:block!important;width:100%!important;max-width:100%!important;
+  margin:0!important;font-size:12px!important;font-weight:550!important;
+  line-height:1.25!important;color:#6b6074!important;
+  -webkit-text-fill-color:#6b6074!important;
+  opacity:1!important;filter:none!important;overflow:hidden!important;
+  text-overflow:ellipsis!important;white-space:nowrap!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatHeaderIdentity .pvPresence-chat:not([hidden]){
+  display:block!important;max-width:100%!important;margin-top:1px!important;
+  color:#756a7c!important;-webkit-text-fill-color:#756a7c!important;
+  font-size:11px!important;line-height:14px!important;opacity:1!important;
+  overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatHeaderIdentity .pvPresence-chat[data-pv-presence="online"]{
+  color:#138d52!important;-webkit-text-fill-color:#138d52!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatTop :is(.pvChatBack,.pvCallAction,.pvChatInfoButton,.pvDmSearchButton,.pvChatThemeTrigger){
+  color:#2b1d36!important;-webkit-text-fill-color:#2b1d36!important;
+  opacity:1!important;visibility:visible!important;filter:none!important;
+  background:rgba(249,246,252,.96)!important;
+  border:1px solid rgba(105,78,126,.12)!important;
+ }
+}
 </style></body></html>
