@@ -996,6 +996,7 @@ async function refresh(){
    const {data,error}=await window.PVKit.db.from('profiles').select('id,username,avatar_url').neq('id',user.id).limit(8);
    if(!error&&Array.isArray(data)&&data.length){
     paint(data.filter(x=>x.username).slice(0,5),false);
+    inFlight=false;
     return;
    }
   }
