@@ -172,3 +172,20 @@ body:not(.pvReelsMode):not(.pvMessagesMode) header{position:sticky!important;top
   flex-shrink:0!important;min-height:70px!important;
  }
 }
+
+/* v109: iOS inbox uses native vertical scrolling, without page bounce or row swipe capture. */
+@media(max-width:700px){
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvThreadList{
+  touch-action:pan-y!important;overscroll-behavior-y:contain!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  scroll-behavior:auto!important;
+ }
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvThreadPerson{
+  touch-action:pan-y!important;user-select:none!important;-webkit-user-select:none!important;
+  -webkit-tap-highlight-color:transparent;
+ }
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvThreadEntry{
+  scroll-snap-align:none!important;
+ }
+}
