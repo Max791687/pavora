@@ -2262,7 +2262,7 @@ function pvDmDecorateContent(list,messages,peer){
    const isVideo=msg.media_type?.startsWith('video/');
    const media=node(isVideo?'video':'img','pvDmAttachment'+(isVideo?' video':''));
    if(isVideo){media.controls=true;media.playsInline=true;media.preload='none'}
-   else {media.loading='lazy';media.alt='Shared photo'}
+   else {media.loading='eager';media.decoding='async';media.alt='Shared photo'}
 // Reserve a stable media slot before signed URLs return to avoid chat jumping.
 media.style.width='min(260px,67vw)';
 media.style.height=isVideo?'195px':'195px';
@@ -2752,27 +2752,33 @@ function pvDmPlayOpenPopV144(area,peer){
  if(window.innerWidth>700||window.matchMedia('(prefers-reduced-motion:reduce)').matches||!area?.isConnected)return;
  if(document.activeElement?.matches?.('#pvInboxView .pvMessageForm input'))return;
  cancelAnimationFrame(pvDmOpenPopFrameV144);
- const duration=540,started=performance.now();
- const curve=t=>t*t*(3-2*t);
- // Explicit per-frame inline transform wins over old 'transform:none!important'
- // rules, without changing the chat's size, scrollTop or keyboard geometry.
- area.style.setProperty('will-change','transform,opacity','important');
+ const duration=460,started=performance.now();
+ const smooth=t=>t*t*(3-2*t);
+ // Animate the individual CSS 'scale' property only. Scaling via transform
+ // creates a new containing block and snaps the fixed iOS DM at animation end.
+ // Keep viewport geometry and message scroll offsets untouched.
+ area.style.removeProperty('transform');
+ area.style.removeProperty('will-change');
+ area.style.setProperty('transform-origin','center center','important');
+ area.style.setProperty('will-change','scale','important');
+ function cleanup(){
+  cancelAnimationFrame(pvDmOpenPopFrameV144);pvDmOpenPopFrameV144=0;
+  // Last painted scale is 1, so removing it cannot cause a snap.
+  area.style.removeProperty('scale');
+  area.style.removeProperty('will-change');
+  area.style.removeProperty('transform-origin');
+ }
  function frame(now){
   if(!area.isConnected||selectedPeer!==peer||!inboxView.classList.contains('pvChatSelected')){
    cleanup();return;
   }
   const t=Math.min(1,(now-started)/duration);
-  let scale,lift;
-  if(t<.48){let p=curve(t/.48);scale=.87+.165*p;lift=16*(1-p)}
-  else if(t<.74){let p=curve((t-.48)/.26);scale=1.035-.05*p;lift=-3*(1-p)}
-  else{let p=curve((t-.74)/.26);scale=.985+.015*p;lift=0}
-  area.style.setProperty('transform','translate3d(0,'+lift.toFixed(2)+'px,0) scale('+scale.toFixed(4)+')','important');
+  let scale;
+  if(t<.64){let p=smooth(t/.64);scale=.94+.075*p}
+  else{let p=smooth((t-.64)/.36);scale=1.015-.015*p}
+  area.style.setProperty('scale',scale.toFixed(4),'important');
   if(t<1)pvDmOpenPopFrameV144=requestAnimationFrame(frame);
   else cleanup();
- }
- function cleanup(){
-  cancelAnimationFrame(pvDmOpenPopFrameV144);pvDmOpenPopFrameV144=0;
-  area.style.removeProperty('transform');area.style.removeProperty('will-change');
  }
  pvDmOpenPopFrameV144=requestAnimationFrame(frame);
 }
@@ -2797,7 +2803,7 @@ function pvInboxMobileBack(){
  pvDmOpenPopPendingV144=null;
  cancelAnimationFrame(pvDmOpenPopFrameV144);
  const oldArea=document.getElementById('pvChatArea');
- if(oldArea){oldArea.style.removeProperty('transform');oldArea.style.removeProperty('will-change')}
+ if(oldArea){oldArea.style.removeProperty('transform');oldArea.style.removeProperty('scale');oldArea.style.removeProperty('will-change');oldArea.style.removeProperty('transform-origin')}
  document.getElementById('pvChatArea')?.classList.remove('pvDmOpenPopV143');
  // iOS can keep a tapped thread in :hover/:focus and the old .active state.
  // Always clear all transient conversation selection state before showing the list.
