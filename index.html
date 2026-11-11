@@ -2580,4 +2580,57 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
   border:1px solid rgba(105,78,126,.12)!important;
  }
 }
+</style>
+<style id="pvDmHeaderLayoutV148">
+/* iPhone DM: the peer identity must have room even with call/media controls. */
+@media(max-width:700px){
+ body.pvMessagesMode:not(.pvDmKeyboardOpen) #pvInboxView.pvChatSelected .pvChatArea{
+  padding-top:max(59px,env(safe-area-inset-top,0px))!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatTop{
+  width:100%!important;box-sizing:border-box!important;
+  display:flex!important;align-items:center!important;justify-content:flex-start!important;
+  flex-wrap:nowrap!important;gap:9px!important;padding:9px 13px!important;
+  min-height:68px!important;max-height:none!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatBack{
+  flex:0 0 38px!important;width:38px!important;min-width:38px!important;
+  height:38px!important;padding:0!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatWho{
+  flex:1 1 auto!important;width:auto!important;min-width:0!important;
+  overflow:hidden!important;gap:9px!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatHeaderAvatar{
+  width:43px!important;min-width:43px!important;height:43px!important;
+  flex:0 0 43px!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatHeaderIdentity{
+  flex:1 1 auto!important;min-width:0!important;max-width:none!important;
+  overflow:hidden!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatHeaderIdentity h3{
+  width:100%!important;font-size:16px!important;font-weight:800!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatTop .pvCallActionGroup{
+  flex:0 0 auto!important;display:flex!important;align-items:center!important;gap:3px!important;
+  margin:0!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatTop .pvCallAction{
+  flex:0 0 34px!important;width:34px!important;min-width:34px!important;
+  height:36px!important;padding:5px!important;
+ }
+ /* Secondary commands still exist in the DOM; prioritize the name on narrow phones. */
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatTop :is(.pvChatInfoButton,.pvDmSearchButton,.pvChatThemeTrigger){
+  display:none!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatTop .pvDmRealtimeLabel{
+  display:none!important;
+ }
+}
+@media(max-width:380px){
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatTop{gap:6px!important;padding-left:8px!important;padding-right:8px!important}
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatBack{flex-basis:34px!important;width:34px!important;min-width:34px!important}
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatHeaderAvatar{flex-basis:38px!important;width:38px!important;min-width:38px!important;height:38px!important}
+}
 </style></body></html>
