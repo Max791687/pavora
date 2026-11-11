@@ -1,0 +1,90 @@
+/* PAVORA v92 — one canonical phone Reels layout.
+ * Replaces conflicting v88/v90 experimental style sheets.
+ * Uses measured screen size from reels-layout-v92.js.
+ */
+@media(max-width:700px){
+ html:has(body.pvReelsMode),body.pvReelsMode{margin:0!important;padding:0!important;background:#070609!important;overflow:hidden!important}
+ body.pvReelsMode>header{display:none!important}
+ body.pvReelsMode main{
+  position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:auto!important;
+  width:100vw!important;max-width:none!important;min-height:0!important;max-height:none!important;
+  height:var(--pv92-height,100dvh)!important;margin:0!important;padding:0!important;
+  background:#070609!important;overflow:hidden!important;z-index:3!important
+ }
+ body.pvReelsMode main>.feed,body.pvReelsMode #reels,body.pvReelsMode #reelList,
+ body.pvReelsMode .pvReelStage,body.pvReelsMode .pvReelStack{
+  width:100%!important;height:100%!important;max-height:100%!important;min-height:0!important;
+  margin:0!important;padding:0!important;overflow:hidden!important
+ }
+ body.pvReelsMode .pvReelCard{
+  width:100%!important;height:100%!important;max-height:100%!important;min-height:0!important;
+  margin:0!important;padding:0!important;inset:0!important;box-sizing:border-box!important
+ }
+ body.pvReelsMode .pvReelScreen{position:relative!important;width:100%!important;height:100%!important;max-height:100%!important;
+  min-height:0!important;border:0!important;border-radius:0!important;background:#070609!important;overflow:hidden!important}
+ body.pvReelsMode .pvReelScreen video{
+  display:block!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;
+  object-fit:contain!important;object-position:center center!important;background:#070609!important
+ }
+ body.pvReelsMode .pvReelMeta{
+  position:absolute!important;left:0!important;right:0!important;
+  bottom:calc(var(--pv92-safe,0px) + 130px)!important;
+  padding:38px 72px 12px 14px!important;z-index:16!important;pointer-events:none!important;
+  background:linear-gradient(transparent,#000b)!important;color:white!important;opacity:1!important;visibility:visible!important
+ }
+ body.pvReelsMode .pvReelAuthor{display:flex!important;align-items:center!important;gap:9px!important}
+ body.pvReelsMode .pvReelCreator,body.pvReelsMode .pvReelFollow{pointer-events:auto!important;color:white!important}
+ body.pvReelsMode .pvReelCreator{font-size:14px!important;font-weight:800!important}
+ body.pvReelsMode .pvReelFollow{border:1px solid #fffa!important;background:#ffffff24!important;border-radius:999px!important;padding:6px 10px!important}
+ body.pvReelsMode .pvReelCaption{color:#fff!important;max-height:42px!important;font-size:12px!important}
+ body.pvReelsMode .pvReelCard .pvReelActions{
+  position:absolute!important;right:7px!important;bottom:calc(var(--pv92-safe,0px) + 169px)!important;
+  z-index:19!important;width:54px!important;min-width:54px!important;gap:3px!important;padding:0!important
+ }
+ body.pvReelsMode .pvSuiteReelActions{gap:8px!important}
+ body.pvReelsMode .pvSuiteIconAction{width:52px!important;min-height:51px!important;padding:2px!important}
+ body.pvReelsMode .pvSuiteIconAction svg{width:27px!important;height:27px!important}
+ body.pvReelsMode .pvReelSound{bottom:calc(var(--pv92-safe,0px) + 172px)!important;right:66px!important;z-index:20!important}
+ body.pvReelsMode .pvReelScreen .pvReelSeek{
+  position:absolute!important;bottom:calc(var(--pv92-safe,0px) + 99px)!important;
+  left:14px!important;right:14px!important;width:auto!important;
+  min-height:18px!important;padding:0!important;background:none!important;z-index:21!important
+ }
+ body.pvReelsMode .pvReelScreen .pvReelSeekTime{display:none!important}
+ body.pvReelsMode .pvReelScreen .pvReelSeek:focus-within .pvReelSeekTime{display:flex!important}
+ body.pvReelsMode #reels .pvSmartReelTabs{
+  position:fixed!important;top:calc(var(--pv92-safe-top,0px) + 12px)!important;
+  left:50%!important;right:auto!important;transform:translateX(-50%)!important;
+  z-index:29!important;background:#19171fbf!important;border:1px solid #ffffff44!important;
+  border-radius:999px!important;padding:4px!important;gap:1px!important;
+  -webkit-backdrop-filter:blur(15px)!important;backdrop-filter:blur(15px)!important
+ }
+ body.pvReelsMode #reels .pvSmartReelTab{font-size:12px!important;padding:8px 13px!important}
+ body.pvReelsMode #reels .pvSmartNotInterested{
+  position:fixed!important;top:calc(var(--pv92-safe-top,0px) + 66px)!important;
+  right:10px!important;z-index:29!important;font-size:10px!important;padding:6px 10px!important;background:#1a1923b7!important
+ }
+ body.pvReelsMode .pvIconRail{
+  position:fixed!important;left:5%!important;right:auto!important;top:var(--pv92-nav-top,auto)!important;
+  bottom:auto!important;width:90%!important;height:60px!important;min-height:60px!important;
+  display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-around!important;
+  padding:4px 8px!important;margin:0!important;z-index:40!important;
+  border:1px solid #ffffff4c!important;border-radius:999px!important;background:#15141bc9!important;
+  box-shadow:0 9px 25px #0007!important;-webkit-backdrop-filter:blur(19px)!important;backdrop-filter:blur(19px)!important
+ }
+ body.pvReelsMode .pvIconRail .pvRailBrand,
+ body.pvReelsMode .pvIconRail>.pvRailButton:not([data-rail-view]){display:none!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view]{
+  display:grid!important;place-items:center!important;flex:1 1 0!important;min-width:0!important;
+  width:auto!important;height:48px!important;min-height:48px!important;margin:0!important;padding:0!important;
+  color:#fff!important;background:transparent!important;border-radius:999px!important;box-shadow:none!important
+ }
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view="home"]{order:1!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view="reels"]{order:2!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view="messages"]{order:3!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view="explore"]{order:4!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view="profile"]{order:5!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view].active{background:#ffffff37!important;color:#fff!important}
+ body.pvReelsMode .pvIconRail .pvRailButton[data-rail-view].active::after{display:none!important}
+ body.pvReelsMode .pvIconRail svg{stroke:currentColor!important;width:24px!important;height:24px!important}
+}
