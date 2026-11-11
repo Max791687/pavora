@@ -2572,7 +2572,28 @@ if(p.avatar_url){const img=node('img');img.src=p.avatar_url;img.alt='';avatar.ap
 const label=node('strong','',p.display_name||p.username);if(setting.pinned)label.append(node('span','pvPinnedMarker',' 📌'));if(setting.muted)label.append(node('span','pvMutedMarker',' 🔕'));
 details.append(label,node('small','',last?(last.sender_id===user.id?'You: ':'')+(last.body||'Message'):'Start a conversation'));
 window.PAVORA_PRESENCE?.attach(details,id,'thread');const when=node('span','pvThreadWhen',last?new Date(last.created_at).toLocaleDateString(undefined,{month:'short',day:'numeric'}):'');
-b.append(avatar,details,when);b.dataset.peerId=id;b.title='@'+p.username;b.onclick=()=>openChat(id,false);
+b.append(avatar,details,when);b.dataset.peerId=id;b.title='@'+p.username;
+// A vertical flick scrolls the inbox, it must never open the row underneath it.
+// iOS may synthesize a click after a moving finger lifts.
+let pvTouchStartY=0,pvTouchStartX=0,pvTouchMoved=false,pvTouchEndedAt=0;
+b.addEventListener('touchstart',event=>{
+ const t=event.touches[0];if(!t)return;
+ pvTouchStartY=t.clientY;pvTouchStartX=t.clientX;pvTouchMoved=false;
+},{passive:true});
+b.addEventListener('touchmove',event=>{
+ const t=event.touches[0];if(!t)return;
+ if(Math.abs(t.clientY-pvTouchStartY)>9||Math.abs(t.clientX-pvTouchStartX)>12)pvTouchMoved=true;
+},{passive:true});
+b.addEventListener('touchend',()=>{
+ if(pvTouchMoved)pvTouchEndedAt=Date.now();
+},{passive:true});
+b.addEventListener('touchcancel',()=>{pvTouchMoved=true;pvTouchEndedAt=Date.now()},{passive:true});
+b.addEventListener('click',event=>{
+ if(pvTouchMoved||Date.now()-pvTouchEndedAt<650){
+  event.preventDefault();event.stopPropagation();return;
+ }
+ openChat(id,false);
+});
 const menuButton=node('button','pvChatMore','⋯');menuButton.type='button';menuButton.title='Conversation options';menuButton.setAttribute('aria-label','Options for '+(p.display_name||p.username));
 const menu=node('div','pvChatContextMenu hide');menu.setAttribute('role','menu');
 function menuItem(label,fn){const item=node('button','pvChatMenuItem',label);item.type='button';item.setAttribute('role','menuitem');item.onclick=async e=>{e.stopPropagation();menu.classList.add('hide');menuButton.setAttribute('aria-expanded','false');await fn()};menu.append(item)}
