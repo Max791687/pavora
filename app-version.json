@@ -1,6 +1,6 @@
 {
-  "version": 98,
+  "version": 99,
   "release": "2026-11-11",
-  "name": "PAVORA v98",
-  "notes": "Only active story authors displayed; Your Story always uses profile DP and plus when inactive"
+  "name": "PAVORA v99",
+  "notes": "Your Story DP without active ring, visible plus badge when no active Story"
 }
