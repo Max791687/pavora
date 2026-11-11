@@ -1,6 +1,6 @@
 {
-  "version": 130,
+  "version": 131,
   "release": "2026-11-11",
-  "name": "PAVORA v130",
-  "notes": "Real iPhone-style touch press and spring-back on buttons, navigation, tabs, likes and profile controls."
+  "name": "PAVORA v131",
+  "notes": "Fixed double-tap to Like on iPhone for real and demo post images without accidental unlikes."
 }
