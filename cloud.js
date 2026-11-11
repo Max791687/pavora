@@ -2491,8 +2491,51 @@ pvConnectionsDialog.setAttribute('role','dialog');pvConnectionsDialog.setAttribu
 pvConnectionsDialog.setAttribute('aria-label','Followers and following');
 document.body.append(pvConnectionsDialog);
 let pvConnectionsRequest=0;
-function pvCloseConnections(){pvConnectionsRequest++;pvConnectionsDialog.hidden=true;pvConnectionsDialog.replaceChildren()}
+let pvConnectionsCloseTimer=0;
+let pvConnectionsSwipe=null;
+function pvCloseConnections(){
+ if(pvConnectionsDialog.hidden||pvConnectionsDialog.classList.contains('pvConnectionsClosing'))return;
+ pvConnectionsRequest++;
+ pvConnectionsDialog.classList.remove('pvConnectionsOpen');
+ pvConnectionsDialog.classList.add('pvConnectionsClosing');
+ clearTimeout(pvConnectionsCloseTimer);
+ const card=pvConnectionsDialog.querySelector('.pvConnectionsCard');
+ card?.setAttribute('aria-hidden','true');
+ pvConnectionsCloseTimer=setTimeout(()=>{
+  pvConnectionsDialog.hidden=true;
+  pvConnectionsDialog.classList.remove('pvConnectionsClosing');
+  pvConnectionsDialog.replaceChildren();
+ },230);
+}
 pvConnectionsDialog.onclick=e=>{if(e.target===pvConnectionsDialog)pvCloseConnections()};
+pvConnectionsDialog.addEventListener('touchstart',e=>{
+ if(e.touches.length!==1||pvConnectionsDialog.hidden)return;
+ const grip=e.target.closest('.pvConnectionsHeader,.pvConnectionsGrabber');
+ if(!grip)return;
+ const t=e.touches[0];
+ pvConnectionsSwipe={id:t.identifier,startX:t.clientX,startY:t.clientY,dy:0};
+},{passive:true});
+pvConnectionsDialog.addEventListener('touchmove',e=>{
+ const g=pvConnectionsSwipe;if(!g)return;
+ const t=[...e.touches].find(t=>t.identifier===g.id);
+ if(!t)return;
+ const dx=t.clientX-g.startX,dy=t.clientY-g.startY;
+ if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)){pvConnectionsSwipe=null;return}
+ g.dy=Math.max(0,dy);
+ const card=pvConnectionsDialog.querySelector('.pvConnectionsCard');
+ if(card)card.style.setProperty('--pvFollowDragY',Math.min(150,g.dy*.72)+'px');
+ if(g.dy>8&&e.cancelable)e.preventDefault();
+},{passive:false});
+pvConnectionsDialog.addEventListener('touchend',()=>{
+ const g=pvConnectionsSwipe;pvConnectionsSwipe=null;
+ const card=pvConnectionsDialog.querySelector('.pvConnectionsCard');
+ card?.style.removeProperty('--pvFollowDragY');
+ if(g?.dy>95)pvCloseConnections();
+},{passive:true});
+pvConnectionsDialog.addEventListener('touchcancel',()=>{
+ pvConnectionsSwipe=null;
+ pvConnectionsDialog.querySelector('.pvConnectionsCard')?.style.removeProperty('--pvFollowDragY');
+},{passive:true});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pvConnectionsDialog.hidden)pvCloseConnections()});
 async function pvShowConnections(ownerId,kind){
  if(!user||!ownerId||!['followers','following'].includes(kind))return;
@@ -2504,12 +2547,17 @@ async function pvShowConnections(ownerId,kind){
   }
  }
  const request=++pvConnectionsRequest,heading=kind==='followers'?'Followers':'Following';
+ clearTimeout(pvConnectionsCloseTimer);
+ pvConnectionsDialog.classList.remove('pvConnectionsClosing','pvConnectionsOpen');
  const card=node('div','pvConnectionsCard'),head=node('div','pvConnectionsHeader');
  const close=node('button','pvConnectionsClose','×');close.type='button';close.setAttribute('aria-label','Close '+heading);close.onclick=pvCloseConnections;
- head.append(node('h3','',heading),close);
+ const titleWrap=node('div','pvConnectionsTitleWrap');
+ titleWrap.append(node('span','pvConnectionsEyebrow','PAVORA COMMUNITY'),node('h3','',heading));
+ head.append(node('span','pvConnectionsGrabber'),titleWrap,close);
  const people=node('div','pvConnectionsPeople'),more=node('button','pvConnectionsMore','Load more');
  more.type='button';more.hidden=true;card.append(head,people,more);
- pvConnectionsDialog.replaceChildren(card);pvConnectionsDialog.hidden=false;close.focus();
+ pvConnectionsDialog.replaceChildren(card);pvConnectionsDialog.hidden=false;
+ requestAnimationFrame(()=>{if(!pvConnectionsDialog.hidden)pvConnectionsDialog.classList.add('pvConnectionsOpen')});
  let offset=0,loading=false;
  async function loadPage(){
   if(loading||request!==pvConnectionsRequest)return;
