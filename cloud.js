@@ -2223,6 +2223,11 @@ function pvDmDecorateContent(list,messages,peer){
    const media=node(isVideo?'video':'img','pvDmAttachment'+(isVideo?' video':''));
    if(isVideo){media.controls=true;media.playsInline=true;media.preload='none'}
    else {media.loading='lazy';media.alt='Shared photo'}
+// Reserve a stable media slot before signed URLs return to avoid chat jumping.
+media.style.width='min(260px,67vw)';
+media.style.height=isVideo?'195px':'195px';
+media.style.maxHeight='195px';
+media.style.objectFit='contain';
    bubble.append(media);
    db.storage.from('pv-dm-media').createSignedUrl(msg.media_path,1800).then(({data,error})=>{
     if(!media.isConnected||selectedPeer!==peer)return;
@@ -2752,7 +2757,9 @@ const pendingIncoming=!!incoming&&!senderFollowsMe,pendingOutgoing=!!outgoing&&!
 // A slow poll may have started before the composer existed; never let it
 // replace a newly mounted focused composer after its later DB queries finish.
 if(silent&&area.querySelector('.pvMessageForm'))return;
-area.replaceChildren();
+// Keep the glass skeleton in front until the full chat has been mounted and scrolled.
+const pvOpeningSkeleton=area.querySelector('.pvDmLoadingShell');
+if(!pvOpeningSkeleton)area.replaceChildren();
 const chatTop=node('div','pvChatTop'),back=node('button','pvChatBack','‹'),heading=node('h3','',person.display_name||person.username),handle=node('p','muted','@'+person.username),chatWho=node('div','pvChatWho'),list=node('div','pvMessages'),headerAvatar=node('button','pvChatHeaderAvatar');
 back.type='button';back.setAttribute('aria-label','Back to conversations');back.onclick=pvInboxMobileBack;
 headerAvatar.type='button';headerAvatar.title='View profile';headerAvatar.setAttribute('aria-label','View '+person.username+' profile');
@@ -2928,7 +2935,21 @@ async function pvSendMessage(){
 if(pendingIncoming){const banner=node('div','pvRequestBanner'),description=node('p','','Message request from someone who does not follow you.'),accept=node('button','pvAcceptRequest','Accept'),remove=node('button','pvDeclineRequest','Remove');accept.type=remove.type='button';accept.onclick=async()=>{accept.disabled=true;const {error}=await db.from('message_requests').update({accepted_at:new Date().toISOString()}).eq('recipient_id',user.id).eq('sender_id',id).is('accepted_at',null);if(error){alert('Could not accept request: '+error.message);accept.disabled=false;return}pvInboxTab='Primary';await loadInbox();await pvCheckUnread()};remove.onclick=()=>pvRemoveChat(id);banner.append(description,accept,remove);area.append(banner)}
 if(pendingOutgoing){area.append(node('p','pvPendingRequestNote',alreadySent?'Request sent. Wait for acceptance, or follow this account to continue.':'You can send one message request. Follow this account to message freely.'))}
 const typingLabel=node('div','pvDmTypingLabel','● typing…');typingLabel.hidden=true;
-area.append(list,typingLabel,composerWrap);emojiButton.disabled=input.disabled;pvDmUpdateReceipt(list,visibleMessages);pvDmDecorateRows(list);pvDmDecorateContent(list,visibleMessages,id);pvScheduleDmReactionRefresh(90);pvCheckTyping();list.scrollTop=list.scrollHeight}
+area.append(list,typingLabel,composerWrap);emojiButton.disabled=input.disabled;pvDmUpdateReceipt(list,visibleMessages);pvDmDecorateRows(list);pvDmDecorateContent(list,visibleMessages,id);pvScheduleDmReactionRefresh(90);pvCheckTyping();
+list.scrollTop=list.scrollHeight;
+if(pvOpeningSkeleton){
+ const openingPeer=id;
+ requestAnimationFrame(()=>{
+  if(selectedPeer!==openingPeer||!area.contains(list))return;
+  list.scrollTop=list.scrollHeight;
+  requestAnimationFrame(()=>{
+   if(selectedPeer!==openingPeer||!area.contains(list))return;
+   list.scrollTop=list.scrollHeight;
+   pvOpeningSkeleton.remove();
+  });
+ });
+}
+}
 
 
 // Slide-out navigation and separate Create Post dialog; retain existing publish handlers.
