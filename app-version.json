@@ -1,6 +1,6 @@
 {
-  "version": 132,
+  "version": 133,
   "release": "2026-11-11",
-  "name": "PAVORA v132",
-  "notes": "Virtual Creator double-tap Like support and frosted Liquid Glass Home buttons."
+  "name": "PAVORA v133",
+  "notes": "Restored previous button appearance and added finger slide-to-select with temporary glass pop highlight in mobile navigation and Home tabs."
 }
