@@ -1,6 +1,6 @@
 {
-  "version": 118,
+  "version": 119,
   "release": "2026-11-11",
-  "name": "PAVORA v118",
-  "notes": "Fixed unreadable General and Primary chat option menus on iPhone with Liquid Glass styling."
+  "name": "PAVORA v119",
+  "notes": "Fixed iPhone chat row alignment and made General/Primary conversation menu actions tappable."
 }
