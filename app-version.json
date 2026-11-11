@@ -1,6 +1,6 @@
 {
-  "version": 131,
+  "version": 132,
   "release": "2026-11-11",
-  "name": "PAVORA v131",
-  "notes": "Fixed double-tap to Like on iPhone for real and demo post images without accidental unlikes."
+  "name": "PAVORA v132",
+  "notes": "Virtual Creator double-tap Like support and frosted Liquid Glass Home buttons."
 }
