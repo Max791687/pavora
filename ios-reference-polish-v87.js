@@ -35,6 +35,12 @@ function decorateActions(){
    const existing=button.querySelector('svg[data-pv-reference-icon]');
    if(!existing)button.prepend(icon(kind));
    else if(existing.dataset.pvReferenceIcon!==kind)existing.replaceWith(icon(kind));
+   // Native outline icon replaces the older emoji glyph, while preserving real counts.
+   for(const n of button.childNodes){
+    if(n.nodeType!==Node.TEXT_NODE)continue;
+    n.nodeValue=n.nodeValue.replace(/^\s*(?:[♡♥💬⚑☆▢↗▣]|🗨️|💭)\s*/u,' ');
+    break;
+   }
   }
  }
 }
