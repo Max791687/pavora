@@ -6,7 +6,13 @@
  if(window.__pvPostDoubleTap131)return;
  window.__pvPostDoubleTap131=true;
  let touch=null,last=null,blockedClickUntil=0;
- const getImage=target=>target?.closest?.('#home article.post img:not(.profilepic img)');
+ const getImage=target=>{
+  // Virtual Creator photographs include a fallback/credit layer; taps may land
+  // on the wrapper instead of the actual <img> element.
+  if(target?.closest?.('button,a,input,textarea'))return null;
+  return target?.closest?.('#home article.post .pvDailyPhotoWrap')||
+         target?.closest?.('#home article.post img:not(.profilepic img)');
+ };
  const getCard=image=>image?.closest?.('article.post');
  const now=()=>performance.now();
  function heart(card){
@@ -34,11 +40,11 @@
   const start=touch;touch=null;
   if(!start||start.moved||e.changedTouches.length!==1){last=null;return}
   const t=e.changedTouches[0],at=now();
-  if(at-start.time>330){last=null;return}
+  if(at-start.time>350){last=null;return}
   const card=getCard(start.image);
   if(!card)return;
-  if(last&&last.image===start.image&&at-last.at<410&&
-     Math.hypot(t.clientX-last.x,t.clientY-last.y)<75){
+  if(last&&last.image===start.image&&at-last.at<470&&
+     Math.hypot(t.clientX-last.x,t.clientY-last.y)<85){
    last=null;
    blockedClickUntil=at+650;
    e.preventDefault();
