@@ -1,6 +1,6 @@
 {
-  "version": 129,
+  "version": 130,
   "release": "2026-11-11",
-  "name": "PAVORA v129",
-  "notes": "Apple-style smooth tap animations for Home buttons, feed actions and bottom navigation."
+  "name": "PAVORA v130",
+  "notes": "Real iPhone-style touch press and spring-back on buttons, navigation, tabs, likes and profile controls."
 }
