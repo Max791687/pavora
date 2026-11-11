@@ -2896,7 +2896,7 @@ const composerWrap=node('div','pvChatComposerWrap');
 // Keep the keyboard anchored to this composer without scrolling the entire fixed DM viewport.
 input.addEventListener('focus',pvScheduleMobileDmViewport);
 input.addEventListener('blur',pvScheduleMobileDmViewport);
-const attach=node('button','pvDmAttachButton','＋');attach.type='button';attach.title='Attach photo or video';attach.setAttribute('aria-label','Attach photo or video');
+const attach=node('button','pvDmAttachButton','');attach.type='button';attach.title='Camera or media';attach.setAttribute('aria-label','Camera or media');attach.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="4"/></svg>';
 const fileInput=node('input');fileInput.type='file';fileInput.accept='image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm';fileInput.hidden=true;
 let pvPendingMedia=null;
 const mediaSelection=node('div','pvDmSendPreview');mediaSelection.hidden=true;
@@ -2920,7 +2920,11 @@ const replyCompose=node('div','pvDmSendPreview pvDmReplyCompose');replyCompose.h
 const replyInfo=node('div','pvDmPreviewText'),replyHeading=node('span','pvDmPreviewTitle','REPLYING TO'),replyText=node('strong','',''),cancelReply=node('button','','×');cancelReply.type='button';
 cancelReply.title='Cancel reply';cancelReply.setAttribute('aria-label','Cancel reply');cancelReply.onclick=()=>{form.dataset.replyTo='';replyCompose.hidden=true};
 replyInfo.append(replyHeading,replyText);replyCompose.append(replyInfo,cancelReply);
-form.append(attach,emojiButton,input,send);
+const gallery=node('button','pvDmGalleryButton');
+gallery.type='button';gallery.title='Choose photo or video';gallery.setAttribute('aria-label','Choose photo or video');
+gallery.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="m4 18 5.3-5.2 3.2 3.1 3.1-3.2L21 18"/></svg>';
+gallery.onclick=()=>{fileInput.accept='image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm';fileInput.click()};
+form.append(attach,input,emojiButton,gallery,send);
 composerWrap.append(replyCompose,mediaSelection,fileInput,emojiTray,form);
 input.addEventListener('input',()=>{if(input.value.trim()&&!input.disabled)pvOnChatInput(id);else pvClearTyping(id)});
 input.addEventListener('blur',()=>{if(input.value.trim())pvClearTyping(id)});
