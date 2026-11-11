@@ -101,3 +101,32 @@ body.pvReelsMode .pvReelAction{background:transparent!important;border-radius:50
  .pvIOSCreateTile{transition:transform .22s cubic-bezier(.22,1,.36,1),box-shadow .2s ease}
  .pvIOSCreateTile:active{transform:scale(.96)}
 }
+
+/* Five-tab iPhone bar: Home, Explore, Reels, Messages, Profile */
+@media(max-width:600px){
+ .pvIconRail .pvRailButton[data-rail-view="messages"]{
+  display:grid!important;visibility:visible!important;order:4!important
+ }
+ .pvIconRail .pvRailButton[data-rail-view="home"]{order:1!important}
+ .pvIconRail .pvRailButton[data-rail-view="explore"]{order:2!important}
+ .pvIconRail .pvRailButton[data-rail-view="reels"]{order:3!important}
+ .pvIconRail .pvRailButton[data-rail-view="profile"]{order:5!important}
+ .pvIconRail>.pvRailButton:not([data-rail-view]){display:none!important}
+ .pvIconRail{justify-content:space-around!important}
+ .pvIconRail .pvIOSMainTab{flex:1 1 0!important;min-width:0!important}
+ .pvIconRail .pvIOSMainTab svg{width:25px!important;height:25px!important}
+ .pvIconRail .pvIOSMainTab.active{color:#9144df!important}
+ header .pvCreateTop{display:inline-flex!important;align-items:center;justify-content:center;
+   height:33px;width:33px;min-width:33px;padding:0!important;font-size:0!important;
+   background:#efe8fb!important;color:#552678!important;border:1px solid #d9caec!important;
+   border-radius:10px!important}
+ header .pvCreateTop::before{content:'⊞';font-size:27px;font-weight:400;line-height:1}
+}
+/* The four Create actions must disappear when upload preview replaces the drop view. */
+.pvComposeOverlay .pvUnifiedCreate:has(.pvCreateSelected:not(.hide)) .pvIOSCreateChooser,
+.pvComposeOverlay .pvUnifiedCreate:has(.pvCreateSelected:not(.hide)) .pvIOSCreateSub{display:none!important}
+/* Keep accessibility and existing hidden-state behavior intact. */
+.pvComposeOverlay .pvUnifiedCreate:has(.pvCreateSelected:not(.hide)) .pvCreateDrop{display:none!important}
+@media(prefers-reduced-motion:reduce){
+ .pvIOSCreateTile{transition:none!important;transform:none!important}
+}
