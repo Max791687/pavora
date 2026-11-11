@@ -1526,4 +1526,16 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
 @media(prefers-reduced-motion:reduce){
  body.pvMessagesMode #pvInboxView .pvThreadEntry{transition:none!important}
 }
+</style><style id="pvDmNoInnerDividerV121">
+/* v121: Glass cards have their own edge; remove legacy separator drawn inside each card. */
+@media(max-width:700px){
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvThreadEntry,
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvThreadEntry:last-child{
+   border-bottom:0!important;
+ }
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvThreadEntry::before,
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvThreadEntry::after{
+   border-bottom:0!important;
+ }
+}
 </style></body></html>
