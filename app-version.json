@@ -1,6 +1,6 @@
 {
-  "version": 117,
+  "version": 118,
   "release": "2026-11-11",
-  "name": "PAVORA v117",
-  "notes": "Other users' profiles now use clean Liquid Glass styling, with clearer identity, stats, posts and buttons. Chat opening transition improved."
+  "name": "PAVORA v118",
+  "notes": "Fixed unreadable General and Primary chat option menus on iPhone with Liquid Glass styling."
 }
