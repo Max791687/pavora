@@ -949,6 +949,74 @@ body.pvIntroFinished #pvLaunchScreen,body.pvLaunchReady #pvLaunchScreen,body.pvE
 #pvLaunchScreen .pvLaunchLine::after{animation:pvLaunchProgress .55s ease-in-out infinite alternate!important}
 @keyframes pvQuickStart{from{opacity:.35;transform:translateY(6px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(prefers-reduced-motion:reduce){#pvLaunchScreen *,#pvLaunchScreen *::after{animation:none!important}#pvLaunchScreen{transition:none!important}}
+</style><style id="pvIosDmUnified110">
+/* Single owner for iPhone DM sizing. Overrides legacy 180px list cap and v107 grid.
+   Header/tabs/search stay fixed; only actual conversation rows scroll. */
+@media(max-width:700px){
+ html:has(body.pvMessagesMode),body.pvMessagesMode{
+  overscroll-behavior-y:none!important;overflow:hidden!important;
+ }
+ body.pvMessagesMode main{
+  position:fixed!important;left:0!important;right:0!important;
+  top:var(--pvDmViewportTop,0px)!important;
+  height:var(--pvDmViewportHeight,100dvh)!important;
+  max-height:var(--pvDmViewportHeight,100dvh)!important;
+  width:100%!important;margin:0!important;padding:0!important;overflow:hidden!important;
+ }
+ body.pvMessagesMode main>.feed,
+ body.pvMessagesMode #pvInboxView{
+  height:100%!important;min-height:0!important;max-height:100%!important;
+  width:100%!important;overflow:hidden!important;
+ }
+ body.pvMessagesMode #pvInboxView .pvInboxLayout{
+  display:flex!important;flex-direction:column!important;
+  height:calc(100% - 63px - env(safe-area-inset-bottom,0px))!important;
+  min-height:0!important;max-height:100%!important;overflow:hidden!important;
+ }
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvInboxSide{
+  display:flex!important;flex-direction:column!important;
+  flex:1 1 auto!important;min-height:0!important;height:100%!important;
+  width:100%!important;max-height:none!important;overflow:hidden!important;
+ }
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvThreadList{
+  flex:1 1 auto!important;min-height:0!important;max-height:none!important;
+  height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;
+  overscroll-behavior-y:contain!important;touch-action:pan-y!important;
+  -webkit-overflow-scrolling:touch!important;
+  scroll-behavior:auto!important;scroll-snap-type:none!important;
+  padding-bottom:24px!important;
+ }
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvInboxTop,
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvInboxTabs,
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvInboxSearch{
+  flex-shrink:0!important;
+ }
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvThreadPerson,
+ body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvThreadEntry{
+  touch-action:pan-y!important;scroll-snap-align:none!important;
+ }
+ /* A finger drag must never appear as a selected row. */
+ @media(hover:none){
+  body.pvMessagesMode #pvInboxView:not(.pvChatSelected) .pvThreadEntry:hover:not(:has(.pvThreadPerson.active)){
+   background:transparent!important;
+  }
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvInboxLayout{
+  height:100%!important;max-height:100%!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvInboxSide{display:none!important}
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatArea{
+  display:flex!important;flex:1 1 auto!important;flex-direction:column!important;
+  height:100%!important;max-height:100%!important;min-height:0!important;
+  overflow:hidden!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessages{
+  flex:1 1 0!important;min-height:0!important;height:0!important;
+  overflow-y:auto!important;overscroll-behavior-y:contain!important;
+  touch-action:pan-y!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatComposerWrap{flex:0 0 auto!important}
+}
 </style><style id="pvIosDmKeyboardFixV108">
 /* iOS DM: visual viewport owns the conversation height, regardless of browser keyboard. */
 @media(max-width:700px){
@@ -1023,4 +1091,5 @@ body.pvIntroFinished #pvLaunchScreen,body.pvLaunchReady #pvLaunchScreen,body.pvE
 })();
 </script>
 <script src="./reels-reference-v93.js?v=20261111-reels-reference-v93"></script><script src="./core-finish-v94.js?v=20261111-core-finish-v94"></script><script src="./release-update-v91.js?v=20261111-release-v100"></script>
+<script src="./dm-ios-stability-v110.js?v=20261111-ios-gesture-v110"></script>
 </body></html>
