@@ -2566,12 +2566,24 @@ async function pvShowConnections(ownerId,kind){
  async function loadPage(){
   if(loading||request!==pvConnectionsRequest)return;
   loading=true;more.hidden=true;
-  if(offset===0)people.append(node('div','pvConnectionNotice','Loading '+heading.toLowerCase()+'…'));
+  if(offset===0){
+   people.replaceChildren();
+   // Reserve the final list surface while the async query is in flight.
+   // Do not let the sheet jump from title-only height to full-list height.
+   for(let i=0;i<6;i++){
+    const ghost=node('div','pvConnectionSkeletonV141');
+    ghost.setAttribute('aria-hidden','true');
+    ghost.append(node('span','pvConnectionSkeletonAvatarV141'),
+      node('span','pvConnectionSkeletonLinesV141'));
+    people.append(ghost);
+   }
+   people.setAttribute('aria-busy','true');
+  }
   const filterColumn=kind==='followers'?'following_id':'follower_id';
   const personColumn=kind==='followers'?'follower_id':'following_id';
   const {data:edges,error}=await db.from('follows').select('follower_id,following_id').eq(filterColumn,ownerId).order(personColumn,{ascending:true}).range(offset,offset+49);
   if(request!==pvConnectionsRequest)return;
-  if(offset===0)people.replaceChildren();
+  if(offset===0){people.replaceChildren();people.removeAttribute('aria-busy')}
   if(error){people.append(node('div','pvConnectionNotice','Could not load list: '+error.message));loading=false;return}
   const rows=edges||[],ids=rows.map(e=>e[personColumn]).filter(Boolean);
   if(ids.length){
@@ -2591,16 +2603,22 @@ async function pvShowConnections(ownerId,kind){
     row.onclick=()=>{pvCloseConnections();openCreator(id)};
     // Rows arrive asynchronously; CSS nth-child animations often complete
     // before iOS paints the list. Animate each inserted row explicitly.
-    row.classList.add('pvConnectionEnteringV140');
-    row.style.setProperty('--pvConnectionOrder',String(Math.min(12,people.querySelectorAll('.pvConnectionPerson').length)));
+    const index=people.querySelectorAll('.pvConnectionPerson').length;
+    row.classList.add('pvConnectionEnteringV141');
+    row.style.setProperty('--pvConnectionOrder',String(Math.min(12,index)));
     people.append(row);
+    // Render the entire incoming group in its final geometry before animating.
     if(!window.matchMedia('(prefers-reduced-motion:reduce)').matches&&typeof row.animate==='function'){
-     row.animate([
-      {opacity:0,transform:'translate3d(0,18px,0) scale(.94)',filter:'blur(5px)'},
-      {opacity:1,transform:'translate3d(0,-3px,0) scale(1.012)',filter:'blur(0px)',offset:.72},
-      {opacity:1,transform:'translate3d(0,0,0) scale(1)',filter:'blur(0px)'}
-     ],{duration:490,delay:Math.min(420,people.querySelectorAll('.pvConnectionPerson').length*48),easing:'cubic-bezier(.2,.78,.24,1)',fill:'both'}).onfinish=()=>row.classList.remove('pvConnectionEnteringV140');
-    }else row.classList.remove('pvConnectionEnteringV140');
+     requestAnimationFrame(()=>{
+      if(!row.isConnected||request!==pvConnectionsRequest)return;
+      const animation=row.animate([
+       {opacity:0,transform:'translate3d(0,20px,0) scale(.92)'},
+       {opacity:1,transform:'translate3d(0,-2px,0) scale(1.012)',offset:.72},
+       {opacity:1,transform:'translate3d(0,0,0) scale(1)'}
+      ],{duration:430,delay:Math.min(490,index*58),easing:'cubic-bezier(.18,.85,.24,1)',fill:'both'});
+      animation.onfinish=()=>{row.classList.remove('pvConnectionEnteringV141');animation.cancel()};
+     });
+    }else row.classList.remove('pvConnectionEnteringV141');
    }
   }
   offset+=rows.length;
