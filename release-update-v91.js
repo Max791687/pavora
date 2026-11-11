@@ -2,7 +2,7 @@
    Notify installed-PWA users of newer releases without discarding drafts. */
 (()=>{
 'use strict';
-const cssLink=document.querySelector('link[href*="reels-corrected-v90.css"]');
+const cssLink=document.querySelector('link[href*="reels-layout-v92.css"]');
 if(cssLink){
  let moving=false;
  const ensureLast=()=>{
@@ -18,8 +18,8 @@ if(cssLink){
  });
  observer.observe(document.head,{childList:true});
 }
-const VERSION='91';
-const key='pavora-release-v91';
+const VERSION='92';
+const key='pavora-release-v92';
 try{sessionStorage.setItem(key,VERSION)}catch(e){}
 const banner=document.createElement('div');
 banner.id='pvAppUpdateNotice';
