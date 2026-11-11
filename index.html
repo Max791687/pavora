@@ -1558,4 +1558,33 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
   border:1px solid rgba(255,255,255,.90)!important;
  }
 }
+</style><style id="pvDmNoOpenJerkV123">
+/* iOS message open: remove entry animation and stabilize skeleton/final pane geometry. */
+@media(max-width:700px){
+ body.pvMessagesMode #pvInboxView,
+ body.pvMessagesMode #pvInboxView:not(.hide),
+ body.pvMessagesMode #pvInboxView .pvInboxLayout,
+ body.pvMessagesMode #pvInboxView .pvChatArea{
+  animation:none!important;transition:none!important;
+  transform:none!important;scroll-behavior:auto!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatArea{
+  box-sizing:border-box!important;min-height:0!important;
+  overflow:hidden!important;contain:layout!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvDmLoadingShell{
+  box-sizing:border-box!important;height:100%!important;
+  flex:1 1 auto!important;min-height:0!important;
+  margin:0!important;animation:none!important;transition:none!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatTop{
+  box-sizing:border-box!important;flex-shrink:0!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessages{
+  scroll-behavior:auto!important;overflow-anchor:none!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvDmLoadingShell .pvDmLoadingHead{
+  padding-top:10px!important;min-height:60px!important;
+ }
+}
 </style></body></html>
