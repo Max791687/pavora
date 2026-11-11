@@ -1145,7 +1145,7 @@ body.pvSkipIntro #pvLaunchScreen{
  for(const button of buttons)row.appendChild(button);
 })();
 </script>
-<script src="./reels-reference-v93.js?v=20261111-reels-reference-v93"></script><script src="./core-finish-v94.js?v=20261111-core-finish-v94"></script><script src="./release-update-v91.js?v=20261111-apple-tap-v129"></script>
+<script src="./reels-reference-v93.js?v=20261111-reels-reference-v93"></script><script src="./core-finish-v94.js?v=20261111-core-finish-v94"></script><script src="./release-update-v91.js?v=20261111-real-ios-motion-v130"></script>
 <script src="./dm-ios-stability-v110.js?v=20261111-ios-gesture-v110"></script>
 
 <style id="pvDmLiquidGlassV112">
@@ -1761,12 +1761,12 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
 /* Touch animation driven by pointerdown/up, not Safari's fleeting :active.
    Keep animation on controls only: never shift a feed card or chat viewport. */
 @media(max-width:700px) and (prefers-reduced-motion:no-preference){
- .pvTouchPressed130{
+ html body :is(#home,#explore,#profile,#pvInboxView,#pvPublicView,.pvIconRail,header) .pvTouchPressed130{
   transform:scale(.91)!important;
   transition:transform 90ms cubic-bezier(.2,.7,.2,1)!important;
   -webkit-tap-highlight-color:transparent!important;
  }
- .pvTouchPop130{
+ html body :is(#home,#explore,#profile,#pvInboxView,#pvPublicView,.pvIconRail,header) .pvTouchPop130{
   animation:pvApplePop130 390ms cubic-bezier(.2,.7,.25,1) both!important;
   -webkit-tap-highlight-color:transparent!important;
  }
