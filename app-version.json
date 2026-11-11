@@ -1,6 +1,6 @@
 {
-  "version": 133,
+  "version": 134,
   "release": "2026-11-11",
-  "name": "PAVORA v133",
-  "notes": "Restored previous button appearance and added finger slide-to-select with temporary glass pop highlight in mobile navigation and Home tabs."
+  "name": "PAVORA v134",
+  "notes": "Smoother finger-following Apple-style optical glass lens in slide-to-select navigation."
 }
