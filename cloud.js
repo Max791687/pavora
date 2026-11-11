@@ -2745,22 +2745,59 @@ async function pvLoadConversationSettings(){if(!user)return;const {data,error}=a
 function pvConversationSetting(peer){return pvConversationSettings.get(peer)||{folder:'primary',pinned:false,muted:false}}
 async function pvSaveConversationSetting(peer,changes){if(!pvPrefsReady){alert('Run supabase/conversation-preferences.sql in Supabase SQL Editor first.');return false}const next={...pvConversationSetting(peer),...changes};const {error}=await db.from('conversation_preferences').upsert({owner_id:user.id,peer_id:peer,...next,updated_at:new Date().toISOString()},{onConflict:'owner_id,peer_id'});if(error){alert('Cannot update conversation: '+error.message+' — Run supabase/conversation-preferences.sql first.');return false}pvConversationSettings.set(peer,next);return true}
 
-function pvDmPlayOpenPopV143(area,peer){
+let pvDmOpenPopPendingV144=null,pvDmOpenPopFrameV144=0;
+function pvDmPlayOpenPopV144(area,peer){
+ if(pvDmOpenPopPendingV144!==peer)return;
+ pvDmOpenPopPendingV144=null;
+ if(window.innerWidth>700||window.matchMedia('(prefers-reduced-motion:reduce)').matches||!area?.isConnected)return;
+ if(document.activeElement?.matches?.('#pvInboxView .pvMessageForm input'))return;
+ cancelAnimationFrame(pvDmOpenPopFrameV144);
+ const duration=540,started=performance.now();
+ const curve=t=>t*t*(3-2*t);
+ // Explicit per-frame inline transform wins over old 'transform:none!important'
+ // rules, without changing the chat's size, scrollTop or keyboard geometry.
+ area.style.setProperty('will-change','transform,opacity','important');
+ function frame(now){
+  if(!area.isConnected||selectedPeer!==peer||!inboxView.classList.contains('pvChatSelected')){
+   cleanup();return;
+  }
+  const t=Math.min(1,(now-started)/duration);
+  let scale,lift;
+  if(t<.48){let p=curve(t/.48);scale=.87+.165*p;lift=16*(1-p)}
+  else if(t<.74){let p=curve((t-.48)/.26);scale=1.035-.05*p;lift=-3*(1-p)}
+  else{let p=curve((t-.74)/.26);scale=.985+.015*p;lift=0}
+  area.style.setProperty('transform','translate3d(0,'+lift.toFixed(2)+'px,0) scale('+scale.toFixed(4)+')','important');
+  if(t<1)pvDmOpenPopFrameV144=requestAnimationFrame(frame);
+  else cleanup();
+ }
+ function cleanup(){
+  cancelAnimationFrame(pvDmOpenPopFrameV144);pvDmOpenPopFrameV144=0;
+  area.style.removeProperty('transform');area.style.removeProperty('will-change');
+ }
+ pvDmOpenPopFrameV144=requestAnimationFrame(frame);
+}
+function pvDmAnimateInboxRowsV144(root){
  if(window.innerWidth>700||window.matchMedia('(prefers-reduced-motion:reduce)').matches)return;
- if(!area?.isConnected||selectedPeer!==peer||document.activeElement?.matches?.('#pvInboxView .pvMessageForm input'))return;
- area.classList.remove('pvDmOpenPopV143');
- // Trigger once when the real chat replaces the loading skeleton.
- requestAnimationFrame(()=>{
-  if(!area.isConnected||selectedPeer!==peer||!inboxView.classList.contains('pvChatSelected'))return;
-  void area.offsetWidth;
-  area.classList.add('pvDmOpenPopV143');
-  const clean=()=>{area.classList.remove('pvDmOpenPopV143');area.removeEventListener('animationend',finish)};
-  const finish=e=>{if(e.target===area&&e.animationName==='pvChatSpringPopV143')clean()};
-  area.addEventListener('animationend',finish);
-  setTimeout(clean,680);
+ if(!root?.isConnected||inboxView.classList.contains('pvChatSelected'))return;
+ const entries=[...root.querySelectorAll('.pvThreadEntry:not(.hide)')].slice(0,28);
+ entries.forEach((entry,i)=>{
+  const inner=entry.querySelector('.pvThreadPerson');
+  if(!inner||!inner.isConnected||typeof inner.animate!=='function')return;
+  inner.getAnimations().forEach(a=>{if(a.id==='pvInboxRowV144')a.cancel()});
+  const effect=inner.animate([
+   {opacity:0,translate:'0 15px',scale:'.92'},
+   {opacity:1,translate:'0 -2px',scale:'1.018',offset:.74},
+   {opacity:1,translate:'0 0',scale:'1'}
+  ],{id:'pvInboxRowV144',duration:430,delay:Math.min(i*42,500),
+     easing:'cubic-bezier(.19,.84,.25,1)',fill:'both'});
+  effect.onfinish=()=>effect.cancel();
  });
 }
 function pvInboxMobileBack(){
+ pvDmOpenPopPendingV144=null;
+ cancelAnimationFrame(pvDmOpenPopFrameV144);
+ const oldArea=document.getElementById('pvChatArea');
+ if(oldArea){oldArea.style.removeProperty('transform');oldArea.style.removeProperty('will-change')}
  document.getElementById('pvChatArea')?.classList.remove('pvDmOpenPopV143');
  // iOS can keep a tapped thread in :hover/:focus and the old .active state.
  // Always clear all transient conversation selection state before showing the list.
@@ -2778,6 +2815,7 @@ function pvInboxMobileBack(){
  pvRememberInboxPosition();
  const area=document.getElementById('pvChatArea');
  if(area)area.replaceChildren(pvEmptyChat());
+ requestAnimationFrame(()=>pvDmAnimateInboxRowsV144(inboxView.querySelector('.pvThreadList')));
 }
 function pvDmLoadingChat(){
  const shell=node('div','pvDmLoadingShell');
@@ -2905,11 +2943,12 @@ menuButton.onclick=e=>{
 };
 const controls=node('div','pvChatMenuWrap');controls.append(menuButton,menu);
 entry.append(b,controls);threads.append(entry);rows.push({entry,p})}
+if(!selectedPeer)requestAnimationFrame(()=>pvDmAnimateInboxRowsV144(threads));
 const filter=()=>{const q=pvInboxSearch.toLowerCase();for(const {entry,p} of rows)entry.classList.toggle('hide',!(p.display_name||'').toLowerCase().includes(q)&&!(p.username||'').toLowerCase().includes(q))};
 search.oninput=()=>{pvInboxSearch=search.value;filter()};filter();
 if(selectedPeer)await renderChat(selectedPeer);await pvCheckUnread();
 }
-async function openChat(id,navigate=true){if(!user||id===user.id)return;if(pvHiddenChats.has(id)){const {error}=await db.from('hidden_conversations').delete().eq('owner_id',user.id).eq('peer_id',id);if(!error)pvHiddenChats.delete(id)}if(selectedPeer&&selectedPeer!==id)pvClearTyping(selectedPeer);pvDmTypingLastSeen=0;selectedPeer=id;window.dispatchEvent(new Event('pv-chat-peer-changed'));if(navigate){
+async function openChat(id,navigate=true){if(!user||id===user.id)return;pvDmOpenPopPendingV144=id;if(pvHiddenChats.has(id)){const {error}=await db.from('hidden_conversations').delete().eq('owner_id',user.id).eq('peer_id',id);if(!error)pvHiddenChats.delete(id)}if(selectedPeer&&selectedPeer!==id)pvClearTyping(selectedPeer);pvDmTypingLastSeen=0;selectedPeer=id;window.dispatchEvent(new Event('pv-chat-peer-changed'));if(navigate){
  // Start showing the conversation loading shell before the request-status lookup.
  // This prevents an extra flash of the previous profile or empty chat screen.
  inboxView.classList.add('pvChatSelected');
@@ -3167,8 +3206,10 @@ if(pvOpeningSkeleton){
   if(selectedPeer!==openingPeer||!list.isConnected)return;
   list.scrollTop=list.scrollHeight;
   pvOpeningSkeleton.remove();
-  pvDmPlayOpenPopV143(area,openingPeer);
+  pvDmPlayOpenPopV144(area,openingPeer);
  });
+}else if(pvDmOpenPopPendingV144===id){
+ requestAnimationFrame(()=>pvDmPlayOpenPopV144(area,id));
 }
 }
 
