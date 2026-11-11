@@ -79,7 +79,7 @@ function schedule(){
 }
 const observer=new MutationObserver(mutations=>{
  if(!desktop())return;
- if(mutations.some(m=>m.removedNodes.length>0||[...m.addedNodes].some(n=>n.nodeType===1&&!n.matches?.('.pv96Creator,.pv96CreatorDivider'))))schedule();
+ if(mutations.some(m=>[...m.removedNodes,...m.addedNodes].some(n=>n.nodeType===1&&!n.matches?.('.pv96Creator,.pv96CreatorDivider'))))schedule();
 });
 observer.observe(bar,{childList:true});
 window.addEventListener('resize',()=>{display();reload(false)},{passive:true});
