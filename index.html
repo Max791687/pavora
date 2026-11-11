@@ -1110,4 +1110,100 @@ body.pvIntroFinished #pvLaunchScreen,body.pvLaunchReady #pvLaunchScreen,body.pvE
 </script>
 <script src="./reels-reference-v93.js?v=20261111-reels-reference-v93"></script><script src="./core-finish-v94.js?v=20261111-core-finish-v94"></script><script src="./release-update-v91.js?v=20261111-release-v100"></script>
 <script src="./dm-ios-stability-v110.js?v=20261111-ios-gesture-v110"></script>
-</body></html>
+
+<style id="pvDmLiquidGlassV112">
+/* PAVORA iPhone DM glass shell: intentionally scoped to an opened conversation. */
+@media(max-width:700px){
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatArea{
+  position:relative!important;isolation:isolate!important;
+  padding-top:max(env(safe-area-inset-top,0px),42px)!important;
+  background:linear-gradient(165deg,#fbf8ff 0%,#f2eafd 50%,#fff9ff 100%)!important;
+  color:#2a1b39!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatArea::before{
+  content:""!important;position:absolute!important;z-index:0!important;
+  inset:20% 0 12%!important;pointer-events:none!important;
+  background:url("./app-icon.svg") center center/ min(53vw,230px) no-repeat!important;
+  opacity:.105!important;filter:blur(8px) saturate(.95)!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatArea > *{
+  position:relative!important;z-index:1!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatTop{
+  display:flex!important;visibility:visible!important;opacity:1!important;
+  position:relative!important;flex:0 0 auto!important;
+  min-height:60px!important;max-height:none!important;height:auto!important;
+  padding:8px 10px!important;gap:7px!important;overflow:visible!important;
+  background:rgba(255,255,255,.68)!important;
+  border-bottom:1px solid rgba(153,111,188,.20)!important;
+  -webkit-backdrop-filter:blur(19px) saturate(1.35)!important;
+  backdrop-filter:blur(19px) saturate(1.35)!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatBack{
+  display:grid!important;place-items:center!important;
+  flex:0 0 42px!important;width:42px!important;min-width:42px!important;
+  height:42px!important;margin:0!important;padding:0!important;
+  border:1px solid #d9c4ed!important;border-radius:14px!important;
+  background:rgba(240,224,255,.91)!important;
+  color:#55247e!important;-webkit-text-fill-color:#55247e!important;
+  font-size:32px!important;line-height:1!important;
+  visibility:visible!important;opacity:1!important;pointer-events:auto!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatWho{min-width:0!important;flex:1 1 auto!important}
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatHeaderIdentity,
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatHeaderIdentity :is(h3,p),
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatTop :is(.pvDmRealtimeLabel,.pvChatInfoButton,.pvDmSearchButton,.pvChatThemeTrigger,.pvCallAction){
+  color:#322040!important;-webkit-text-fill-color:#322040!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessages{
+  background:transparent!important;background-color:transparent!important;
+  color:#342442!important;min-height:0!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatIntro{display:none!important}
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvBubble:not(.mine){
+  background:rgba(255,255,255,.82)!important;
+  color:#2b2133!important;border:1px solid #e7d8f4!important;
+  box-shadow:0 5px 16px rgba(102,58,137,.09)!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvBubble.mine{
+  background:linear-gradient(125deg,#8241d9,#cf5fcd)!important;
+  color:#fff!important;border:1px solid rgba(255,255,255,.2)!important;
+  box-shadow:0 5px 15px rgba(117,57,173,.2)!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatDayDivider,
+ body.pvMessagesMode #pvInboxView.pvChatSelected :is(.pvMessageMeta,.pvDmSeen,.pvSeen){
+  color:#746482!important;-webkit-text-fill-color:#746482!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatComposerWrap{
+  flex:0 0 auto!important;
+  background:rgba(255,255,255,.66)!important;
+  border-top:1px solid rgba(174,132,211,.23)!important;
+  -webkit-backdrop-filter:blur(16px)!important;backdrop-filter:blur(16px)!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessageForm{
+  background:rgba(255,255,255,.92)!important;
+  border:1px solid #d9c4e8!important;border-radius:28px!important;
+  box-shadow:0 5px 17px rgba(103,73,141,.09)!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessageForm:focus-within{
+  outline:2px solid #a670d5!important;outline-offset:0!important;
+  border-radius:28px!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessageForm input{
+  background:transparent!important;color:#261934!important;
+  -webkit-text-fill-color:#261934!important;
+  border:0!important;box-shadow:none!important;outline:none!important;
+  font-size:16px!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessageForm input::placeholder{
+  color:#867494!important;-webkit-text-fill-color:#867494!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected :is(.pvDmAttachButton,.pvChatEmojiButton){
+  color:#58327a!important;-webkit-text-fill-color:#58327a!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatSend{
+  background:linear-gradient(115deg,#8b45e6,#d958bf)!important;
+  color:#fff!important;-webkit-text-fill-color:#fff!important;
+ }
+}
+</style></body></html>
