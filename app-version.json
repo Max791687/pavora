@@ -1,6 +1,6 @@
 {
-  "version": 138,
+  "version": 139,
   "release": "2026-11-11",
-  "name": "PAVORA v138",
-  "notes": "Removed empty chat composer gap above iPhone keyboard and added guarded left-edge swipe Back across app screens."
+  "name": "PAVORA v139",
+  "notes": "Followers and Following Liquid Glass sheet: spring open/close animation, animated profile rows and swipe-down close."
 }
