@@ -2117,15 +2117,25 @@ function pvDmOpenHoldMenu(message,peer,row){
  if(!user||selectedPeer!==peer||!row?.isConnected)return;
  pvDmHoldCleanup();
  const mine=message.sender_id===user.id,uid=user.id;
- const backdrop=node('div','pvDmHoldBackdrop'),panel=node('div','pvDmHoldPanel');
+ const backdrop=node('div','pvDmHoldBackdrop pvDmHoldBackdropV136');
+ const panel=node('div','pvDmHoldPanel pvDmHoldPanelV136');
  backdrop.setAttribute('role','presentation');
  panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Message actions');
- const close=()=>{if(backdrop.isConnected)backdrop.remove();if(panel.isConnected)panel.remove();if(pvDmHoldCleanup===close)pvDmHoldCleanup=()=>{}};
+ panel.setAttribute('aria-modal','true');
+ const close=()=>{
+  if(backdrop.isConnected)backdrop.remove();
+  if(panel.isConnected)panel.remove();
+  document.removeEventListener('keydown',onKey);
+  if(pvDmHoldCleanup===close)pvDmHoldCleanup=()=>{};
+ };
+ const onKey=e=>{if(e.key==='Escape')close()};
+ document.addEventListener('keydown',onKey);
  pvDmHoldCleanup=close;backdrop.onclick=close;
- const hint=node('div','pvDmHoldHint','REACT TO MESSAGE'),reactions=node('div','pvDmHoldReact');
- const palette=[['❤️','❤️'],['😂','😂'],['😮','😮'],['😢','😢'],['🔥','🔥'],['👍','👍']];
- for(const [emoji,label] of palette){
-  const btn=node('button','',label);btn.type='button';btn.title='React '+emoji;
+ const reactions=node('div','pvDmHoldReact pvDmHoldReactV136');
+ reactions.setAttribute('aria-label','React to message');
+ const palette=['❤️','😂','😮','😢','🩷','👍'];
+ for(const emoji of palette){
+  const btn=node('button','',emoji);btn.type='button';btn.title='React '+emoji;btn.setAttribute('aria-label','React '+emoji);
   btn.onclick=async()=>{
    close();
    const previous=row.dataset.myReaction||'';
@@ -2138,11 +2148,20 @@ function pvDmOpenHoldMenu(message,peer,row){
   };
   reactions.append(btn);
  }
- const choices=node('div','pvDmHoldMenu');
- function action(icon,label,fn,danger=false){
-  const button=node('button',danger?'pvDanger':''),symbol=node('span','pvDmActionSymbol',icon);
-  button.type='button';button.append(symbol,node('span','',label));
-  button.onclick=()=>{close();fn()};choices.append(button);
+ // Floating visual preview, not another interactive message.
+ const preview=node('div','pvDmHoldPreviewV136');
+ preview.classList.toggle('mine',mine);
+ const bubblePreview=node('span','pvDmHoldBubblePreviewV136',pvDmMessageSummary(message)||'Message');
+ preview.append(bubblePreview);
+ const card=node('div','pvDmHoldCardV136');
+ const meta=node('div','pvDmHoldMetaV136',new Date(message.created_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}));
+ const choices=node('div','pvDmHoldMenu pvDmHoldMenuV136');
+ const moreChoices=node('div','pvDmHoldMoreV136');moreChoices.hidden=true;
+ function action(symbol,label,fn,{danger=false,extra=false}={}){
+  const button=node('button',danger?'pvDanger':''),symbolNode=node('span','pvDmActionSymbol',symbol);
+  button.type='button';button.append(symbolNode,node('span','',label));
+  button.onclick=()=>{close();fn()};
+  (extra?moreChoices:choices).append(button);
  }
  action('↩','Reply',()=>pvDmSetReply(peer,message));
  if(mine&&message.body&&Date.now()-new Date(message.created_at).getTime()<15*60*1000)
@@ -2153,21 +2172,11 @@ function pvDmOpenHoldMenu(message,peer,row){
    if(error){alert('Could not edit: '+error.message);return}
    const bubble=row.querySelector('.pvBubble');
    if(bubble){
-    // Preserve quoted and attached media while changing text.
     for(const t of [...bubble.childNodes])if(t.nodeType===Node.TEXT_NODE)t.remove();
     bubble.append(document.createTextNode(value.trim()));
    }
    pvScheduleLiveDmRefresh();
   });
- action('➤','Forward',()=>pvForwardDmMessage(message,peer));
- if(message.body)action('▢','Copy',()=>{
-  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(message.body).catch(()=>prompt('Copy message',message.body));
-  else prompt('Copy message',message.body);
- });
- action('📌',pvDmPinnedByPeer.get(peer)?.message_id===message.id?'Unpin':'Pin for me',()=>{
-  if(pvDmPinnedByPeer.get(peer)?.message_id===message.id)pvDmUnpin(peer);
-  else pvDmPinMessage(message,peer);
- });
  action('⌫','Delete for you',()=>pvDmHideForMe(message,peer,row));
  if(mine)action('↶','Unsend',async()=>{
   if(!confirm('Unsend this message for everyone?'))return;
@@ -2175,17 +2184,48 @@ function pvDmOpenHoldMenu(message,peer,row){
   if(error){alert('Could not unsend: '+error.message);return}
   if(message.media_path)db.storage.from('pv-dm-media').remove([message.media_path]).catch(()=>{});
   row.remove();pvScheduleLiveDmRefresh();
- },true);
- panel.append(hint,reactions,choices);
+ },{danger:true});
+ // Keep the complete original feature set accessible under More.
+ action('➤','Forward',()=>pvForwardDmMessage(message,peer),{extra:true});
+ if(message.body)action('▢','Copy',()=>{
+  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(message.body).catch(()=>prompt('Copy message',message.body));
+  else prompt('Copy message',message.body);
+ },{extra:true});
+ action('⌖',pvDmPinnedByPeer.get(peer)?.message_id===message.id?'Unpin':'Pin for me',()=>{
+  if(pvDmPinnedByPeer.get(peer)?.message_id===message.id)pvDmUnpin(peer);
+  else pvDmPinMessage(message,peer);
+ },{extra:true});
+ const more=node('button','pvDmHoldMoreToggleV136');
+ more.type='button';more.setAttribute('aria-expanded','false');
+ more.append(node('span','pvDmActionSymbol','···'),node('span','','More'),node('span','pvDmHoldChevronV136','›'));
+ more.onclick=()=>{
+  const expanded=more.getAttribute('aria-expanded')==='true';
+  more.setAttribute('aria-expanded',String(!expanded));
+  moreChoices.hidden=expanded;
+  more.querySelector('.pvDmHoldChevronV136').textContent=expanded?'›':'⌄';
+  position();
+ };
+ choices.append(more,moreChoices);
+ card.append(meta,choices);
+ panel.append(reactions,preview,card);
  document.body.append(backdrop,panel);
- const bounds=row.querySelector('.pvBubble')?.getBoundingClientRect()||row.getBoundingClientRect();
- const panelHeight=panel.getBoundingClientRect().height,viewportHeight=window.innerHeight;
- const desiredTop=bounds.top-panelHeight-12;
- const top=desiredTop>12?desiredTop:Math.min(viewportHeight-panelHeight-14,bounds.bottom+10);
- const centered=Math.max(14,Math.min(window.innerWidth-panel.offsetWidth-14,bounds.left+(bounds.width-panel.offsetWidth)/2));
- panel.style.left=centered+'px';panel.style.top=Math.max(10,top)+'px';
- const onKey=e=>{if(e.key==='Escape'){close();document.removeEventListener('keydown',onKey)}};
- document.addEventListener('keydown',onKey,{once:true});
+ function position(){
+  if(!panel.isConnected)return;
+  // Vertical positioning follows the selected bubble, clamped to the visible viewport.
+  const bounds=row.querySelector('.pvBubble')?.getBoundingClientRect()||row.getBoundingClientRect();
+  const vv=window.visualViewport;
+  const screenTop=vv?.offsetTop||0,screenHeight=vv?.height||window.innerHeight;
+  const panelWidth=panel.offsetWidth,margin=12;
+  const screenBottom=screenTop+screenHeight;
+  const height=panel.getBoundingClientRect().height;
+  const preferred=bounds.top-height-12;
+  let top=preferred>=screenTop+margin?preferred:bounds.bottom+12;
+  if(top+height>screenBottom-margin)top=Math.max(screenTop+margin,screenBottom-height-margin);
+  const left=Math.max(margin,Math.min(window.innerWidth-panelWidth-margin,
+   mine?bounds.right-panelWidth:bounds.left));
+  panel.style.left=left+'px';panel.style.top=top+'px';
+ }
+ position();
 }
 function pvDmAttachHoldGesture(row,msg,peer){
  if(row.dataset.pvHoldAttached)return;
