@@ -68,7 +68,7 @@ body.pvMessagesMode #pvInboxView{padding:0!important;max-width:none!important;wi
 #pvInboxView .pvChatBack{display:none;border:0;background:transparent;color:white;font-size:34px;padding:0 14px 0 0}
 #pvInboxView .pvMessages{flex:1;min-height:0;height:auto!important;overflow-y:auto;padding:20px!important;display:flex;flex-direction:column;gap:10px}
 #pvInboxView .pvMessageForm{display:flex;gap:9px;margin:12px 18px 20px;padding:8px;border:1px solid #42404a;border-radius:25px}
-#pvInboxView .pvMessageForm input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:white;padding:8px}
+#pvInboxView .pvMessageForm textarea{flex:1;min-width:0;border:0;outline:0;background:transparent;color:white;padding:8px}
 #pvInboxView .pvMessageForm button{border-radius:19px;padding:8px 18px}
 #pvInboxView .pvEmptyThreads{font-size:13px;color:#aaa;padding:15px}
 @media(max-width:700px){
@@ -122,7 +122,7 @@ body.pvMessagesMode #pvInboxView{padding:0!important;max-width:none!important;wi
 #pvInboxView .pvAcceptRequest{background:linear-gradient(100deg,#7955f2,#c548ac);border:0;border-radius:9px;padding:9px 15px;color:white;font-size:13px;font-weight:750;cursor:pointer}
 #pvInboxView .pvDeclineRequest{background:#352c3d;border:0;border-radius:9px;padding:9px 13px;color:#f5c6d6;font-size:13px;cursor:pointer}
 #pvInboxView .pvPendingRequestNote{padding:11px 17px;margin:0;background:#211b29;border-bottom:1px solid #45384a;color:#dbbfe9;font-size:12px}
-#pvInboxView .pvMessageForm input:disabled,#pvInboxView .pvMessageForm button:disabled{opacity:.55;cursor:not-allowed}
+#pvInboxView .pvMessageForm textarea:disabled,#pvInboxView .pvMessageForm button:disabled{opacity:.55;cursor:not-allowed}
 
 /* New DM indicators on the visible desktop rail and mobile bottom navigation */
 .pvIconRail .pvRailButton{position:relative}
@@ -403,8 +403,8 @@ body.pvReelsMode .pvReelCard{padding:0!important}
 #pvInboxView .pvChatComposerWrap{position:relative;flex:none;padding:9px 18px 18px;background:#0d0f12}
 #pvInboxView .pvMessageForm{margin:0!important;border:1px solid #3b3d45!important;display:flex;align-items:center;gap:8px;padding:5px 7px!important;background:#15171c;border-radius:30px!important;min-height:49px}
 #pvInboxView .pvMessageForm:focus-within{border-color:#6b6378!important}
-#pvInboxView .pvMessageForm input{border:0!important;min-width:0;flex:1;background:transparent;color:white;outline:0;padding:8px 0!important;font-size:13px}
-#pvInboxView .pvMessageForm input::placeholder{color:#92929d}
+#pvInboxView .pvMessageForm textarea{border:0!important;min-width:0;flex:1;background:transparent;color:white;outline:0;padding:8px 0!important;font-size:13px}
+#pvInboxView .pvMessageForm textarea::placeholder{color:#92929d}
 #pvInboxView .pvChatEmojiButton{border:0;background:transparent;color:#f4f4f6;width:35px;height:35px;padding:5px;display:grid;place-items:center;flex:none;cursor:pointer}
 #pvInboxView .pvChatEmojiButton svg{width:25px;height:25px}
 #pvInboxView .pvChatEmojiButton:hover{color:#c79aff}
@@ -1051,7 +1051,7 @@ body.pvIntroFinished #pvLaunchScreen,body.pvLaunchReady #pvLaunchScreen,body.pvE
  body.pvMessagesMode.pvDmKeyboardOpen #pvInboxView.pvChatSelected .pvChatComposerWrap{
   padding-bottom:6px!important;
  }
- body.pvMessagesMode #pvInboxView .pvMessageForm input{
+ body.pvMessagesMode #pvInboxView .pvMessageForm textarea{
   font-size:16px!important;min-width:0!important;
  }
 }
@@ -1114,9 +1114,9 @@ body.pvSkipIntro #pvLaunchScreen{
 /* v111 iPhone DM input: remove accidental rectangular focus ring around message text only.
    Preserve a visible accessible focus state on the rounded composer instead. */
 @media(max-width:700px){
- body.pvMessagesMode #pvInboxView .pvMessageForm input,
- body.pvMessagesMode #pvInboxView .pvMessageForm input:focus,
- body.pvMessagesMode #pvInboxView .pvMessageForm input:focus-visible{
+ body.pvMessagesMode #pvInboxView .pvMessageForm textarea,
+ body.pvMessagesMode #pvInboxView .pvMessageForm textarea:focus,
+ body.pvMessagesMode #pvInboxView .pvMessageForm textarea:focus-visible{
   outline:none!important;outline-offset:0!important;
   border:0!important;box-shadow:none!important;
   -webkit-appearance:none!important;appearance:none!important;
@@ -1226,13 +1226,13 @@ body.pvSkipIntro #pvLaunchScreen{
   outline:2px solid #a670d5!important;outline-offset:0!important;
   border-radius:28px!important;
  }
- body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessageForm input{
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessageForm textarea{
   background:transparent!important;color:#261934!important;
   -webkit-text-fill-color:#261934!important;
   border:0!important;box-shadow:none!important;outline:none!important;
   font-size:16px!important;
  }
- body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessageForm input::placeholder{
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessageForm textarea::placeholder{
   color:#867494!important;-webkit-text-fill-color:#867494!important;
  }
  body.pvMessagesMode #pvInboxView.pvChatSelected :is(.pvDmAttachButton,.pvChatEmojiButton){
@@ -2061,7 +2061,7 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
   -webkit-backdrop-filter:blur(16px) saturate(1.2)!important;
   backdrop-filter:blur(16px) saturate(1.2)!important;
  }
- body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessageForm input{
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessageForm textarea{
   display:block!important;
   flex:1 1 0!important;width:0!important;min-width:45px!important;
   height:39px!important;max-height:39px!important;
@@ -2118,7 +2118,7 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
  body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessageForm{
   gap:2px!important;padding:4px!important;
  }
- body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessageForm input{
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessageForm textarea{
   min-width:30px!important;
  }
  body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessageForm .pvChatSend{
@@ -2658,6 +2658,49 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
  }
  body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessageForm .pvDmGalleryButton svg{
   width:24px!important;height:24px!important;pointer-events:none!important;
+ }
+}
+</style><style id="pvDmMultilineComposeV158">
+/* iOS multiline DM draft. Always expand UP from the bottom toolbar. */
+#pvInboxView .pvChatComposerWrap .pvMessageForm{
+ display:flex!important;align-items:flex-end!important;
+ height:auto!important;max-height:none!important;min-height:48px!important;
+}
+#pvInboxView .pvChatComposerWrap .pvMessageForm textarea.pvDmAutoMessageV158{
+ display:block!important;flex:1 1 0!important;
+ width:0!important;min-width:0!important;
+ box-sizing:border-box!important;
+ height:38px!important;min-height:38px!important;max-height:176px!important;
+ padding:7px 3px!important;margin:0!important;
+ border:0!important;border-radius:0!important;outline:none!important;
+ box-shadow:none!important;background:transparent!important;
+ color:#261934!important;-webkit-text-fill-color:#261934!important;
+ font:inherit!important;font-size:16px!important;font-weight:450!important;
+ line-height:23px!important;letter-spacing:normal!important;
+ white-space:pre-wrap!important;overflow-wrap:anywhere!important;
+ overflow-x:hidden!important;overflow-y:hidden!important;
+ resize:none!important;-webkit-appearance:none!important;appearance:none!important;
+}
+#pvInboxView .pvChatComposerWrap .pvMessageForm textarea.pvDmAutoMessageV158::placeholder{
+ color:#867494!important;-webkit-text-fill-color:#867494!important;
+}
+@media(max-width:700px){
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvChatComposerWrap{
+  height:auto!important;max-height:calc(100dvh - 160px)!important;
+  min-height:0!important;flex:0 0 auto!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessageForm,
+ body.pvMessagesMode.pvDmKeyboardOpen #pvInboxView.pvChatSelected .pvMessageForm{
+  height:auto!important;min-height:50px!important;max-height:none!important;
+  align-items:flex-end!important;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessageForm textarea.pvDmAutoMessageV158,
+ body.pvMessagesMode.pvDmKeyboardOpen #pvInboxView.pvChatSelected .pvMessageForm textarea.pvDmAutoMessageV158{
+  height:38px!important;min-height:38px!important;max-height:176px!important;
+  overflow-y:auto!important;overscroll-behavior:contain;
+ }
+ body.pvMessagesMode #pvInboxView.pvChatSelected .pvMessageForm :is(.pvChatEmojiButton,.pvDmGalleryButton,.pvChatSend){
+  flex-shrink:0!important;align-self:flex-end!important;
  }
 }
 </style></body></html>
