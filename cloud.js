@@ -2766,41 +2766,41 @@ function pvConversationSetting(peer){return pvConversationSettings.get(peer)||{f
 async function pvSaveConversationSetting(peer,changes){if(!pvPrefsReady){alert('Run supabase/conversation-preferences.sql in Supabase SQL Editor first.');return false}const next={...pvConversationSetting(peer),...changes};const {error}=await db.from('conversation_preferences').upsert({owner_id:user.id,peer_id:peer,...next,updated_at:new Date().toISOString()},{onConflict:'owner_id,peer_id'});if(error){alert('Cannot update conversation: '+error.message+' — Run supabase/conversation-preferences.sql first.');return false}pvConversationSettings.set(peer,next);return true}
 
 let pvDmOpenPopPendingV144=null,pvDmOpenPopFrameV144=0;
+let pvDmOpenAnimationsV153=[];
+function pvDmCancelOpenAnimationsV153(){
+ pvDmOpenAnimationsV153.forEach(a=>{try{a.cancel()}catch{}});
+ pvDmOpenAnimationsV153=[];
+}
 function pvDmPlayOpenPopV144(area,peer){
  if(pvDmOpenPopPendingV144!==peer)return;
  pvDmOpenPopPendingV144=null;
+ pvDmCancelOpenAnimationsV153();
  if(window.innerWidth>700||window.matchMedia('(prefers-reduced-motion:reduce)').matches||!area?.isConnected)return;
  if(document.activeElement?.matches?.('#pvInboxView .pvMessageForm input'))return;
- cancelAnimationFrame(pvDmOpenPopFrameV144);
- const duration=460,started=performance.now();
- const smooth=t=>t*t*(3-2*t);
- // Animate the individual CSS 'scale' property only. Scaling via transform
- // creates a new containing block and snaps the fixed iOS DM at animation end.
- // Keep viewport geometry and message scroll offsets untouched.
- area.style.removeProperty('transform');
- area.style.removeProperty('will-change');
- area.style.setProperty('transform-origin','center center','important');
- area.style.setProperty('will-change','scale','important');
- function cleanup(){
-  cancelAnimationFrame(pvDmOpenPopFrameV144);pvDmOpenPopFrameV144=0;
-  // Last painted scale is 1, so removing it cannot cause a snap.
-  area.style.removeProperty('scale');
-  area.style.removeProperty('will-change');
-  area.style.removeProperty('transform-origin');
+ // Apple-inspired soft reveal. Do not scale or translate the chat viewport:
+ // moving its fixed geometry produces the "drop" and final snap on iOS.
+ const parts=[
+  [area.querySelector('.pvChatTop'),0],
+  [area.querySelector('.pvMessages'),24],
+  [area.querySelector('.pvChatComposerWrap'),45]
+ ];
+ for(const [element,delay] of parts){
+  if(!element?.isConnected||typeof element.animate!=='function')continue;
+  const frames=[
+   {opacity:.78,translate:'0 7px'},
+   {opacity:1,translate:'0 0'}
+  ];
+  const animation=element.animate(frames,{
+   duration:270,delay,easing:'cubic-bezier(.22,1,.36,1)',fill:'both',
+   id:'pvDmSoftRevealV153'
+  });
+  pvDmOpenAnimationsV153.push(animation);
+  animation.onfinish=()=>{
+   // Natural, unchanged layout after the reveal (no snap at animation end).
+   animation.cancel();
+   pvDmOpenAnimationsV153=pvDmOpenAnimationsV153.filter(a=>a!==animation);
+  };
  }
- function frame(now){
-  if(!area.isConnected||selectedPeer!==peer||!inboxView.classList.contains('pvChatSelected')){
-   cleanup();return;
-  }
-  const t=Math.min(1,(now-started)/duration);
-  let scale;
-  if(t<.64){let p=smooth(t/.64);scale=.94+.075*p}
-  else{let p=smooth((t-.64)/.36);scale=1.015-.015*p}
-  area.style.setProperty('scale',scale.toFixed(4),'important');
-  if(t<1)pvDmOpenPopFrameV144=requestAnimationFrame(frame);
-  else cleanup();
- }
- pvDmOpenPopFrameV144=requestAnimationFrame(frame);
 }
 function pvDmAnimateInboxRowsV144(root){
  if(window.innerWidth>700||window.matchMedia('(prefers-reduced-motion:reduce)').matches)return;
@@ -2822,6 +2822,7 @@ function pvDmAnimateInboxRowsV144(root){
 function pvInboxMobileBack(){
  pvDmOpenPopPendingV144=null;
  cancelAnimationFrame(pvDmOpenPopFrameV144);
+ pvDmCancelOpenAnimationsV153();
  const oldArea=document.getElementById('pvChatArea');
  if(oldArea){oldArea.style.removeProperty('transform');oldArea.style.removeProperty('scale');oldArea.style.removeProperty('will-change');oldArea.style.removeProperty('transform-origin')}
  document.getElementById('pvChatArea')?.classList.remove('pvDmOpenPopV143');
