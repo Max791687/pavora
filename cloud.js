@@ -2438,6 +2438,7 @@ pvSyncMobileDmViewport();
 let pvEdgeNavCurrent='home',pvEdgeNavTrail=[],pvEdgeGoingBack=false;
 function pvNavigate(view){
  if(view!==pvEdgeNavCurrent){
+  document.dispatchEvent(new CustomEvent('pv-analytics-view',{detail:{view}}));
   if(!pvEdgeGoingBack)pvEdgeNavTrail.push(pvEdgeNavCurrent);
   if(pvEdgeNavTrail.length>20)pvEdgeNavTrail.shift();
   pvEdgeNavCurrent=view;
