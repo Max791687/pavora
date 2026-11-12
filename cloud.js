@@ -3139,7 +3139,7 @@ const composerWrap=node('div','pvChatComposerWrap');
 // Keep the keyboard anchored to this composer without scrolling the entire fixed DM viewport.
 input.addEventListener('focus',pvScheduleMobileDmViewport);
 input.addEventListener('blur',pvScheduleMobileDmViewport);
-const attach=node('button','pvDmAttachButton','');attach.type='button';attach.title='Camera or media';attach.setAttribute('aria-label','Camera or media');attach.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="4"/></svg>';
+// Left attachment control removed: only the visible gallery button opens the picker.
 const fileInput=node('input');fileInput.type='file';fileInput.accept='image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm';fileInput.hidden=true;
 fileInput.className='pvDmNativeFileInput';
 fileInput.tabIndex=-1;
@@ -3195,7 +3195,7 @@ function pvOpenDmPicker(event){
  fileInput.accept='image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm';
  fileInput.click();
 }
-attach.addEventListener('click',pvOpenDmPicker);
+
 const replyCompose=node('div','pvDmSendPreview pvDmReplyCompose');replyCompose.hidden=true;
 const replyInfo=node('div','pvDmPreviewText'),replyHeading=node('span','pvDmPreviewTitle','REPLYING TO'),replyText=node('strong','',''),cancelReply=node('button','','×');cancelReply.type='button';
 cancelReply.title='Cancel reply';cancelReply.setAttribute('aria-label','Cancel reply');cancelReply.onclick=()=>{form.dataset.replyTo='';replyCompose.hidden=true};
@@ -3204,7 +3204,7 @@ const gallery=node('button','pvDmGalleryButton');
 gallery.type='button';gallery.title='Choose photo or video';gallery.setAttribute('aria-label','Choose photo or video');
 gallery.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="m4 18 5.3-5.2 3.2 3.1 3.1-3.2L21 18"/></svg>';
 gallery.addEventListener('click',pvOpenDmPicker);
-form.append(attach,input,emojiButton,gallery,send);
+form.append(input,emojiButton,gallery,send);
 composerWrap.append(replyCompose,mediaSelection,emojiTray,form);
 document.querySelectorAll('body > input.pvDmNativeFileInput').forEach(old=>old.remove());
 document.body.append(fileInput);
