@@ -3,7 +3,7 @@
  'use strict';
  if(window.__pvDmKeyboardFollow113)return;
  window.__pvDmKeyboardFollow113=true;
- const inputSelector='#pvInboxView.pvChatSelected .pvMessageForm input';
+ const inputSelector='#pvInboxView.pvChatSelected .pvMessageForm textarea';
  let focused=false, lastKeyboard=false, raf=0, followUntil=0;
  const mobile=()=>window.matchMedia('(max-width:700px)').matches;
  const state=()=>{
