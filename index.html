@@ -2893,7 +2893,9 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
  body.pvReelsMode .pvReelScreen .pvReelMeta{
   bottom:calc(var(--pvReelSeekLift,var(--pvReelsBottom,94px)) + 38px)!important;
   z-index:6!important;
-  background:linear-gradient(0deg,rgba(0,0,0,.43),transparent)!important;
+  background:none!important;background-color:transparent!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  box-shadow:none!important;
   padding-bottom:8px!important;
  }
  body.pvReelsMode .pvReelCard .pvReelActions{
@@ -2903,5 +2905,25 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
   bottom:calc(var(--pvReelSeekLift,var(--pvReelsBottom,94px)) + 112px)!important;
  }
  body.pvReelsMode .pvReelScreen .pvReelPlay{z-index:8!important}
+}
+</style><style id="pvReelNoBlackFadeV166">
+/* Remove the dark fade behind username/caption and scrubber on every Reel.
+   Keep text shadows for contrast without painting a black sheet over video. */
+@media(max-width:700px){
+ body.pvReelsMode #reels .pvReelCard .pvReelScreen .pvReelMeta{
+  background:none!important;background-image:none!important;background-color:transparent!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  box-shadow:none!important;
+ }
+ body.pvReelsMode #reels .pvReelCard .pvReelScreen .pvReelSeek,
+ body.pvReelsMode #reels .pvReelCard .pvReelScreen .pvReelSeekTime{
+  background:none!important;background-image:none!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  box-shadow:none!important;
+ }
+ body.pvReelsMode #reels .pvReelCard .pvReelAuthor,
+ body.pvReelsMode #reels .pvReelCard .pvReelCaption{
+  text-shadow:0 1px 4px rgba(0,0,0,.65)!important;
+ }
 }
 </style></body></html>
