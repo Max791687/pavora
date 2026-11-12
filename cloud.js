@@ -3754,11 +3754,46 @@ pvRevealApp();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&user){pvCheckUnread();pvCheckActivity();pvScheduleLikesSync(100);pvScheduleComments(100)}});
 // Restore a saved session before considering the user logged out. Supabase can
 // emit INITIAL_SESSION while refresh and token recovery are still in progress.
+// Keep the UI stable while iOS resumes an expired/backgrounded token.
+// Explicit logout still takes effect immediately; unexpected SIGNED_OUT must
+// be reconciled against the SDK, not inferred from a transient auth callback.
+let pvPendingSignoutCheck=null;
+function pvCancelSignoutCheck(){
+ if(pvPendingSignoutCheck){clearTimeout(pvPendingSignoutCheck);pvPendingSignoutCheck=null}
+}
 db.auth.onAuthStateChange((event,session)=>{
-if(event==='SIGNED_OUT'){if(!pvAuthBootstrapped&&!pvExplicitSignout)return;setTimeout(()=>setSession(null).catch(e=>console.warn('Logout failed:',e)),0);return}
-if(!session?.user)return;
-if(event==='TOKEN_REFRESHED'&&user?.id===session.user.id)return;
-setTimeout(()=>setSession(session).catch(e=>console.warn('Session setup failed:',e)),0)
+ if(event==='SIGNED_OUT'){
+  if(!pvAuthBootstrapped&&!pvExplicitSignout)return;
+  pvCancelSignoutCheck();
+  if(pvExplicitSignout){
+   setTimeout(()=>setSession(null).catch(e=>console.warn('Logout failed:',e)),0);
+   return;
+  }
+  pvPendingSignoutCheck=setTimeout(async()=>{
+   pvPendingSignoutCheck=null;
+   try{
+    const {data,error}=await pvAuthTimeout(db.auth.getSession(),9000);
+    if(error)throw error;
+    if(data?.session?.user){await setSession(data.session);return}
+    await setSession(null);
+   }catch(error){
+    // A network timeout is not proof of logout. Keep the UI open and retry
+    // on foreground; protected Supabase queries still enforce authentication.
+    console.warn('Could not verify saved login:',error?.message||error);
+   }
+  },1300);
+  return;
+ }
+ if(!session?.user)return;
+ pvCancelSignoutCheck();
+ if(event==='TOKEN_REFRESHED'&&user?.id===session.user.id)return;
+ setTimeout(()=>setSession(session).catch(e=>console.warn('Session setup failed:',e)),0);
+});
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden||pvExplicitSignout||user)return;
+ db.auth.getSession().then(({data})=>{
+  if(data?.session?.user)setSession(data.session).catch(e=>console.warn('Session recovery:',e));
+ }).catch(()=>{});
 });
 try{
 const {data,error}=await pvAuthTimeout(db.auth.getSession(),20000);
