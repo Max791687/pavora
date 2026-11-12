@@ -2301,13 +2301,15 @@ function pvDmDecorateContent(list,messages,peer){
   if(msg.media_path&&!row.querySelector('.pvDmAttachment')&&!row.querySelector('.pvDmMediaError')){
    const bubble=row.querySelector('.pvBubble');if(!bubble)continue;
    const isVideo=msg.media_type?.startsWith('video/');
-   const media=node(isVideo?'video':'img','pvDmAttachment'+(isVideo?' video':''));
-   if(isVideo){media.controls=true;media.playsInline=true;media.preload='none'}
+   const isAudio=msg.media_type?.startsWith('audio/');
+   const media=node(isAudio?'audio':isVideo?'video':'img','pvDmAttachment'+(isVideo?' video':isAudio?' audio':''));
+   if(isAudio){media.controls=true;media.preload='none';media.setAttribute('aria-label','Voice note')}
+   else if(isVideo){media.controls=true;media.playsInline=true;media.preload='none'}
    else {media.loading='eager';media.decoding='async';media.alt='Shared photo'}
 // Reserve a stable media slot before signed URLs return to avoid chat jumping.
-media.style.width='min(260px,67vw)';
-media.style.height=isVideo?'195px':'195px';
-media.style.maxHeight='195px';
+media.style.width=isAudio?'min(260px,75vw)':'min(260px,67vw)';
+media.style.height=isAudio?'50px':'195px';
+media.style.maxHeight=isAudio?'50px':'195px';
 media.style.objectFit='contain';
    bubble.append(media);
    db.storage.from('pv-dm-media').createSignedUrl(msg.media_path,1800).then(({data,error})=>{
@@ -3326,7 +3328,7 @@ async function pvSendMessage(){
  let sentMessage=null,uploadedPath=null;
  try{
   if(mediaFile){
-   uploadedPath=user.id+'/'+crypto.randomUUID()+(mediaFile.type==='video/mp4'?'.mp4':mediaFile.type==='video/webm'?'.webm':mediaFile.type==='image/png'?'.png':mediaFile.type==='image/webp'?'.webp':mediaFile.type==='image/gif'?'.gif':'.jpg');
+   uploadedPath=user.id+'/'+crypto.randomUUID()+(mediaFile.type==='audio/mp4'?'.m4a':mediaFile.type==='audio/ogg'?'.ogg':mediaFile.type==='audio/webm'?'.webm':mediaFile.type==='video/mp4'?'.mp4':mediaFile.type==='video/webm'?'.webm':mediaFile.type==='image/png'?'.png':mediaFile.type==='image/webp'?'.webp':mediaFile.type==='image/gif'?'.gif':'.jpg');
    const uploaded=await db.storage.from('pv-dm-media').upload(uploadedPath,mediaFile,{contentType:mediaFile.type});
    if(uploaded.error)throw uploaded.error;
   }
