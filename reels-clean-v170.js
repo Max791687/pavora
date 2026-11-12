@@ -248,14 +248,19 @@ document.head.append(css);
 function placeOverlays(){
  if(!document.body.classList.contains('pvReelsMode'))return;
  const nav=document.querySelector('.pvIconRail');
- if(!nav||getComputedStyle(nav).display==='none')return;
- const rect=nav.getBoundingClientRect();
+ const stage=document.querySelector('#reels .pvReelStage');
+ if(!stage||!nav||getComputedStyle(nav).display==='none')return;
+ // Measure ONE stationary viewport, not each card's moving rectangle.
+ // During the 340ms transform neighboring cards are offscreen; measuring
+ // their bottoms used to move their avatar/seek UI independently mid-swipe.
+ const stageRect=stage.getBoundingClientRect();
+ const navRect=nav.getBoundingClientRect();
+ const overlap=Math.max(0,Math.min(stageRect.height*.55,stageRect.bottom-navRect.top+7));
+ const inset=Math.ceil(overlap)+'px';
  document.querySelectorAll('#reels .pvReelScreen').forEach(screen=>{
-  const videoRect=screen.getBoundingClientRect();
-  const overlap=Math.max(0,Math.min(videoRect.height*.55,videoRect.bottom-rect.top+7));
-  screen.style.setProperty('--pv170NavOverlap',Math.ceil(overlap)+'px');
+  screen.style.setProperty('--pv170NavOverlap',inset);
   const seek=screen.querySelector('.pvReelSeek');
-  const h=seek?Math.ceil(seek.getBoundingClientRect().height):44;
+  const h=seek?Math.ceil(seek.offsetHeight):44;
   screen.style.setProperty('--pv170SeekHeight',Math.max(36,h)+'px');
  });
 }
