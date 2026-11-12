@@ -1524,7 +1524,9 @@ function pvActivateReel(index){
   if(distance===0||(!window.PAVORA_CREATOR_HUB?.dataSaver()&&distance===1)){
    // Data Saver skips adjacent-video decoder and network preloading.
    if(!v.hasAttribute('src')&&v.dataset.pvSrc)v.src=v.dataset.pvSrc;
-   v.preload=distance===0?'auto':'metadata';
+   // Buffer the first frame of the two neighboring Reels as well.
+   // 'metadata' caused iPhone to reveal a black frame on every swipe.
+   v.preload='auto';
    if(i===index){
     v.muted=!pvReelsSoundOn;
     if(v.paused)v.play().then(()=>{if(pvReelsAudioPrompt){pvReelsAudioPrompt.remove();pvReelsAudioPrompt=null}}).catch(pvHandleReelAutoplayError);
@@ -1563,7 +1565,35 @@ function stepReel(direction){
   if(direction>0){reelDiscoveryText.textContent='You are caught up · Refresh for new Reels';reelRefresh.classList.add('pvReelRefreshAttention')}
   return;
  }
- gestureLocked=true;goTo(next,'smooth');
+ gestureLocked=true;
+ const nextVideo=videoFor(next);
+ // Do not slide in a completely blank player. Prepare the upcoming Reel
+ // while the current Reel stays visible; pause just the navigation gesture.
+ if(nextVideo&&nextVideo.readyState<2){
+  if(!nextVideo.hasAttribute('src')&&nextVideo.dataset.pvSrc){
+   nextVideo.preload='auto';
+   nextVideo.src=nextVideo.dataset.pvSrc;
+  }
+  let finished=false;
+  const finish=()=>{
+   if(finished)return;
+   finished=true;
+   nextVideo.removeEventListener('loadeddata',finish);
+   nextVideo.removeEventListener('canplay',finish);
+   nextVideo.removeEventListener('error',finish);
+   clearTimeout(fallback);
+   if(!reelStack.isConnected||!document.body.classList.contains('pvReelsMode')){
+    gestureLocked=false;return;
+   }
+   goTo(next,'smooth');
+  };
+  nextVideo.addEventListener('loadeddata',finish,{once:true});
+  nextVideo.addEventListener('canplay',finish,{once:true});
+  nextVideo.addEventListener('error',finish,{once:true});
+  // Failed/slow network must not leave swipe permanently locked.
+  const fallback=setTimeout(finish,1800);
+  if(nextVideo.readyState>=2)finish();
+ }else goTo(next,'smooth');
 }
 up.onclick=()=>stepReel(-1);down.onclick=()=>stepReel(1);
 const pvWheelHandler=e=>{
