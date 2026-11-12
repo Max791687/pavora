@@ -1671,6 +1671,15 @@ actions.append(reelAction('More options','<circle cx="5" cy="12" r="1" fill="cur
 card.append(screen,actions);reelStack.append(card);cards.push(card);card.id='reel-'+reel.id;
 try{window.PVKit?.addReel?.(reel,actions,video)}catch(e){console.warn('Reel extras:',e)}
 // Not interested remains in More options; no floating control over the Reel.
+// Safari can composite <video> above descendants of the same rounded video
+// screen on some frames, hiding the avatar, caption, sound and seek bar.
+// Render these controls as card-level siblings, like the stable action rail.
+if(window.innerWidth<=700){
+ const seek=screen.querySelector('.pvReelSeek');
+ card.append(meta,sound);
+ if(seek)card.append(seek);
+ card.classList.add('pvReelOverlaySiblingV168');
+}
 }
 // Single playback controller above owns play/pause: no IntersectionObserver races.
 if(reelObserver){reelObserver.disconnect();reelObserver=null}
