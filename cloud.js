@@ -3359,7 +3359,11 @@ async function toggleVoice(){
  }finally{voiceButton.disabled=false}
 }
 voiceButton.addEventListener('click',toggleVoice);
-form.addEventListener('submit',()=>{if(voiceRecorder?.state==='recording')voiceRecorder.stop()});
+window.addEventListener('pv-chat-peer-changed',()=>{
+ if(selectedPeer!==id&&voiceRecorder?.state==='recording'){
+  voiceRecorder.onstop=null;voiceRecorder.stop();stopVoiceTracks();voiceRecorder=null;
+ }
+},{once:true});
 form.append(input,emojiButton,gallery,voiceButton,send);
 composerWrap.append(replyCompose,mediaSelection,emojiTray,form);
 document.querySelectorAll('body > input.pvDmNativeFileInput').forEach(old=>old.remove());
