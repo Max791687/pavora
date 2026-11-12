@@ -176,7 +176,7 @@ function pvRestoreOwnerView(){
  overlay.hidden=false;tabsRender();render();
 }
 
-const names={overview:'Overview',users:'Users',chats:'Active Chats',testchat:'Test Chat Viewer',reports:'Reports',posts:'Posts',reels:'Reels',audit:'Audit Logs',recovery:'Recovery Support'};
+const names={overview:'Overview',users:'Users',chats:'Active Chats',testchat:'Test Chat Viewer',reports:'Reports',posts:'Posts',reels:'Reels',audit:'Audit Logs',recovery:'Recovery Support',visits:'Link Analytics'};
 const current=()=>kit.getUser()?.id;
 async function api(action,more={}){
  const r=await db.functions.invoke('pavora-owner-admin',{body:{action,...more}});
@@ -312,7 +312,51 @@ async function render(){
  if(active==='chats'){buildChatsLayout();pvChatsLayout.status.textContent='Connecting live activity…';}
  else main.append(E('p','pvoMuted','Loading secure admin data…'));
  try{
-  if(active==='overview'){
+  if(active==='visits'){
+   const bar=toolbar('Link & Page Analytics');
+   bar.append(makeButton('↻ Refresh',()=>render(),'secondary'));
+   const controls=E('div','pvoActions');
+   const windowSelect=E('select','pvoSearch');
+   windowSelect.style.width='160px';
+   for(const [d,label] of [[1,'Last 24 hours'],[7,'Last 7 days'],[30,'Last 30 days']]){
+    const opt=E('option','',label);opt.value=String(d);windowSelect.append(opt);
+   }
+   windowSelect.value=String(window.__pvAnalyticsDays||7);
+   controls.append(windowSelect);bar.append(controls);
+   windowSelect.onchange=()=>{window.__pvAnalyticsDays=Number(windowSelect.value);render()};
+   const d=await api('visits.analytics',{days:Number(windowSelect.value)});
+   if(ticket!==seq)return;
+   clear();const heading=toolbar('Link & Page Analytics');
+   heading.append(windowSelect);
+   line('Anonymous, approximate site analytics. One random ID per browser tab session; no IP, email, tracking cookie or exact identity is stored. Counts begin when this feature was enabled.');
+   const grid=E('div','pvoStats');
+   for(const [title,count,detail] of [
+     ['Total page opens',d.totalOpens,'Navigation and page visits'],
+     ['Unique sessions',d.uniqueSessions,'Not necessarily unique people'],
+     ['Pages visited',(d.pages||[]).length,'Distinct views'],
+     ['Tracking window',d.days+' days','Privacy retention: 30 days']
+   ]){
+    const box=E('div','pvoStat');box.append(E('span','',title),E('b','',count),E('small','',detail));grid.append(box);
+   }
+   main.append(grid);
+   const panels=E('div','pvoPanels');
+   const pages=E('section','pvoSection'),history=E('section','pvoSection'),devices=E('section','pvoSection pvoSectionWide');
+   pages.append(E('h3','','Most opened pages'));
+   const list=E('div');
+   if(!d.pages?.length)list.append(E('div','pvoSectionEmpty','No visits recorded yet. Open PAVORA in a browser to begin.'));
+   for(const page of d.pages||[]){
+    const row=E('div','pvoEvent',page.page+' · '+Number(page.opens).toLocaleString('en-IN')+' opens');
+    row.append(E('small','',page.sessions+' sessions'));list.append(row);
+   }
+   pages.append(list);
+   history.append(E('h3','','Daily page opens (UTC)'));
+   if(!d.daily?.length)history.append(E('p','pvoMuted','No activity for this date range.'));
+   for(const day of d.daily||[])history.append(E('div','pvoEvent',day.date+' · '+Number(day.opens).toLocaleString('en-IN')+' opens'));
+   devices.append(E('h3','','Device types'));
+   for(const entry of d.devices||[])devices.append(E('div','pvoEvent',entry.device+' · '+Number(entry.opens).toLocaleString('en-IN')+' opens'));
+   if(!d.devices?.length)devices.append(E('p','pvoMuted','No device data yet.'));
+   panels.append(pages,history,devices);main.append(panels);
+  }else if(active==='overview'){
    const d=await api('summary');if(ticket!==seq)return;clear();
    toolbar('Platform overview');
    const metrics=[['♙','Total Users',d.users],['✦','New Signups · 7d',d.newUsers],['◉','Active · 15 min',d.activeNow],['▤','Posts',d.posts],['▣','Reels',d.reels],['⚑','Pending Reports',d.pending],['✉','Recovery Requests',d.recoveries],['◎','Total Reports',d.reports]];
