@@ -3305,7 +3305,62 @@ gallery.addEventListener('keydown',event=>{
   event.preventDefault();pvGalleryLaunchV157();
  }
 });
-form.append(input,emojiButton,gallery,send);
+// Private, opt-in voice notes (max 60s). Preview before the normal Send action.
+const voiceButton=node('button','pvDmVoiceButtonV161','🎙');
+voiceButton.type='button';voiceButton.title='Record voice note';voiceButton.setAttribute('aria-label','Record voice note');
+let voiceRecorder=null,voiceStream=null,voiceTimer=null,voiceStarted=0;
+function stopVoiceTracks(){
+ if(voiceTimer){clearTimeout(voiceTimer);voiceTimer=null}
+ if(voiceStream){voiceStream.getTracks().forEach(t=>t.stop());voiceStream=null}
+ voiceButton.classList.remove('recording');voiceButton.textContent='🎙';
+ voiceButton.setAttribute('aria-label','Record voice note');
+}
+async function toggleVoice(){
+ if(voiceRecorder?.state==='recording'){voiceRecorder.stop();return}
+ if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined'){
+  alert('Voice recording is not supported in this browser.');return;
+ }
+ if(pendingOutgoing&&alreadySent)return;
+ voiceButton.disabled=true;
+ try{
+  const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+  if(!voiceButton.isConnected||selectedPeer!==id){stream.getTracks().forEach(t=>t.stop());return}
+  voiceStream=stream;
+  const candidates=['audio/mp4','audio/webm','audio/ogg'];
+  const mimeType=candidates.find(t=>MediaRecorder.isTypeSupported(t));
+  const recorder=new MediaRecorder(stream,mimeType?{mimeType}:undefined);
+  voiceRecorder=recorder;const chunks=[];
+  voiceStarted=Date.now();
+  recorder.ondataavailable=event=>{if(event.data?.size)chunks.push(event.data)};
+  recorder.onerror=()=>{stopVoiceTracks();voiceRecorder=null};
+  recorder.onstop=()=>{
+   const type=recorder.mimeType.split(';')[0]||mimeType||'audio/webm';
+   const blob=new Blob(chunks,{type});
+   stopVoiceTracks();voiceRecorder=null;
+   if(!blob.size||selectedPeer!==id||!form.isConnected)return;
+   if(blob.size>6*1024*1024){alert('Voice note is too large.');return}
+   const ext=type==='audio/mp4'?'m4a':type==='audio/ogg'?'ogg':'webm';
+   revokePreview();
+   pvPendingMedia=new File([blob],'voice-note.'+ext,{type});
+   mediaSelection.hidden=false;
+   fileLabel.textContent='Voice note · '+Math.max(1,Math.round((Date.now()-voiceStarted)/1000))+' seconds';
+   thumb.replaceChildren();
+   const audio=node('audio');audio.controls=true;audio.preload='metadata';
+   pvPreviewObjectUrl=URL.createObjectURL(blob);audio.src=pvPreviewObjectUrl;
+   thumb.append(audio);
+  };
+  recorder.start();
+  voiceButton.classList.add('recording');voiceButton.textContent='■';
+  voiceButton.setAttribute('aria-label','Stop recording voice note');
+  voiceTimer=setTimeout(()=>{if(recorder.state==='recording')recorder.stop()},60000);
+ }catch(error){
+  stopVoiceTracks();
+  alert(error?.name==='NotAllowedError'?'Microphone permission is needed for voice notes.':'Could not start microphone: '+error.message);
+ }finally{voiceButton.disabled=false}
+}
+voiceButton.addEventListener('click',toggleVoice);
+form.addEventListener('submit',()=>{if(voiceRecorder?.state==='recording')voiceRecorder.stop()});
+form.append(input,emojiButton,gallery,voiceButton,send);
 composerWrap.append(replyCompose,mediaSelection,emojiTray,form);
 document.querySelectorAll('body > input.pvDmNativeFileInput').forEach(old=>old.remove());
 document.body.append(fileInput);
