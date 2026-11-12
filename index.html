@@ -2812,6 +2812,13 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
  }
  body.pvReelsMode::after{content:none!important;display:none!important;
   -webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+ /* Hide the regular sticky header so it cannot cover the top of the Reel.
+    Feed tabs remain inside #reels, positioned below the iPhone status area. */
+ body.pvReelsMode > header{visibility:hidden!important;pointer-events:none!important}
+ body.pvReelsMode #reels .pvSmartReelTabs{
+  top:max(72px,calc(env(safe-area-inset-top,0px) + 24px))!important;
+  z-index:55!important;
+ }
  body.pvReelsMode main{
   position:fixed!important;inset:0!important;
   top:0!important;bottom:0!important;left:0!important;right:0!important;
