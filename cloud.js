@@ -2781,14 +2781,13 @@ function pvDmPlayOpenPopV144(area,peer){
  // moving its fixed geometry produces the "drop" and final snap on iOS.
  const parts=[
   [area.querySelector('.pvChatTop'),0],
-  [area.querySelector('.pvMessages'),24],
-  [area.querySelector('.pvChatComposerWrap'),45]
+  [area.querySelector('.pvMessages'),24]
  ];
  for(const [element,delay] of parts){
   if(!element?.isConnected||typeof element.animate!=='function')continue;
   const frames=[
-   {opacity:.78,translate:'0 7px'},
-   {opacity:1,translate:'0 0'}
+   {opacity:.82},
+   {opacity:1}
   ];
   const animation=element.animate(frames,{
    duration:270,delay,easing:'cubic-bezier(.22,1,.36,1)',fill:'both',
@@ -3142,6 +3141,11 @@ input.addEventListener('focus',pvScheduleMobileDmViewport);
 input.addEventListener('blur',pvScheduleMobileDmViewport);
 const attach=node('button','pvDmAttachButton','');attach.type='button';attach.title='Camera or media';attach.setAttribute('aria-label','Camera or media');attach.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="4"/></svg>';
 const fileInput=node('input');fileInput.type='file';fileInput.accept='image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm';fileInput.hidden=true;
+fileInput.className='pvDmNativeFileInput';
+fileInput.tabIndex=-1;
+fileInput.setAttribute('aria-hidden','true');
+fileInput.style.setProperty('display','none','important');
+fileInput.style.setProperty('pointer-events','none','important');
 let pvPendingMedia=null;
 const mediaSelection=node('div','pvDmSendPreview');mediaSelection.hidden=true;
 const thumb=node('span','pvDmPreviewThumb','📷'),fileSummary=node('div','pvDmPreviewText'),fileTitle=node('span','pvDmPreviewTitle','Attachment'),fileLabel=node('strong',''),removeFile=node('button','','×');
@@ -3159,7 +3163,13 @@ fileInput.onchange=()=>{
  if(file.type.startsWith('image/')){const img=node('img');pvPreviewObjectUrl=URL.createObjectURL(file);img.src=pvPreviewObjectUrl;img.alt='Selected photo';thumb.append(img)}
  else thumb.textContent='🎬';
 };
-attach.onclick=()=>{fileInput.accept='image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm';fileInput.click()};
+function pvOpenDmPicker(event){
+ if(!event?.isTrusted)return;
+ event.preventDefault();event.stopPropagation();
+ fileInput.accept='image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm';
+ fileInput.click();
+}
+attach.addEventListener('click',pvOpenDmPicker);
 const replyCompose=node('div','pvDmSendPreview pvDmReplyCompose');replyCompose.hidden=true;
 const replyInfo=node('div','pvDmPreviewText'),replyHeading=node('span','pvDmPreviewTitle','REPLYING TO'),replyText=node('strong','',''),cancelReply=node('button','','×');cancelReply.type='button';
 cancelReply.title='Cancel reply';cancelReply.setAttribute('aria-label','Cancel reply');cancelReply.onclick=()=>{form.dataset.replyTo='';replyCompose.hidden=true};
@@ -3167,7 +3177,7 @@ replyInfo.append(replyHeading,replyText);replyCompose.append(replyInfo,cancelRep
 const gallery=node('button','pvDmGalleryButton');
 gallery.type='button';gallery.title='Choose photo or video';gallery.setAttribute('aria-label','Choose photo or video');
 gallery.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="m4 18 5.3-5.2 3.2 3.1 3.1-3.2L21 18"/></svg>';
-gallery.onclick=()=>{fileInput.accept='image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm';fileInput.click()};
+gallery.addEventListener('click',pvOpenDmPicker);
 form.append(attach,input,emojiButton,gallery,send);
 composerWrap.append(replyCompose,mediaSelection,fileInput,emojiTray,form);
 input.addEventListener('input',()=>{if(input.value.trim()&&!input.disabled)pvOnChatInput(id);else pvClearTyping(id)});
