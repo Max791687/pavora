@@ -2813,8 +2813,8 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
  body.pvReelsMode::after{
   content:"";display:block!important;
   position:fixed!important;left:0;right:0;bottom:0;
-  height:var(--pvReelGlassHeight)!important;
-  z-index:7!important;pointer-events:none!important;
+  height:var(--pvReelsBottom,80px)!important;
+  z-index:9!important;pointer-events:none!important;
   background:linear-gradient(
    0deg,rgba(13,12,17,.74) 0%,
    rgba(16,15,21,.56) 42%,
@@ -2839,6 +2839,15 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
  }
  body.pvReelsMode .pvReelScreen{
   isolation:isolate!important;
+ }
+ body.pvReelsMode .pvReelScreen::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;
+  height:125px;z-index:4;pointer-events:none;
+  background:linear-gradient(0deg,rgba(11,10,15,.30),rgba(11,10,15,0));
+  -webkit-backdrop-filter:blur(12px) saturate(1.18);
+  backdrop-filter:blur(12px) saturate(1.18);
+  -webkit-mask-image:linear-gradient(to top,#000 0%,rgba(0,0,0,.72) 43%,transparent 100%);
+  mask-image:linear-gradient(to top,#000 0%,rgba(0,0,0,.72) 43%,transparent 100%);
  }
  body.pvReelsMode .pvReelScreen .pvReelSeek{
   bottom:var(--pvReelSeekLift,10px)!important;
