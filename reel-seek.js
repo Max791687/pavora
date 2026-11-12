@@ -25,13 +25,16 @@ function attach(screen,video){
   if(!wrap.isConnected)return;
   if(window.innerWidth>700||!document.body.classList.contains('pvReelsMode')){
    wrap.style.removeProperty('--pvReelSeekLift');
+   screen.style.removeProperty('--pvReelSeekLift');
    return;
   }
   const nav=document.querySelector('.pvIconRail');
   const navRect=nav?.getBoundingClientRect();
   const screenRect=screen.getBoundingClientRect();
   const obstructed=navRect&&navRect.height>0?Math.max(0,screenRect.bottom-navRect.top):0;
-  wrap.style.setProperty('--pvReelSeekLift',Math.ceil(obstructed+10)+'px');
+  const lift=Math.ceil(obstructed+10)+'px';
+  wrap.style.setProperty('--pvReelSeekLift',lift);
+  screen.style.setProperty('--pvReelSeekLift',lift);
  };
  const schedulePlace=()=>requestAnimationFrame(place);
  window.addEventListener('resize',schedulePlace,{passive:true});
