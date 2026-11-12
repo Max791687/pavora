@@ -32,7 +32,7 @@ const pending=new Set();
 let scheduled=false;
 function flush(){
  scheduled=false;
- if(document.hidden){pending.clear();return}
+ if(document.hidden)return;
  const roots=[...pending];pending.clear();
  for(const root of roots){
   if(root.isConnected)optimizeTree(root);
