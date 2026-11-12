@@ -3163,9 +3163,35 @@ fileInput.onchange=()=>{
  if(file.type.startsWith('image/')){const img=node('img');pvPreviewObjectUrl=URL.createObjectURL(file);img.src=pvPreviewObjectUrl;img.alt='Selected photo';thumb.append(img)}
  else thumb.textContent='🎬';
 };
+// iOS can retarget a synthesized click after keyboard/viewport changes.
+// Check the original finger position, not only the event's target.
+if(!window.__pvDmTouchCoordinatesV155){
+ window.__pvDmTouchCoordinatesV155={at:0,x:0,y:0,moved:false};
+ document.addEventListener('touchstart',event=>{
+  const t=event.touches?.[0];if(!t)return;
+  window.__pvDmTouchCoordinatesV155={at:Date.now(),x:t.clientX,y:t.clientY,moved:false};
+ },{capture:true,passive:true});
+ document.addEventListener('touchmove',event=>{
+  const touch=event.touches?.[0],origin=window.__pvDmTouchCoordinatesV155;
+  if(touch&&origin&&Math.hypot(touch.clientX-origin.x,touch.clientY-origin.y)>12)origin.moved=true;
+ },{capture:true,passive:true});
+}
 function pvOpenDmPicker(event){
  if(!event?.isTrusted)return;
+ const button=event.currentTarget;
+ const rect=button?.getBoundingClientRect();
+ if(!rect||!button.isConnected)return;
+ const inside=(x,y)=>Number.isFinite(x)&&Number.isFinite(y)&&
+  x>=rect.left&&x<=rect.right&&y>=rect.top&&y<=rect.bottom;
+ const origin=window.__pvDmTouchCoordinatesV155;
+ const touchClick=origin&&Date.now()-origin.at<1100;
+ // Keyboard-initiated activation (detail 0) has no pointer coordinates.
+ const valid=event.detail===0||(
+  touchClick?(!origin.moved&&inside(origin.x,origin.y)):
+  inside(event.clientX,event.clientY)
+ );
  event.preventDefault();event.stopPropagation();
+ if(!valid)return;
  fileInput.accept='image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm';
  fileInput.click();
 }
@@ -3179,7 +3205,8 @@ gallery.type='button';gallery.title='Choose photo or video';gallery.setAttribute
 gallery.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="m4 18 5.3-5.2 3.2 3.1 3.1-3.2L21 18"/></svg>';
 gallery.addEventListener('click',pvOpenDmPicker);
 form.append(attach,input,emojiButton,gallery,send);
-composerWrap.append(replyCompose,mediaSelection,fileInput,emojiTray,form);
+composerWrap.append(replyCompose,mediaSelection,emojiTray,form);
+document.body.append(fileInput);
 input.addEventListener('input',()=>{if(input.value.trim()&&!input.disabled)pvOnChatInput(id);else pvClearTyping(id)});
 input.addEventListener('blur',()=>{if(input.value.trim())pvClearTyping(id)});
 if(pendingOutgoing&&alreadySent){input.disabled=true;send.disabled=true;input.placeholder='Request pending — waiting for acceptance';}
