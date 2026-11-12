@@ -14,10 +14,17 @@ body.pvReelsMode .pvReelScreen video{
 }
 body.pvReelsMode .pvReelScreen .pvReelMeta{
  position:absolute!important;left:0!important;right:0!important;
- bottom:calc(43px + var(--pv170NavOverlap,0px))!important;z-index:8!important;
+ bottom:calc(var(--pv170NavOverlap,0px) + var(--pv170SeekHeight,44px) + 8px)!important;z-index:8!important;
  padding:9px 76px 7px 14px!important;
  background:transparent!important;box-shadow:none!important;
  pointer-events:none!important;max-width:100%!important;
+}
+body.pvReelsMode .pvReelScreen .pvReelMeta{
+ display:block!important;visibility:visible!important;opacity:1!important;
+ transform:none!important;max-height:none!important;
+}
+body.pvReelsMode .pvReelScreen .pvReelMeta .pvReelAuthor{
+ display:flex!important;visibility:visible!important;opacity:1!important;
 }
 body.pvReelsMode .pvReelScreen .pvReelMeta::before,
 body.pvReelsMode .pvReelScreen .pvReelMeta::after{display:none!important}
@@ -134,7 +141,7 @@ body.pvReelsMode #reels .pvSmartReelTab.active{
 }
 @media(max-width:700px){
  body.pvReelsMode .pvReelScreen .pvReelMeta{
-  bottom:calc(39px + var(--pv170NavOverlap,0px))!important;padding:8px 72px 5px 13px!important
+  bottom:calc(var(--pv170NavOverlap,0px) + var(--pv170SeekHeight,44px) + 8px)!important;padding:8px 72px 5px 13px!important
  }
  body.pvReelsMode .pvReelCard .pvReelActions{
   right:5px!important;bottom:calc(113px + var(--pv170NavOverlap,0px))!important;width:55px!important
@@ -185,6 +192,9 @@ function placeOverlays(){
   const videoRect=screen.getBoundingClientRect();
   const overlap=Math.max(0,Math.min(videoRect.height*.55,videoRect.bottom-rect.top+7));
   screen.style.setProperty('--pv170NavOverlap',Math.ceil(overlap)+'px');
+  const seek=screen.querySelector('.pvReelSeek');
+  const h=seek?Math.ceil(seek.getBoundingClientRect().height):44;
+  screen.style.setProperty('--pv170SeekHeight',Math.max(36,h)+'px');
  });
 }
 let pv170Queued=false;
@@ -198,6 +208,21 @@ function enhance(card){
  if(!caption)return;
  queueOverlay();
  card.dataset.pv170Enhanced='yes';
+ // The main rendering logic only creates the View profile action for OTHER
+ // authors. Reuse the existing username click handler for the owner's Reel.
+ const author=meta.querySelector('.pvReelAuthor');
+ const who=author?.querySelector('.pvReelCreator');
+ if(author&&who&&!author.querySelector('.pvReelFollow')){
+  const view=document.createElement('button');
+  view.type='button';
+  view.className='pvReelFollow';
+  view.textContent='View profile';
+  view.addEventListener('click',event=>{
+   event.stopPropagation();
+   who.click();
+  });
+  author.append(view);
+ }
  if(!caption.textContent.trim()){caption.classList.add('pv170NoCaption');return}
  const original=caption.textContent.trim();
  if(original.length<=88)return;
