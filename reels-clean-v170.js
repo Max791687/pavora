@@ -179,6 +179,68 @@ body.pvReelsMode #reels .pvSmartReelTab.active{
 @media(prefers-reduced-motion:reduce){
  body.pvReelsMode .pvSuiteIconAction{transition:none!important}
 }
+
+/* v171 — identical author + seek composition on EVERY Reel.
+   The reference has uploader row immediately above the white seek line.
+   Caption, when present, sits ABOVE that row, never between row and seek. */
+body.pvReelsMode #reels .pvReelScreen .pvReelMeta{
+ display:flex!important;flex-direction:column!important;align-items:stretch!important;
+ gap:0!important;
+ bottom:calc(var(--pv170NavOverlap,0px) + var(--pv170SeekHeight,44px) + 8px)!important;
+ padding:0 73px 0 15px!important;
+ margin:0!important;
+}
+body.pvReelsMode #reels .pvReelScreen .pvReelAuthor{
+ order:3!important;width:100%!important;min-height:39px!important;
+ display:flex!important;flex-direction:row!important;align-items:center!important;
+ flex-wrap:nowrap!important;gap:8px!important;margin:0!important;
+}
+body.pvReelsMode #reels .pvReelScreen .pvReelAvatar{
+ width:39px!important;height:39px!important;min-width:39px!important;flex:0 0 39px!important
+}
+body.pvReelsMode #reels .pvReelScreen .pvReelCreator{
+ display:block!important;flex:0 1 auto!important;max-width:45%!important;
+ margin:0!important;padding:0!important;font-size:15px!important;
+ white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important
+}
+body.pvReelsMode #reels .pvReelScreen .pvReelFollow{
+ display:inline-flex!important;align-items:center!important;justify-content:center!important;
+ flex:0 0 auto!important;min-height:31px!important;max-width:44%!important;
+ white-space:nowrap!important;padding:5px 10px!important;
+ background:rgba(255,255,255,.15)!important;border:1px solid rgba(255,255,255,.65)!important;
+ border-radius:999px!important;backdrop-filter:blur(9px)!important
+}
+body.pvReelsMode #reels .pvReelScreen .pvReelCaption{
+ order:1!important;margin:0 0 5px!important
+}
+body.pvReelsMode #reels .pvReelScreen .pv170MoreCaption{
+ order:2!important;align-self:flex-start!important;margin:0 0 5px!important
+}
+body.pvReelsMode #reels .pvReelScreen .pvReelSeek{
+ display:flex!important;visibility:visible!important;opacity:1!important;
+ bottom:var(--pv170NavOverlap,0px)!important;
+ padding:0 14px 0!important;gap:0!important;
+ background:transparent!important;z-index:20!important
+}
+body.pvReelsMode #reels .pvReelSeekRange{
+ width:100%!important;height:23px!important;min-height:23px!important
+}
+body.pvReelsMode #reels .pvReelSeekRange::-webkit-slider-runnable-track{
+ height:4px!important;background:linear-gradient(to right,#fff 0%,#fff var(--pvSeekProgress,0%),#ffffff70 var(--pvSeekProgress,0%),#ffffff70 100%)!important
+}
+body.pvReelsMode #reels .pvReelSeekRange::-webkit-slider-thumb{
+ width:15px!important;height:15px!important;margin-top:-5.5px!important;
+ border:0!important;background:#fff!important
+}
+body.pvReelsMode #reels .pvReelSeekTime{
+ min-height:16px!important;line-height:16px!important;
+}
+@media(max-width:700px){
+ body.pvReelsMode #reels .pvReelScreen .pvReelMeta{
+  bottom:calc(var(--pv170NavOverlap,0px) + var(--pv170SeekHeight,44px) + 8px)!important;
+  padding:0 70px 0 14px!important
+ }
+}
 `;
 document.head.append(css);
 /* iOS fixed viewport can put the pill navigation visually over the video.
