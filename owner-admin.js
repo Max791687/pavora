@@ -352,6 +352,14 @@ async function render(){
    history.append(E('h3','','Daily page opens (UTC)'));
    if(!d.daily?.length)history.append(E('p','pvoMuted','No activity for this date range.'));
    for(const day of d.daily||[])history.append(E('div','pvoEvent',day.date+' · '+Number(day.opens).toLocaleString('en-IN')+' opens'));
+   devices.append(E('h3','','Device names (approximate)'));
+   devices.append(E('p','','Broad device families only. iPhone model numbers and exact hardware names are not available reliably.'));
+   if(!d.deviceNames?.length)devices.append(E('p','pvoMuted','No device names recorded yet.'));
+   for(const entry of d.deviceNames||[]){
+    const row=E('div','pvoEvent',entry.name+' · '+Number(entry.opens).toLocaleString('en-IN')+' opens');
+    row.append(E('small','',Number(entry.sessions).toLocaleString('en-IN')+' sessions'));
+    devices.append(row);
+   }
    devices.append(E('h3','','Device types'));
    for(const entry of d.devices||[])devices.append(E('div','pvoEvent',entry.device+' · '+Number(entry.opens).toLocaleString('en-IN')+' opens'));
    if(!d.devices?.length)devices.append(E('p','pvoMuted','No device data yet.'));
