@@ -1970,6 +1970,9 @@ function pvDmSetReply(id,message){
  form.dataset.replyTo=message.id;
  wrap.hidden=false;
  wrap.querySelector('strong').textContent=pvDmMessageSummary(message);
+ wrap.classList.remove('pvDmReplyEnterV162');
+ void wrap.offsetWidth;
+ wrap.classList.add('pvDmReplyEnterV162');
  form.querySelector('textarea[aria-label="Message"]')?.focus({preventScroll:true});
 }
 
@@ -2258,28 +2261,54 @@ function pvDmAttachHoldGesture(row,msg,peer){
   handle=setTimeout(()=>{handle=null;opened=true;try{navigator.vibrate?.(10)}catch(e){};pvDmOpenHoldMenu(msg,peer,row)},430);
  });
  bubble.addEventListener('pointermove',event=>{if(Math.abs(event.clientX-startX)>12||Math.abs(event.clientY-startY)>12)cancel()});
- // Swipe right on a DM to reply without moving the viewport.
- let swipe=null;
+ // iOS-like swipe-to-reply: track the bubble, expose a reply arrow,
+ // then spring it into place. Vertical message scrolling stays native.
+ let swipe=null,swipeReset=null;
+ const swipeResetNow=()=>{
+  if(swipeReset){clearTimeout(swipeReset);swipeReset=null}
+  row.classList.remove('pvDmSwipeDraggingV162');
+  row.classList.add('pvDmSwipeSettlingV162');
+  row.style.setProperty('--pvSwipeX','0px');
+  row.style.setProperty('--pvSwipeProgress','0');
+  swipeReset=setTimeout(()=>{if(row.isConnected)row.classList.remove('pvDmSwipeSettlingV162')},360);
+ };
+ bubble.classList.add('pvDmSwipeTargetV162');
  bubble.addEventListener('touchstart',event=>{
   const t=event.touches?.[0];
-  swipe=t&&event.touches.length===1&&!event.target.closest('button,a,video,audio')?{x:t.clientX,y:t.clientY}:null;
+  if(!t||event.touches.length!==1||event.target.closest('button,a,video,audio')){swipe=null;return}
+  if(swipeReset){clearTimeout(swipeReset);swipeReset=null}
+  row.classList.remove('pvDmSwipeSettlingV162','pvDmSwipeDraggingV162');
+  row.style.setProperty('--pvSwipeX','0px');
+  row.style.setProperty('--pvSwipeProgress','0');
+  swipe={x:t.clientX,y:t.clientY,mode:null,triggered:false};
  },{passive:true});
  bubble.addEventListener('touchmove',event=>{
   const t=event.touches?.[0];if(!swipe||!t)return;
   const dx=t.clientX-swipe.x,dy=t.clientY-swipe.y;
-  if(Math.abs(dy)>25){swipe=null;return}
-  if(dx>60&&Math.abs(dy)<22)cancel();
- },{passive:true});
- bubble.addEventListener('touchend',event=>{
-  const t=event.changedTouches?.[0],start=swipe;swipe=null;
-  if(!t||!start||selectedPeer!==peer)return;
-  const dx=t.clientX-start.x,dy=t.clientY-start.y;
-  if(dx>65&&Math.abs(dy)<24){
-   cancel();pvDmSetReply(peer,msg);
+  if(!swipe.mode&&Math.abs(dx)+Math.abs(dy)>9)
+   swipe.mode=dx>0&&dx>Math.abs(dy)*1.4?'horizontal':'vertical';
+  if(swipe.mode!=='horizontal')return;
+  if(event.cancelable)event.preventDefault();
+  cancel();
+  const shift=Math.min(58,Math.max(0,dx)*.72);
+  const progress=Math.min(1,shift/45);
+  row.classList.add('pvDmSwipeDraggingV162');
+  row.style.setProperty('--pvSwipeX',shift.toFixed(1)+'px');
+  row.style.setProperty('--pvSwipeProgress',progress.toFixed(3));
+  if(!swipe.triggered&&progress>=1){
+   swipe.triggered=true;
    try{navigator.vibrate?.(8)}catch{}
   }
+ },{passive:false});
+ bubble.addEventListener('touchend',event=>{
+  const t=event.changedTouches?.[0],gesture=swipe;swipe=null;
+  if(!gesture)return;
+  const dx=t?t.clientX-gesture.x:0,dy=t?t.clientY-gesture.y:0;
+  const shouldReply=gesture.mode==='horizontal'&&dx>65&&Math.abs(dy)<32&&selectedPeer===peer;
+  swipeResetNow();
+  if(shouldReply){cancel();pvDmSetReply(peer,msg)}
  },{passive:true});
- bubble.addEventListener('touchcancel',()=>{swipe=null},{passive:true});
+ bubble.addEventListener('touchcancel',()=>{swipe=null;swipeResetNow()},{passive:true});
  for(const event of ['pointerup','pointercancel','pointerleave'])bubble.addEventListener(event,cancel);
  bubble.addEventListener('contextmenu',event=>{event.preventDefault();cancel();if(!opened)pvDmOpenHoldMenu(msg,peer,row)});
 }
