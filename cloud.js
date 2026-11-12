@@ -588,7 +588,12 @@ function pvStartPostChanges(){
 let pvFeedRequestNumber=0;
 async function refresh(){if(!user)return;
  const activeUser=user.id,requestNumber=++pvFeedRequestNumber;
- try{if(!feed.length)status.textContent='Loading cloud posts…';const {data,error}=await db.from('posts').select('id,author_id,caption,image_path,created_at').order('created_at',{ascending:false}).limit(50);if(user?.id!==activeUser||requestNumber!==pvFeedRequestNumber)return;if(error){status.textContent='Cloud feed error: '+error.message;return}const freshFeed=data||[];const previousFeed=feed;const oldIds=feed.map(p=>p.id).join(',');const newIds=freshFeed.map(p=>p.id).join(',');const hasRenderedFeed=oldIds===newIds&&freshFeed.length>0&&!!document.getElementById('posts')?.children.length;feed=freshFeed;const ids=feed.map(p=>p.id);if(ids.length){const [profiles,likes,comments]=await Promise.all([db.from('profiles').select('id,username,display_name,avatar_url').in('id',[...new Set(feed.map(p=>p.author_id))]),db.from('likes').select('post_id,user_id').in('post_id',ids),db.from('comments').select('id,post_id,user_id,body,parent_id,created_at').in('post_id',ids).order('created_at',{ascending:true})]);if(profiles.error||likes.error||comments.error){status.textContent='Cloud posts loaded; some social details unavailable: '+[profiles.error,likes.error,comments.error].filter(Boolean).map(e=>e.message).join('; ')}if(user?.id!==activeUser||requestNumber!==pvFeedRequestNumber)return;const names=new Map((profiles.data||[]).map(p=>[p.id,p]));feed.forEach(p=>{p.profiles=names.get(p.author_id)||null;p.likes=(likes.data||[]).filter(x=>x.post_id===p.id);p.comments=(comments.data||[]).filter(x=>x.post_id===p.id)})}if(hasRenderedFeed){
+ try{if(!feed.length)status.textContent='Loading cloud posts…';const {data,error}=await db.from('posts').select('id,author_id,caption,image_path,created_at').order('created_at',{ascending:false}).limit(50);if(user?.id!==activeUser||requestNumber!==pvFeedRequestNumber)return;if(error){status.textContent='Cloud feed error: '+error.message;return}const freshFeed=data||[];const previousFeed=feed;const oldIds=feed.map(p=>p.id).join(',');const newIds=freshFeed.map(p=>p.id).join(',');const hasRenderedFeed=oldIds===newIds&&freshFeed.length>0&&!!document.getElementById('posts')?.children.length;feed=freshFeed;const ids=feed.map(p=>p.id);if(ids.length){const [profiles,likes,comments]=await Promise.all([db.from('profiles').select('id,username,display_name,avatar_url').in('id',[...new Set(feed.map(p=>p.author_id))]),db.from('likes').select('post_id,user_id').in('post_id',ids),db.from('comments').select('id,post_id,user_id,body,parent_id,created_at').in('post_id',ids).order('created_at',{ascending:true})]);if(profiles.error||likes.error||comments.error){status.textContent='Cloud posts loaded; some social details unavailable: '+[profiles.error,likes.error,comments.error].filter(Boolean).map(e=>e.message).join('; ')}if(user?.id!==activeUser||requestNumber!==pvFeedRequestNumber)return;const names=new Map((profiles.data||[]).map(p=>[p.id,p]));
+// One pass per result, rather than filtering every like/comment for every post.
+const likesByPost=new Map(),commentsByPost=new Map();
+for(const item of likes.data||[]){if(!likesByPost.has(item.post_id))likesByPost.set(item.post_id,[]);likesByPost.get(item.post_id).push(item)}
+for(const item of comments.data||[]){if(!commentsByPost.has(item.post_id))commentsByPost.set(item.post_id,[]);commentsByPost.get(item.post_id).push(item)}
+feed.forEach(p=>{p.profiles=names.get(p.author_id)||null;p.likes=likesByPost.get(p.id)||[];p.comments=commentsByPost.get(p.id)||[]})}if(hasRenderedFeed){
  // Keep the post objects captured by each like/comment handler in sync.
  const previous=new Map(previousFeed.map(p=>[p.id,p]));
  feed=feed.map(post=>{const existing=previous.get(post.id);if(!existing)return post;Object.assign(existing,post);return existing});
@@ -2969,8 +2974,15 @@ const hadVisibleRows=canReuseThreads&&!!threads.querySelector('.pvThreadEntry');
 threads.replaceChildren();
 const names=new Map((people||[]).map(p=>[p.id,p]));
 const orderedIds=ids.slice().sort((a,b)=>Number(pvConversationSetting(b).pinned)-Number(pvConversationSetting(a).pinned));
+// Messages are newest-first. Store the first message for each conversation
+// once, keeping original ordering and exact conversation preview content.
+const latestByPeer=new Map();
+for(const message of visible){
+ const peer=message.sender_id===user.id?message.recipient_id:message.sender_id;
+ if(!latestByPeer.has(peer))latestByPeer.set(peer,message);
+}
 const rows=[];
-for(const id of orderedIds){const p=names.get(id);if(!p)continue;const setting=pvConversationSetting(id),last=visible.find(m=>(m.sender_id===user.id?m.recipient_id:m.sender_id)===id);const entry=node('div','pvThreadEntry'),b=node('button','pvThreadPerson'),avatar=node('div','pvThreadAvatar'),details=node('div','pvThreadDetails');
+for(const id of orderedIds){const p=names.get(id);if(!p)continue;const setting=pvConversationSetting(id),last=latestByPeer.get(id);const entry=node('div','pvThreadEntry'),b=node('button','pvThreadPerson'),avatar=node('div','pvThreadAvatar'),details=node('div','pvThreadDetails');
 if(p.avatar_url){const img=node('img');img.src=p.avatar_url;img.alt='';avatar.append(img)}else avatar.textContent=(p.display_name||p.username||'?')[0].toUpperCase();
 const label=node('strong','',p.display_name||p.username);if(setting.pinned)label.append(node('span','pvPinnedMarker',' 📌'));if(setting.muted)label.append(node('span','pvMutedMarker',' 🔕'));
 details.append(label,node('small','',last?(last.sender_id===user.id?'You: ':'')+(last.body||'Message'):'Start a conversation'));
