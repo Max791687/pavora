@@ -13,6 +13,16 @@
  }catch{return}
  const ua=navigator.userAgent||'';
  const device=/iPad|Tablet/i.test(ua)||(/Android/i.test(ua)&&!/Mobile/i.test(ua))?'tablet':/iPhone|Android.*Mobile|Mobile/i.test(ua)?'mobile':'desktop';
+ // Coarse device family only. Do not collect serials, exact models or fingerprint signals.
+ const deviceName=/iPhone/i.test(ua)?'iPhone':
+   /iPad/i.test(ua)||(/Macintosh/i.test(ua)&&navigator.maxTouchPoints>1)?'iPad':
+   /Android/i.test(ua)?(
+     /Samsung|SM-[A-Z0-9]/i.test(ua)?'Samsung Galaxy':
+     /Pixel/i.test(ua)?'Google Pixel':
+     device==='tablet'?'Android tablet':'Android phone'):
+   /Windows/i.test(ua)?'Windows PC':
+   /Macintosh|Mac OS X/i.test(ua)?'Mac':
+   /Linux/i.test(ua)?'Linux PC':'Other device';
  let last='',lastAt=0;
  async function visit(page){
   const path=String(page||'').toLowerCase().replace(/[^a-z0-9_/-]/g,'').slice(0,110);
@@ -20,7 +30,7 @@
   if(document.hidden)return;
   const now=Date.now();if(path===last&&now-lastAt<45000)return;
   last=path;lastAt=now;
-  try{await db.functions.invoke('pavora-visit',{body:{page:path,session,device}})}catch(e){console.warn('Anonymous analytics unavailable')}
+  try{await db.functions.invoke('pavora-visit',{body:{page:path,session,device,deviceName}})}catch(e){console.warn('Anonymous analytics unavailable')}
  }
  window.PAVORA_VISITS={visit};
  const start=()=>visit('/entry');
