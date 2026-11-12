@@ -40,11 +40,47 @@
   if(!/^[a-zA-Z0-9 _+().-]{3,48}$/.test(model)||/unknown|generic|build|linux|windows|iphone|ipad|macintosh|android/i.test(model))return null;
   return model;
  })();
+ // Approximate session timings: server timestamps, one anonymous visit ID
+ // for each opened PAVORA view. Browser termination is best-effort.
+ let activeVisit=null;
+ const endpoint='https://iyqmjaomslffqfwbsydr.supabase.co/functions/v1/pavora-visit';
+ function timingPayload(active,event,reason){
+  return {page:active.page,session,device,deviceName,visitId:active.id,event,...(reason?{reason}:{})};
+ }
+ function beacon(active,reason){
+  try{
+   const payload=JSON.stringify(timingPayload(active,'exit',reason));
+   if(navigator.sendBeacon)navigator.sendBeacon(endpoint,new Blob([payload],{type:'text/plain'}));
+  }catch{}
+ }
+ function eventAsync(active,event,reason){
+  return db.functions.invoke('pavora-visit',{body:timingPayload(active,event,reason)}).catch(()=>{});
+ }
+ function enter(page){
+  if(activeVisit?.page===page)return;
+  if(activeVisit)beacon(activeVisit,'navigate');
+  const current={id:crypto.randomUUID(),page};
+  activeVisit=current;
+  void eventAsync(current,'start');
+ }
+ // A recent heartbeat is more reliable than assuming that an app was closed.
+ setInterval(()=>{
+  if(activeVisit&&!document.hidden)void eventAsync(activeVisit,'pulse');
+ },30000);
+ document.addEventListener('visibilitychange',()=>{
+  if(!activeVisit)return;
+  if(document.hidden)beacon(activeVisit,'hidden');
+  else void eventAsync(activeVisit,'pulse');
+ });
+ window.addEventListener('pagehide',()=>{
+  if(activeVisit)beacon(activeVisit,'pagehide');
+ });
  let last='',lastAt=0;
  async function visit(page){
   const path=String(page||'').toLowerCase().replace(/[^a-z0-9_/-]/g,'').slice(0,110);
   if(!/^\/[a-z0-9_-]+(?:\/[a-z0-9_-]+)?$/.test(path))return;
   if(document.hidden)return;
+  enter(path);
   const now=Date.now();if(path===last&&now-lastAt<45000)return;
   last=path;lastAt=now;
   try{const deviceModel=await deviceModelPromise;await db.functions.invoke('pavora-visit',{body:{page:path,session,device,deviceName,deviceModel}})}catch(e){console.warn('Anonymous analytics unavailable')}
