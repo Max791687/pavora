@@ -3090,13 +3090,23 @@ input.placeholder='Message…';input.maxLength=2000;input.rows=1;input.wrap='sof
 input.setAttribute('enterkeyhint','enter');input.required=true;input.setAttribute('aria-label','Message');
 input.setAttribute('autocomplete','off');
 function pvDmFitDraftV158(){
- // Fit up to eight visible lines; the caret scrolls normally if text exceeds this.
+ // Both the field AND its rounded parent must grow together; legacy iOS CSS
+ // otherwise pins the parent's height at 52px and text escapes above the pill.
  input.style.setProperty('height','auto','important');
- const lineLimit=176;
- const height=Math.max(38,Math.min(lineLimit,input.scrollHeight||38));
+ const measured=input.scrollHeight||38;
+ const available=window.visualViewport?.height||window.innerHeight;
+ const limit=Math.max(74,Math.min(176,Math.floor(available*.34)));
+ const height=Math.max(38,Math.min(limit,measured));
  input.style.setProperty('height',height+'px','important');
- input.style.setProperty('overflow-y',input.scrollHeight>lineLimit?'auto':'hidden','important');
- if(document.activeElement===input&&input.selectionEnd>=input.value.length-1)input.scrollTop=input.scrollHeight;
+ input.style.setProperty('overflow-y',measured>limit?'auto':'hidden','important');
+ form.style.setProperty('height',(height+14)+'px','important');
+ form.style.setProperty('min-height','52px','important');
+ form.style.setProperty('max-height','none','important');
+ form.style.setProperty('align-items','flex-end','important');
+ form.style.setProperty('flex-shrink','0','important');
+ composerWrap.style.setProperty('height','auto','important');
+ composerWrap.style.setProperty('max-height','none','important');
+ if(document.activeElement===input&&input.selectionEnd>=input.value.length-1&&measured>limit)input.scrollTop=input.scrollHeight;
 }
 input.addEventListener('input',pvDmFitDraftV158);
 input.addEventListener('compositionend',pvDmFitDraftV158);
@@ -3230,7 +3240,10 @@ gallery.addEventListener('touchstart',event=>{
  const t=event.touches?.[0];
  pvGalleryTouchStartV157=t&&event.touches.length===1&&pvGalleryInsideV157(t.clientX,t.clientY)
   ?{x:t.clientX,y:t.clientY}:null;
-},{passive:true});
+ // Keep the draft focused until the native picker actually opens.
+ // iOS will still hide its own keyboard while the photo chooser is visible.
+ if(pvGalleryTouchStartV157&&pvDmTypingAtGalleryTouchV158)event.preventDefault();
+},{passive:false});
 gallery.addEventListener('touchend',event=>{
  const t=event.changedTouches?.[0],start=pvGalleryTouchStartV157;
  pvGalleryTouchStartV157=null;
