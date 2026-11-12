@@ -374,6 +374,31 @@ async function render(){
    for(const entry of d.devices||[])devices.append(E('div','pvoEvent',entry.device+' · '+Number(entry.opens).toLocaleString('en-IN')+' opens'));
    if(!d.devices?.length)devices.append(E('p','pvoMuted','No device data yet.'));
    panels.append(pages,history,devices);main.append(panels);
+   const timing=E('section','pvoSection pvoSectionWide');
+   timing.style.marginTop='15px';
+   timing.append(E('h3','','Recent link opens & exit times (IST)'));
+   timing.append(E('p','pvoMuted','Open time and last activity use server timestamps. Exit time is best-effort: backgrounding or reloading may look like leaving. If no exit event arrives, activity older than 90 seconds is treated as inactive, not an exact close.'));
+   const formatIst=value=>{
+    if(!value)return 'Not received';
+    const d=new Date(value);
+    return Number.isNaN(d.getTime())?'Unavailable':d.toLocaleString('en-IN',{
+     timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',
+     hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true
+    });
+   };
+   const activityNow=Date.now();
+   const recent=d.recentVisits||[];
+   if(!recent.length)timing.append(E('p','pvoMuted','No timed visits yet. Times will appear for visits after this update.'));
+   for(const v of recent){
+    const row=E('div','pvoEvent',(v.device_name||'Unknown device')+' · '+(v.page||'/entry'));
+    const activeRecently=activityNow-new Date(v.last_active_at).getTime()<90000&&!v.exited_at;
+    let status=activeRecently?'● Active recently':v.exited_at?'Exited/backgrounded (approx.)':'Inactive (close not received)';
+    row.append(E('small','','Opened: '+formatIst(v.opened_at)));
+    row.append(E('small','','Last active: '+formatIst(v.last_active_at)));
+    row.append(E('small','',status+' · Exit signal: '+formatIst(v.exited_at)));
+    timing.append(row);
+   }
+   main.append(timing);
   }else if(active==='overview'){
    const d=await api('summary');if(ticket!==seq)return;clear();
    toolbar('Platform overview');
