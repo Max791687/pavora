@@ -23,6 +23,23 @@
    /Windows/i.test(ua)?'Windows PC':
    /Macintosh|Mac OS X/i.test(ua)?'Mac':
    /Linux/i.test(ua)?'Linux PC':'Other device';
+ // Only a browser-reported model. Never infer an iPhone model from its screen size.
+ const deviceModelPromise=(async()=>{
+  let model='';
+  try{
+   if(navigator.userAgentData?.getHighEntropyValues){
+    const info=await navigator.userAgentData.getHighEntropyValues(['model']);
+    model=String(info?.model||'').trim();
+   }
+  }catch{}
+  if(!model&&/Android/i.test(ua)){
+   // Some Android browsers still expose an explicit model in the UA.
+   const match=ua.match(/Android[^;)]*;\\s*(?:[a-z]{2}-[a-z]{2};\\s*)?([^;)]+?)(?:\\s+Build\\/|[;)])/i);
+   if(match)model=match[1].trim();
+  }
+  if(!/^[a-zA-Z0-9 _+().-]{3,48}$/.test(model)||/unknown|generic|build|linux|windows|iphone|ipad|macintosh|android/i.test(model))return null;
+  return model;
+ })();
  let last='',lastAt=0;
  async function visit(page){
   const path=String(page||'').toLowerCase().replace(/[^a-z0-9_/-]/g,'').slice(0,110);
@@ -30,7 +47,7 @@
   if(document.hidden)return;
   const now=Date.now();if(path===last&&now-lastAt<45000)return;
   last=path;lastAt=now;
-  try{await db.functions.invoke('pavora-visit',{body:{page:path,session,device,deviceName}})}catch(e){console.warn('Anonymous analytics unavailable')}
+  try{const deviceModel=await deviceModelPromise;await db.functions.invoke('pavora-visit',{body:{page:path,session,device,deviceName,deviceModel}})}catch(e){console.warn('Anonymous analytics unavailable')}
  }
  window.PAVORA_VISITS={visit};
  const start=()=>visit('/entry');
