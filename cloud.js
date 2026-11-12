@@ -1653,20 +1653,24 @@ pvBindDoubleTap(video,()=>{
 const play=reelAction('Play or pause','<path d="m9 6 10 6-10 6z"/>',togglePlay);play.classList.add('pvReelPlay');screen.append(play);video.addEventListener('play',()=>play.classList.add('hide'));video.addEventListener('pause',()=>play.classList.remove('hide'));
 const sound=reelAction('Mute or unmute','<path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15 9a4 4 0 0 1 0 6"/>',()=>pvSetReelsSound(!pvReelsSoundOn));sound.classList.add('pvReelSound');sound.classList.toggle('pvMuted',!pvReelsSoundOn);sound.title=pvReelsSoundOn?'Mute Reel':'Turn on Reel sound';sound.setAttribute('aria-label',sound.title);screen.append(sound);
 actions.append(reelAction('Share reel','<path d="m21 3-8.5 18-3.5-7.5L2 10z"/><path d="M21 3 9 13.5"/>',async()=>{const link=location.href.split('#')[0]+'#reel-'+reel.id;try{if(navigator.share)await navigator.share({title:'PAVORA Reel',url:link});else if(navigator.clipboard){await navigator.clipboard.writeText(link);alert('Reel link copied!')}else prompt('Copy reel link:',link)}catch(e){if(e.name!=='AbortError')alert('Unable to share reel')}}));
-actions.append(reelAction('More options','<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>',()=>{if(reel.author_id!==user.id){pvOpenActionMenu([{title:'Report Reel',onClick:()=>pvReportTarget('reel',reel.id)},{title:'Block @'+(person.username||'creator'),danger:true,onClick:()=>pvBlockAccount(reel.author_id,person.username||'creator')}]);return}if(!confirm('Delete your Reel permanently?'))return;(async()=>{const result=await db.from('reels').delete().eq('id',reel.id).eq('author_id',user.id);if(result.error){alert(result.error.message);return}await db.storage.from('reel-videos').remove([reel.video_path]);await loadReels(true)})()}));
+actions.append(reelAction('More options','<circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>',()=>{
+ if(reel.author_id!==user.id){
+  pvOpenActionMenu([
+   {title:'Not interested',onClick:async()=>{try{await window.PAVORA_SMART_REELS?.notInterested(db,user.id,reel.id);await loadReels(true)}catch(e){alert('Could not update preferences: '+e.message)}}},
+   {title:'Report Reel',onClick:()=>pvReportTarget('reel',reel.id)},
+   {title:'Block @'+(person.username||'creator'),danger:true,onClick:()=>pvBlockAccount(reel.author_id,person.username||'creator')}
+  ]);return;
+ }
+ pvOpenActionMenu([{title:'Delete your Reel',danger:true,onClick:async()=>{
+  if(!confirm('Delete your Reel permanently?'))return;
+  const result=await db.from('reels').delete().eq('id',reel.id).eq('author_id',user.id);
+  if(result.error){alert(result.error.message);return}
+  await db.storage.from('reel-videos').remove([reel.video_path]);await loadReels(true);
+ }}]);
+}));
 card.append(screen,actions);reelStack.append(card);cards.push(card);card.id='reel-'+reel.id;
 try{window.PVKit?.addReel?.(reel,actions,video)}catch(e){console.warn('Reel extras:',e)}
-const dismiss=node('button','pvSmartNotInterested','⋯ Not interested');
-dismiss.type='button';dismiss.title='Show fewer Reels like this';
-dismiss.onclick=async()=>{
- if(!user||dismiss.disabled)return;
- dismiss.disabled=true;
- try{
-  await window.PAVORA_SMART_REELS?.notInterested(db,user.id,reel.id);
-  await loadReels(true);
- }catch(e){dismiss.disabled=false;alert('Could not update recommendations: '+e.message)}
-};
-screen.append(dismiss);
+// Not interested remains in More options; no floating control over the Reel.
 }
 // Single playback controller above owns play/pause: no IntersectionObserver races.
 if(reelObserver){reelObserver.disconnect();reelObserver=null}
