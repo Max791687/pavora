@@ -3359,6 +3359,9 @@ async function toggleVoice(){
  }finally{voiceButton.disabled=false}
 }
 voiceButton.addEventListener('click',toggleVoice);
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden&&voiceRecorder?.state==='recording')voiceRecorder.stop();
+});
 window.addEventListener('pv-chat-peer-changed',()=>{
  if(selectedPeer!==id&&voiceRecorder?.state==='recording'){
   voiceRecorder.onstop=null;voiceRecorder.stop();stopVoiceTracks();voiceRecorder=null;
