@@ -3108,6 +3108,21 @@ for(const m of visibleMessages){
 const stamp=new Date(m.created_at),dayKey=stamp.toDateString();if(dayKey!==pvLastMessageDay){pvLastMessageDay=dayKey;const marker=node('div','pvChatDayDivider',stamp.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}));marker.dataset.dayKey=dayKey;list.append(marker)}
 const mine=m.sender_id===user.id,row=node('div','pvMessageRow'+(mine?' mine':'')),bubble=node('div','pvBubble'+(mine?' mine':''),m.body);
 row.dataset.messageId=String(m.id);bubble.title=new Date(m.created_at).toLocaleString();row.append(bubble);if(mine){const del=node('button','pvDeleteMessage','Delete');del.type='button';del.title='Delete this message for everyone';del.setAttribute('aria-label','Delete message for everyone');del.onclick=async()=>{if(!confirm('Delete this message for everyone? This cannot be undone.'))return;del.disabled=true;const {error}=await db.from('direct_messages').delete().eq('id',m.id).eq('sender_id',user.id);if(error){alert('Could not delete message: '+error.message);del.disabled=false;return}await renderChat(id);await pvCheckUnread()};row.append(del)}list.append(row)}if(!visibleMessages.length)list.append(node('p','pvChatEmptyMessage','Say hello! 👋'));const form=node('form','pvMessageForm'),input=node('textarea','pvDmAutoMessageV158');
+const pvDraftKeyV161='pv_dm_draft_v161:'+user.id+':'+id;
+try{input.value=sessionStorage.getItem(pvDraftKeyV161)||''}catch{}
+let pvDmDraftSaveTimerV161=null;
+function pvDmPersistDraftV161(){
+ if(pvDmDraftSaveTimerV161)clearTimeout(pvDmDraftSaveTimerV161);
+ pvDmDraftSaveTimerV161=setTimeout(()=>{
+  if(selectedPeer!==id)return;
+  try{
+   if(input.value)sessionStorage.setItem(pvDraftKeyV161,input.value);
+   else sessionStorage.removeItem(pvDraftKeyV161);
+  }catch{}
+ },180);
+}
+input.addEventListener('input',pvDmPersistDraftV161);
+
 input.placeholder='Message…';input.maxLength=2000;input.rows=1;input.wrap='soft';
 input.setAttribute('enterkeyhint','enter');input.required=true;input.setAttribute('aria-label','Message');
 input.setAttribute('autocomplete','off');
@@ -3304,6 +3319,7 @@ async function pvSendMessage(){
  // Keep the original input element mounted. Rebuilding renderChat() here
  // makes iOS/Android close the soft keyboard after every message.
  input.value='';
+ pvDmPersistDraftV161();
  pvDmFitDraftV158();
  input.focus({preventScroll:true});
  send.disabled=true;
@@ -3321,6 +3337,7 @@ async function pvSendMessage(){
  }catch(error){
   if(uploadedPath)await db.storage.from('pv-dm-media').remove([uploadedPath]).catch(()=>{});
   input.value=body+(input.value?' '+input.value:'');
+  pvDmPersistDraftV161();pvDmFitDraftV158();
   input.focus({preventScroll:true});send.disabled=false;
   alert('Unable to send message: '+error.message);return;
  }
