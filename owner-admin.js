@@ -360,6 +360,16 @@ async function render(){
     row.append(E('small','',Number(entry.sessions).toLocaleString('en-IN')+' sessions'));
     devices.append(row);
    }
+   const modelSection=E('section','pvoSection pvoSectionWide');
+   modelSection.append(E('h3','','Exact phone / device models'));
+   modelSection.append(E('p','','Models shown only when the browser reports them. iPhone Safari normally hides the exact model. No inferred model or device fingerprint is used.'));
+   if(!d.deviceModels?.length)modelSection.append(E('div','pvoSectionEmpty','No device models recorded yet.'));
+   for(const model of d.deviceModels||[]){
+    const row=E('div','pvoEvent',model.name+' · '+Number(model.opens).toLocaleString('en-IN')+' opens');
+    row.append(E('small','',Number(model.sessions).toLocaleString('en-IN')+' sessions'));
+    modelSection.append(row);
+   }
+   panels.append(modelSection);
    devices.append(E('h3','','Device types'));
    for(const entry of d.devices||[])devices.append(E('div','pvoEvent',entry.device+' · '+Number(entry.opens).toLocaleString('en-IN')+' opens'));
    if(!d.devices?.length)devices.append(E('p','pvoMuted','No device data yet.'));
