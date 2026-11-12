@@ -1970,7 +1970,7 @@ function pvDmSetReply(id,message){
  form.dataset.replyTo=message.id;
  wrap.hidden=false;
  wrap.querySelector('strong').textContent=pvDmMessageSummary(message);
- form.querySelector('input[aria-label="Message"]')?.focus({preventScroll:true});
+ form.querySelector('textarea[aria-label="Message"]')?.focus({preventScroll:true});
 }
 
 const pvDmInlineMenuCss=document.createElement('style');pvDmInlineMenuCss.textContent=".pvMessageRow{position:relative}.pvDmMoreButton{border:0!important;background:transparent!important;color:#b5a7c3!important;border-radius:50%!important;width:28px;height:28px;flex:none;cursor:pointer;font-weight:900;font-size:20px!important;padding:0!important}.pvDmMoreButton:hover{background:#332c3a!important;color:#fff!important}.pvDmInlineMenu{position:absolute;bottom:calc(100% + 3px);right:0;z-index:65;display:flex;flex-direction:column;min-width:175px;max-width:240px;padding:5px;border:1px solid #4c4159;border-radius:12px;background:#25212c;box-shadow:0 12px 32px #0009}.pvDmInlineMenu button{padding:10px 12px!important;border:0!important;border-radius:8px!important;background:transparent!important;color:#fff!important;font-size:12px!important;text-align:left!important;cursor:pointer}.pvDmInlineMenu button:hover{background:#3e324b!important}";document.head.append(pvDmInlineMenuCss);
@@ -2258,6 +2258,28 @@ function pvDmAttachHoldGesture(row,msg,peer){
   handle=setTimeout(()=>{handle=null;opened=true;try{navigator.vibrate?.(10)}catch(e){};pvDmOpenHoldMenu(msg,peer,row)},430);
  });
  bubble.addEventListener('pointermove',event=>{if(Math.abs(event.clientX-startX)>12||Math.abs(event.clientY-startY)>12)cancel()});
+ // Swipe right on a DM to reply without moving the viewport.
+ let swipe=null;
+ bubble.addEventListener('touchstart',event=>{
+  const t=event.touches?.[0];
+  swipe=t&&event.touches.length===1&&!event.target.closest('button,a,video,audio')?{x:t.clientX,y:t.clientY}:null;
+ },{passive:true});
+ bubble.addEventListener('touchmove',event=>{
+  const t=event.touches?.[0];if(!swipe||!t)return;
+  const dx=t.clientX-swipe.x,dy=t.clientY-swipe.y;
+  if(Math.abs(dy)>25){swipe=null;return}
+  if(dx>60&&Math.abs(dy)<22)cancel();
+ },{passive:true});
+ bubble.addEventListener('touchend',event=>{
+  const t=event.changedTouches?.[0],start=swipe;swipe=null;
+  if(!t||!start||selectedPeer!==peer)return;
+  const dx=t.clientX-start.x,dy=t.clientY-start.y;
+  if(dx>65&&Math.abs(dy)<24){
+   cancel();pvDmSetReply(peer,msg);
+   try{navigator.vibrate?.(8)}catch{}
+  }
+ },{passive:true});
+ bubble.addEventListener('touchcancel',()=>{swipe=null},{passive:true});
  for(const event of ['pointerup','pointercancel','pointerleave'])bubble.addEventListener(event,cancel);
  bubble.addEventListener('contextmenu',event=>{event.preventDefault();cancel();if(!opened)pvDmOpenHoldMenu(msg,peer,row)});
 }
