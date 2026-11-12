@@ -18,6 +18,26 @@ function attach(screen,video){
  const current=document.createElement('span');current.textContent='0:00';
  const total=document.createElement('span');total.textContent='0:00';
  labels.append(current,total);wrap.append(track,labels);screen.append(wrap);
+ // Anchor the seek control ABOVE the actual mobile navigation edge.
+ // Unlike a hard-coded bottom offset this still works with iPhone safe areas,
+ // floating nav layouts and different screen heights.
+ const place=()=>{
+  if(!wrap.isConnected)return;
+  if(window.innerWidth>700||!document.body.classList.contains('pvReelsMode')){
+   wrap.style.removeProperty('--pvReelSeekLift');
+   return;
+  }
+  const nav=document.querySelector('.pvIconRail');
+  const navRect=nav?.getBoundingClientRect();
+  const screenRect=screen.getBoundingClientRect();
+  const obstructed=navRect&&navRect.height>0?Math.max(0,screenRect.bottom-navRect.top):0;
+  wrap.style.setProperty('--pvReelSeekLift',Math.ceil(obstructed+10)+'px');
+ };
+ const schedulePlace=()=>requestAnimationFrame(place);
+ window.addEventListener('resize',schedulePlace,{passive:true});
+ window.visualViewport?.addEventListener('resize',schedulePlace,{passive:true});
+ requestAnimationFrame(place);
+ setTimeout(place,280);
  let scrubbing=false,wasPlaying=false,loaded=false;
  const duration=()=>Number.isFinite(video.duration)&&video.duration>0?video.duration:0;
  function update(){
@@ -60,7 +80,7 @@ function attach(screen,video){
 const css=document.createElement('style');
 css.textContent=`
 .pvReelScreen{position:relative}
-.pvReelScreen .pvReelSeek{position:absolute;bottom:0;left:0;right:0;z-index:15;display:flex;flex-direction:column;gap:0;align-items:stretch;padding:5px 11px max(4px,env(safe-area-inset-bottom,4px));background:linear-gradient(0deg,#000b,transparent);pointer-events:auto}
+.pvReelScreen .pvReelSeek{position:absolute;bottom:var(--pvReelSeekLift,0px);left:0;right:0;z-index:30;display:flex;flex-direction:column;gap:0;align-items:stretch;padding:5px 11px max(4px,env(safe-area-inset-bottom,4px));background:linear-gradient(0deg,#000b,transparent);pointer-events:auto}
 .pvReelScreen .pvReelSeekRange{-webkit-appearance:none;appearance:none;display:block;width:100%;height:17px;min-height:17px;margin:0;padding:0;background:transparent;border:0;outline:0;cursor:pointer;touch-action:pan-x;accent-color:#f4e2ff}
 .pvReelScreen .pvReelSeekRange::-webkit-slider-runnable-track{height:3px;border-radius:9px;background:linear-gradient(to right,#e7c1ff 0%,#e7c1ff var(--pvSeekProgress,0%),#ffffff5c var(--pvSeekProgress,0%),#ffffff5c 100%)}
 .pvReelScreen .pvReelSeekRange::-moz-range-track{height:3px;border-radius:9px;background:#ffffff5c}
@@ -70,14 +90,14 @@ css.textContent=`
 .pvReelScreen .pvReelSeekRange:focus-visible{outline:2px solid #e7c1ff;outline-offset:2px;border-radius:7px}
 .pvReelScreen .pvReelSeekRange:disabled{cursor:default;opacity:.5}
 .pvReelScreen .pvReelSeekTime{display:flex;justify-content:space-between;color:#fff;font-weight:650;font-size:10px;line-height:16px;user-select:none;text-shadow:0 1px 3px #000}
-body.pvReelsMode .pvReelMeta{bottom:34px!important}
+body.pvReelsMode .pvReelMeta{bottom:calc(var(--pvReelSeekLift,0px) + 34px)!important}
 body.pvReelsMode .pvReelCard .pvReelActions{bottom:144px!important}
 body.pvReelsMode .pvReelSound{bottom:133px!important}
 @media(max-width:700px){
- body.pvReelsMode .pvReelMeta{bottom:32px!important}
+ body.pvReelsMode .pvReelMeta{bottom:calc(var(--pvReelSeekLift,0px) + 32px)!important}
  body.pvReelsMode .pvReelCard .pvReelActions{bottom:139px!important}
  body.pvReelsMode .pvReelSound{bottom:132px!important}
- .pvReelScreen .pvReelSeek{padding-left:9px;padding-right:9px}
+ .pvReelScreen .pvReelSeek{padding-left:13px;padding-right:13px;background:linear-gradient(0deg,rgba(0,0,0,.52),transparent)}
 }
 @media(max-width:700px) and (max-height:640px){
  body.pvReelsMode .pvReelCard .pvReelActions{bottom:110px!important}
