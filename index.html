@@ -2821,8 +2821,10 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
  }
  body.pvReelsMode main{
   position:fixed!important;inset:0!important;
-  top:0!important;bottom:0!important;left:0!important;right:0!important;
-  height:100dvh!important;min-height:100dvh!important;width:100%!important;
+  top:0!important;bottom:auto!important;left:0!important;right:0!important;
+  /* iOS standalone 100dvh can stop above the physical bottom edge.
+     Take the largest supported viewport height, not the shrinking one. */
+  height:100lvh!important;min-height:100lvh!important;width:100%!important;
   max-height:none!important;margin:0!important;padding:0!important;
   overflow:hidden!important;z-index:1!important;
  }
@@ -2861,7 +2863,7 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
  /* Glass contrast only around the seek region. Never cover whole reel with black. */
  body.pvReelsMode .pvReelScreen .pvReelSeek{
   position:absolute!important;
-  bottom:calc(var(--pvReelsBottom,94px) + 10px)!important;
+  bottom:var(--pvReelSeekLift,calc(var(--pvReelsBottom,94px) + 10px))!important;
   left:12px!important;right:12px!important;
   z-index:40!important;
   min-height:30px!important;padding:0 5px!important;
@@ -2889,16 +2891,16 @@ body .pvChatContextMenu.pvDmFloatingMenu .pvChatMenuItem:active{
  }
  /* All reel cards use identical bottom clearance, not per-card stale measurements. */
  body.pvReelsMode .pvReelScreen .pvReelMeta{
-  bottom:calc(var(--pvReelsBottom,94px) + 48px)!important;
+  bottom:calc(var(--pvReelSeekLift,var(--pvReelsBottom,94px)) + 38px)!important;
   z-index:6!important;
   background:linear-gradient(0deg,rgba(0,0,0,.43),transparent)!important;
   padding-bottom:8px!important;
  }
  body.pvReelsMode .pvReelCard .pvReelActions{
-  bottom:calc(var(--pvReelsBottom,94px) + 138px)!important;
+  bottom:calc(var(--pvReelSeekLift,var(--pvReelsBottom,94px)) + 128px)!important;
  }
  body.pvReelsMode .pvReelSound{
-  bottom:calc(var(--pvReelsBottom,94px) + 122px)!important;
+  bottom:calc(var(--pvReelSeekLift,var(--pvReelsBottom,94px)) + 112px)!important;
  }
  body.pvReelsMode .pvReelScreen .pvReelPlay{z-index:8!important}
 }
