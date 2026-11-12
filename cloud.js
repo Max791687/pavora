@@ -3206,6 +3206,7 @@ gallery.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 gallery.addEventListener('click',pvOpenDmPicker);
 form.append(attach,input,emojiButton,gallery,send);
 composerWrap.append(replyCompose,mediaSelection,emojiTray,form);
+document.querySelectorAll('body > input.pvDmNativeFileInput').forEach(old=>old.remove());
 document.body.append(fileInput);
 input.addEventListener('input',()=>{if(input.value.trim()&&!input.disabled)pvOnChatInput(id);else pvClearTyping(id)});
 input.addEventListener('blur',()=>{if(input.value.trim())pvClearTyping(id)});
