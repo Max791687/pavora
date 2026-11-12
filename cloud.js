@@ -3163,6 +3163,13 @@ fileInput.onchange=()=>{
  if(file.type.startsWith('image/')){const img=node('img');pvPreviewObjectUrl=URL.createObjectURL(file);img.src=pvPreviewObjectUrl;img.alt='Selected photo';thumb.append(img)}
  else thumb.textContent='🎬';
 };
+const replyCompose=node('div','pvDmSendPreview pvDmReplyCompose');replyCompose.hidden=true;
+const replyInfo=node('div','pvDmPreviewText'),replyHeading=node('span','pvDmPreviewTitle','REPLYING TO'),replyText=node('strong','',''),cancelReply=node('button','','×');cancelReply.type='button';
+cancelReply.title='Cancel reply';cancelReply.setAttribute('aria-label','Cancel reply');cancelReply.onclick=()=>{form.dataset.replyTo='';replyCompose.hidden=true};
+replyInfo.append(replyHeading,replyText);replyCompose.append(replyInfo,cancelReply);
+const gallery=node('button','pvDmGalleryButton');
+gallery.type='button';gallery.title='Choose photo or video';gallery.setAttribute('aria-label','Choose photo or video');
+gallery.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="m4 18 5.3-5.2 3.2 3.1 3.1-3.2L21 18"/></svg>';
 // Only the visible Gallery control is allowed to open the system picker.
 // Use actual touch-end coordinates on iOS instead of relying on retargeted
 // synthesized clicks (which previously made the blank left edge respond).
@@ -3205,13 +3212,6 @@ gallery.addEventListener('keydown',event=>{
   event.preventDefault();pvGalleryLaunchV157();
  }
 });
-const replyCompose=node('div','pvDmSendPreview pvDmReplyCompose');replyCompose.hidden=true;
-const replyInfo=node('div','pvDmPreviewText'),replyHeading=node('span','pvDmPreviewTitle','REPLYING TO'),replyText=node('strong','',''),cancelReply=node('button','','×');cancelReply.type='button';
-cancelReply.title='Cancel reply';cancelReply.setAttribute('aria-label','Cancel reply');cancelReply.onclick=()=>{form.dataset.replyTo='';replyCompose.hidden=true};
-replyInfo.append(replyHeading,replyText);replyCompose.append(replyInfo,cancelReply);
-const gallery=node('button','pvDmGalleryButton');
-gallery.type='button';gallery.title='Choose photo or video';gallery.setAttribute('aria-label','Choose photo or video');
-gallery.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="m4 18 5.3-5.2 3.2 3.1 3.1-3.2L21 18"/></svg>';
 form.append(input,emojiButton,gallery,send);
 composerWrap.append(replyCompose,mediaSelection,emojiTray,form);
 document.querySelectorAll('body > input.pvDmNativeFileInput').forEach(old=>old.remove());
