@@ -2417,7 +2417,7 @@ function pvSyncMobileDmViewport(){
   root.style.setProperty('--pvDmViewportHeight',Math.round(height)+'px');
   root.style.setProperty('--pvDmViewportTop',Math.round(Math.max(0,top))+'px');
  }
- const focused=document.activeElement?.matches?.('#pvInboxView .pvMessageForm input');
+ const focused=document.activeElement?.matches?.('#pvInboxView .pvMessageForm textarea');
  const keyboardVisible=!!focused && !!viewport && viewport.height<window.innerHeight-110;
  document.body.classList.toggle('pvDmKeyboardOpen',keyboardVisible);
 }
@@ -2430,8 +2430,8 @@ function pvScheduleMobileDmViewport(){
 window.visualViewport?.addEventListener('resize',pvScheduleMobileDmViewport,{passive:true});
 window.visualViewport?.addEventListener('scroll',pvScheduleMobileDmViewport,{passive:true});
 window.addEventListener('resize',pvScheduleMobileDmViewport,{passive:true});
-document.addEventListener('focusin',e=>{if(e.target.matches?.('#pvInboxView .pvMessageForm input'))pvScheduleMobileDmViewport()});
-document.addEventListener('focusout',e=>{if(e.target.matches?.('#pvInboxView .pvMessageForm input'))pvScheduleMobileDmViewport()});
+document.addEventListener('focusin',e=>{if(e.target.matches?.('#pvInboxView .pvMessageForm textarea'))pvScheduleMobileDmViewport()});
+document.addEventListener('focusout',e=>{if(e.target.matches?.('#pvInboxView .pvMessageForm textarea'))pvScheduleMobileDmViewport()});
 pvSyncMobileDmViewport();
 // In-app navigation trail for iPhone's left-edge Back gesture. Do not
 // manipulate browser history or interfere with native media swipes.
@@ -2776,7 +2776,7 @@ function pvDmPlayOpenPopV144(area,peer){
  pvDmOpenPopPendingV144=null;
  pvDmCancelOpenAnimationsV153();
  if(window.innerWidth>700||window.matchMedia('(prefers-reduced-motion:reduce)').matches||!area?.isConnected)return;
- if(document.activeElement?.matches?.('#pvInboxView .pvMessageForm input'))return;
+ if(document.activeElement?.matches?.('#pvInboxView .pvMessageForm textarea'))return;
  // Apple-inspired soft reveal. Do not scale or translate the chat viewport:
  // moving its fixed geometry produces the "drop" and final snap on iOS.
  const parts=[
@@ -3085,7 +3085,26 @@ let pvLastMessageDay='';
 for(const m of visibleMessages){
 const stamp=new Date(m.created_at),dayKey=stamp.toDateString();if(dayKey!==pvLastMessageDay){pvLastMessageDay=dayKey;const marker=node('div','pvChatDayDivider',stamp.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}));marker.dataset.dayKey=dayKey;list.append(marker)}
 const mine=m.sender_id===user.id,row=node('div','pvMessageRow'+(mine?' mine':'')),bubble=node('div','pvBubble'+(mine?' mine':''),m.body);
-row.dataset.messageId=String(m.id);bubble.title=new Date(m.created_at).toLocaleString();row.append(bubble);if(mine){const del=node('button','pvDeleteMessage','Delete');del.type='button';del.title='Delete this message for everyone';del.setAttribute('aria-label','Delete message for everyone');del.onclick=async()=>{if(!confirm('Delete this message for everyone? This cannot be undone.'))return;del.disabled=true;const {error}=await db.from('direct_messages').delete().eq('id',m.id).eq('sender_id',user.id);if(error){alert('Could not delete message: '+error.message);del.disabled=false;return}await renderChat(id);await pvCheckUnread()};row.append(del)}list.append(row)}if(!visibleMessages.length)list.append(node('p','pvChatEmptyMessage','Say hello! 👋'));const form=node('form','pvMessageForm'),input=node('input');input.placeholder='Message…';input.maxLength=2000;input.setAttribute('enterkeyhint','send');input.required=true;input.setAttribute('aria-label','Message');
+row.dataset.messageId=String(m.id);bubble.title=new Date(m.created_at).toLocaleString();row.append(bubble);if(mine){const del=node('button','pvDeleteMessage','Delete');del.type='button';del.title='Delete this message for everyone';del.setAttribute('aria-label','Delete message for everyone');del.onclick=async()=>{if(!confirm('Delete this message for everyone? This cannot be undone.'))return;del.disabled=true;const {error}=await db.from('direct_messages').delete().eq('id',m.id).eq('sender_id',user.id);if(error){alert('Could not delete message: '+error.message);del.disabled=false;return}await renderChat(id);await pvCheckUnread()};row.append(del)}list.append(row)}if(!visibleMessages.length)list.append(node('p','pvChatEmptyMessage','Say hello! 👋'));const form=node('form','pvMessageForm'),input=node('textarea','pvDmAutoMessageV158');
+input.placeholder='Message…';input.maxLength=2000;input.rows=1;input.wrap='soft';
+input.setAttribute('enterkeyhint','enter');input.required=true;input.setAttribute('aria-label','Message');
+input.setAttribute('autocomplete','off');
+function pvDmFitDraftV158(){
+ // Fit up to eight visible lines; the caret scrolls normally if text exceeds this.
+ input.style.setProperty('height','auto','important');
+ const lineLimit=176;
+ const height=Math.max(38,Math.min(lineLimit,input.scrollHeight||38));
+ input.style.setProperty('height',height+'px','important');
+ input.style.setProperty('overflow-y',input.scrollHeight>lineLimit?'auto':'hidden','important');
+ if(document.activeElement===input)input.scrollTop=input.scrollHeight;
+}
+input.addEventListener('input',pvDmFitDraftV158);
+input.addEventListener('compositionend',pvDmFitDraftV158);
+input.addEventListener('keydown',event=>{
+ if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){
+  event.preventDefault();form.requestSubmit();
+ }
+});
 const emojiButton=node('button','pvChatEmojiButton');emojiButton.type='button';emojiButton.title='Add emoji';emojiButton.setAttribute('aria-label','Add emoji');emojiButton.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8 14c2 3 6 3 8 0"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/></svg>';
 const emojiTray=node('div','pvChatEmojiTray pvDmPicker');emojiTray.hidden=true;
 emojiTray.id='pvDmPicker-'+id.replace(/[^a-zA-Z0-9_-]/g,'');
@@ -3155,6 +3174,7 @@ const revokePreview=()=>{if(pvPreviewObjectUrl){URL.revokeObjectURL(pvPreviewObj
 removeFile.onclick=()=>{pvPendingMedia=null;fileInput.value='';mediaSelection.hidden=true;fileLabel.textContent='';thumb.replaceChildren();revokePreview()};
 fileSummary.append(fileTitle,fileLabel);mediaSelection.append(thumb,fileSummary,removeFile);
 fileInput.onchange=()=>{
+ pvDmRefocusAfterPickerV158();
  const file=fileInput.files?.[0];if(!file)return;
  const accepted=['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/webm'];
  if(!accepted.includes(file.type)||file.size>30*1024*1024){alert('Choose JPG, PNG, WebP, GIF, MP4 or WebM under 30 MB.');fileInput.value='';return}
@@ -3181,7 +3201,25 @@ const pvGalleryInsideV157=(x,y)=>{
   x>=box.left+pad&&x<=box.right-pad&&
   y>=box.top+pad&&y<=box.bottom-pad;
 };
+let pvDmRestoreAfterPickerV158=false;
+let pvDmPickerCaretV158=0;
+function pvDmRefocusAfterPickerV158(){
+ if(!pvDmRestoreAfterPickerV158)return;
+ pvDmRestoreAfterPickerV158=false;
+ // iOS may hide its keyboard during the native Photos sheet; restore the
+ // original draft, caret and focus on returning where the OS permits.
+ const resume=()=>{
+  if(!input.isConnected||selectedPeer!==id)return;
+  pvDmFitDraftV158();
+  try{input.focus({preventScroll:true});input.setSelectionRange(pvDmPickerCaretV158,pvDmPickerCaretV158)}catch{}
+ };
+ requestAnimationFrame(resume);
+ setTimeout(resume,220);
+}
+fileInput.addEventListener('cancel',pvDmRefocusAfterPickerV158);
 function pvGalleryLaunchV157(){
+ pvDmRestoreAfterPickerV158=document.activeElement===input;
+ pvDmPickerCaretV158=input.selectionStart||input.value.length;
  fileInput.accept='image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm';
  fileInput.click();
 }
@@ -3216,6 +3254,7 @@ form.append(input,emojiButton,gallery,send);
 composerWrap.append(replyCompose,mediaSelection,emojiTray,form);
 document.querySelectorAll('body > input.pvDmNativeFileInput').forEach(old=>old.remove());
 document.body.append(fileInput);
+pvDmFitDraftV158();
 input.addEventListener('input',()=>{if(input.value.trim()&&!input.disabled)pvOnChatInput(id);else pvClearTyping(id)});
 input.addEventListener('blur',()=>{if(input.value.trim())pvClearTyping(id)});
 if(pendingOutgoing&&alreadySent){input.disabled=true;send.disabled=true;input.placeholder='Request pending — waiting for acceptance';}
@@ -3227,6 +3266,7 @@ async function pvSendMessage(){
  // Keep the original input element mounted. Rebuilding renderChat() here
  // makes iOS/Android close the soft keyboard after every message.
  input.value='';
+ pvDmFitDraftV158();
  input.focus({preventScroll:true});
  send.disabled=true;
  let sentMessage=null,uploadedPath=null;
