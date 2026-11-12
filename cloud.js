@@ -1547,14 +1547,14 @@ function goTo(index,behavior='smooth'){
  // One composited vertical slide per gesture on both phone and desktop.
  // Mobile's old rAF+scrollTop route competed with CSS snap and felt jerky.
  cards.forEach((card,i)=>{
-  card.style.transitionDuration=behavior==='smooth'?(window.innerWidth<=700?'260ms':'420ms'):'0ms';
+  card.style.transitionDuration=behavior==='smooth'?(window.innerWidth<=700?'340ms':'420ms'):'0ms';
   card.dataset.reelPosition=i<next?'before':i>next?'after':'active';
   card.setAttribute('aria-hidden',String(i!==next));
  });
  pvActivateReel(next);
  clearTimeout(gestureTimer);
  gestureLocked=behavior==='smooth';
- gestureTimer=setTimeout(()=>{gestureLocked=false;pvActivateReel(current)},behavior==='smooth'?(window.innerWidth<=700?285:445):0);
+ gestureTimer=setTimeout(()=>{gestureLocked=false;pvActivateReel(current)},behavior==='smooth'?(window.innerWidth<=700?365:445):0);
 }
 function stepReel(direction){
  if(gestureLocked||!direction)return;
@@ -1597,15 +1597,17 @@ reelStack.addEventListener('touchmove',e=>{
  if(touchStartY===null||e.touches.length!==1)return;
  const dy=e.touches[0].clientY-touchStartY,dx=e.touches[0].clientX-touchStartX;
  if(Math.abs(dy)>Math.abs(dx)&&e.cancelable)e.preventDefault();
- if(!touchConsumed&&Math.abs(dy)>32&&Math.abs(dy)>Math.abs(dx)*1.15){
-  touchConsumed=true;
-  stepReel(dy<0?1:-1);
- }
+ // Wait for finger release before changing Reels. Changing on the first
+ // 32px of movement made mobile swipes feel abrupt and interrupt dragging.
+ // The touchend handler advances exactly one Reel per deliberate gesture.
 },{passive:false});
 reelStack.addEventListener('touchend',e=>{
  if(touchStartY!==null&&!touchConsumed&&e.changedTouches.length){
   const dy=e.changedTouches[0].clientY-touchStartY,dx=e.changedTouches[0].clientX-touchStartX;
-  if(Math.abs(dy)>32&&Math.abs(dy)>Math.abs(dx)*1.15)stepReel(dy<0?1:-1);
+  if(Math.abs(dy)>42&&Math.abs(dy)>Math.abs(dx)*1.12){
+   touchConsumed=true;
+   stepReel(dy<0?1:-1);
+  }
  }
  touchStartY=null;touchStartX=null;touchConsumed=false;
 },{passive:true});
