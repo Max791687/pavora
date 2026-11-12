@@ -34,7 +34,7 @@
   }catch{}
   if(!model&&/Android/i.test(ua)){
    // Some Android browsers still expose an explicit model in the UA.
-   const match=ua.match(/Android[^;)]*;\\s*(?:[a-z]{2}-[a-z]{2};\\s*)?([^;)]+?)(?:\\s+Build\\/|[;)])/i);
+   const match=ua.match(/Android[^;)]*;\s*(?:[a-z]{2}-[a-z]{2};\s*)?([^;)]+?)(?:\s+Build\/|[;)])/i);
    if(match)model=match[1].trim();
   }
   if(!/^[a-zA-Z0-9 _+().-]{3,48}$/.test(model)||/unknown|generic|build|linux|windows|iphone|ipad|macintosh|android/i.test(model))return null;
