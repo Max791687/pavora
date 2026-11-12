@@ -3821,12 +3821,32 @@ db.auth.onAuthStateChange((event,session)=>{
  if(event==='TOKEN_REFRESHED'&&user?.id===session.user.id)return;
  setTimeout(()=>setSession(session).catch(e=>console.warn('Session setup failed:',e)),0);
 });
+// Recover a saved login after returning online/foreground without racing two
+// getSession calls. Never infer SIGNED_OUT from an offline/session timeout.
+let pvSessionRecoveryPending=null;
+let pvSessionRecoveryLastAt=0;
+function pvTryRecoverSavedSession(){
+ if(document.hidden||pvExplicitSignout||user||pvSessionRecoveryPending)return;
+ const now=Date.now();
+ if(now-pvSessionRecoveryLastAt<2500)return;
+ pvSessionRecoveryLastAt=now;
+ pvSessionRecoveryPending=(async()=>{
+  try{
+   const {data,error}=await pvAuthTimeout(db.auth.getSession(),10000);
+   if(error)throw error;
+   if(!pvExplicitSignout&&data?.session?.user&&(!user||user.id!==data.session.user.id)){
+    await setSession(data.session);
+   }
+  }catch(error){
+   // Offline or token refresh problems must not erase persisted auth storage.
+   console.warn('Saved session recovery deferred:',error?.message||error);
+  }finally{pvSessionRecoveryPending=null}
+ })();
+}
 document.addEventListener('visibilitychange',()=>{
- if(document.hidden||pvExplicitSignout||user)return;
- db.auth.getSession().then(({data})=>{
-  if(data?.session?.user)setSession(data.session).catch(e=>console.warn('Session recovery:',e));
- }).catch(()=>{});
+ if(!document.hidden)pvTryRecoverSavedSession();
 });
+window.addEventListener('online',pvTryRecoverSavedSession);
 try{
 const {data,error}=await pvAuthTimeout(db.auth.getSession(),20000);
 if(error)throw error;
