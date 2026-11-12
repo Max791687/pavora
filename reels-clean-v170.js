@@ -14,7 +14,7 @@ body.pvReelsMode .pvReelScreen video{
 }
 body.pvReelsMode .pvReelScreen .pvReelMeta{
  position:absolute!important;left:0!important;right:0!important;
- bottom:43px!important;z-index:8!important;
+ bottom:calc(43px + var(--pv170NavOverlap,0px))!important;z-index:8!important;
  padding:9px 76px 7px 14px!important;
  background:transparent!important;box-shadow:none!important;
  pointer-events:none!important;max-width:100%!important;
@@ -65,7 +65,7 @@ body.pvReelsMode .pv170MoreCaption{
 }
 /* Keep standard action handlers but make every icon/count clear and separated. */
 body.pvReelsMode .pvReelCard .pvReelActions{
- position:absolute!important;right:8px!important;bottom:114px!important;
+ position:absolute!important;right:8px!important;bottom:calc(114px + var(--pv170NavOverlap,0px))!important;
  width:55px!important;min-width:55px!important;z-index:10!important;
  padding:0!important;margin:0!important;gap:0!important;
  display:flex!important;flex-direction:column!important;align-items:center!important;
@@ -97,7 +97,7 @@ body.pvReelsMode .pvSuiteReelActions>.pvSuiteCount.pvSuiteViews{
 }
 /* High-contrast low-profile scrubber; no interaction stealing from swipe feed. */
 body.pvReelsMode .pvReelScreen .pvReelSeek{
- position:absolute!important;bottom:0!important;left:0!important;right:0!important;
+ position:absolute!important;bottom:var(--pv170NavOverlap,0px)!important;left:0!important;right:0!important;
  z-index:20!important;padding:3px 12px 5px!important;
  background:transparent!important;pointer-events:auto!important
 }
@@ -107,10 +107,17 @@ body.pvReelsMode .pvReelSeekTime{
  color:#fff!important;text-shadow:0 2px 5px #000!important
 }
 body.pvReelsMode .pvReelSound{
- position:absolute!important;bottom:153px!important;right:73px!important;
+ position:absolute!important;bottom:calc(153px + var(--pv170NavOverlap,0px))!important;right:73px!important;
  z-index:11!important;color:#fff!important;filter:drop-shadow(0 1px 3px #000a)
 }
 body.pvReelsMode .pvReelPlay{z-index:9!important}
+/* This preference is a menu action, never a black floating label over the video. */
+body.pvReelsMode #reels .pvSmartNotInterested{
+ top:57px!important;bottom:auto!important;right:9px!important;
+ max-width:112px!important;font-size:10px!important;opacity:.82!important;
+ white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+ background:rgba(12,14,21,.32)!important;border:1px solid rgba(255,255,255,.25)!important
+}
 /* Top tabs and glass bottom navigation match the supplied reference. */
 body.pvReelsMode #reels .pvSmartReelTabs{
  border:0!important;box-shadow:none!important;background:transparent!important;
@@ -127,12 +134,12 @@ body.pvReelsMode #reels .pvSmartReelTab.active{
 }
 @media(max-width:700px){
  body.pvReelsMode .pvReelScreen .pvReelMeta{
-  bottom:39px!important;padding:8px 72px 5px 13px!important
+  bottom:calc(39px + var(--pv170NavOverlap,0px))!important;padding:8px 72px 5px 13px!important
  }
  body.pvReelsMode .pvReelCard .pvReelActions{
-  right:5px!important;bottom:113px!important;width:55px!important
+  right:5px!important;bottom:calc(113px + var(--pv170NavOverlap,0px))!important;width:55px!important
  }
- body.pvReelsMode .pvReelSound{bottom:157px!important;right:65px!important}
+ body.pvReelsMode .pvReelSound{bottom:calc(157px + var(--pv170NavOverlap,0px))!important;right:65px!important}
  body.pvReelsMode .pvSuiteReelActions{gap:7px!important}
  body.pvReelsMode .pvSuiteIconAction{width:50px!important;min-height:49px!important}
  body.pvReelsMode .pvReelSeek{padding-left:12px!important;padding-right:12px!important}
@@ -158,8 +165,8 @@ body.pvReelsMode #reels .pvSmartReelTab.active{
  body.pvReelsMode .pvSuiteReelActions{gap:1px!important}
  body.pvReelsMode .pvSuiteIconAction{min-height:42px!important}
  body.pvReelsMode .pvSuiteIconAction svg{height:25px!important;width:25px!important;flex-basis:25px!important}
- body.pvReelsMode .pvReelCard .pvReelActions{bottom:94px!important}
- body.pvReelsMode .pvReelSound{bottom:125px!important}
+ body.pvReelsMode .pvReelCard .pvReelActions{bottom:calc(94px + var(--pv170NavOverlap,0px))!important}
+ body.pvReelsMode .pvReelSound{bottom:calc(125px + var(--pv170NavOverlap,0px))!important}
  body.pvReelsMode .pvReelCaption.pv170Clamped{-webkit-line-clamp:1!important}
 }
 @media(prefers-reduced-motion:reduce){
@@ -167,10 +174,29 @@ body.pvReelsMode #reels .pvSmartReelTab.active{
 }
 `;
 document.head.append(css);
+/* iOS fixed viewport can put the pill navigation visually over the video.
+   Measure its actual placement instead of guessing viewport/safe-area offsets. */
+function placeOverlays(){
+ if(!document.body.classList.contains('pvReelsMode'))return;
+ const nav=document.querySelector('.pvIconRail');
+ if(!nav||getComputedStyle(nav).display==='none')return;
+ const rect=nav.getBoundingClientRect();
+ document.querySelectorAll('#reels .pvReelScreen').forEach(screen=>{
+  const videoRect=screen.getBoundingClientRect();
+  const overlap=Math.max(0,Math.min(videoRect.height*.55,videoRect.bottom-rect.top+7));
+  screen.style.setProperty('--pv170NavOverlap',Math.ceil(overlap)+'px');
+ });
+}
+let pv170Queued=false;
+function queueOverlay(){
+ if(pv170Queued)return;pv170Queued=true;
+ requestAnimationFrame(()=>{pv170Queued=false;placeOverlays()});
+}
 function enhance(card){
  if(card.dataset.pv170Enhanced==='yes')return;
  const meta=card.querySelector('.pvReelMeta'),caption=meta?.querySelector('.pvReelCaption');
  if(!caption)return;
+ queueOverlay();
  card.dataset.pv170Enhanced='yes';
  if(!caption.textContent.trim()){caption.classList.add('pv170NoCaption');return}
  const original=caption.textContent.trim();
@@ -194,12 +220,18 @@ function scan(root=document){
  root.querySelectorAll?.('#reels .pvReelCard').forEach(enhance);
 }
 scan();
+window.addEventListener('resize',queueOverlay,{passive:true});
+window.addEventListener('orientationchange',queueOverlay,{passive:true});
+window.visualViewport?.addEventListener('resize',queueOverlay,{passive:true});
+document.querySelectorAll('.pvRailButton[data-rail-view]').forEach(b=>b.addEventListener('click',queueOverlay));
+queueOverlay();
 const reelRoot=document.getElementById('reelList')||document.getElementById('reels');
 if(reelRoot){
  const observer=new MutationObserver(records=>{
   for(const record of records)for(const child of record.addedNodes){
    if(child.nodeType===1)scan(child);
   }
+  queueOverlay();
  });
  observer.observe(reelRoot,{childList:true,subtree:true});
 }
