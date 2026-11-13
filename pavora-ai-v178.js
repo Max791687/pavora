@@ -299,5 +299,5 @@ view.addEventListener('click',event=>{
  const btn=event.target.closest('button[data-prompt]');
  if(btn&&view.contains(btn))send(btn.dataset.prompt);
 });
-window.PAVORA_AI={onNavigate(route){view.classList.toggle('hide',route!=='ai');},focus(){input.focus({preventScroll:true})},version:'180',mode:'reviewed-knowledge'};
+window.PAVORA_AI={onNavigate(route){view.classList.toggle('hide',route!=='ai');if(route==='ai'){void detectAdmin();void loadApproved();}},focus(){input.focus({preventScroll:true})},version:'180',mode:'reviewed-knowledge'};
 })();
