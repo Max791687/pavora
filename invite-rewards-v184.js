@@ -1,15 +1,28 @@
-/* PAVORA Invite & Earn v186 — reviewed referrals, wallet history & manually approved payouts. */
+/* PAVORA Invite & Earn v187 — referral click-to-signup funnel, reviewed rewards and wallet. */
 (()=>{
 'use strict';
 if(window.PAVORA_INVITES)return;
 const db=()=>window.PVKit?.db||null;
 const user=()=>window.PVKit?.getUser?.()||null;
 const storageKey='pv_referral_pending_v184',codePattern=/^[a-f0-9]{32}$/;
+let landingCode='';
 try{
  const parsed=new URL(location.href),code=parsed.searchParams.get('ref');
- if(code&&codePattern.test(code.toLowerCase()))localStorage.setItem(storageKey,code.toLowerCase());
+ if(code&&codePattern.test(code.toLowerCase())){landingCode=code.toLowerCase();localStorage.setItem(storageKey,landingCode)}
  if(code){parsed.searchParams.delete('ref');history.replaceState(history.state,'',parsed.pathname+parsed.search+parsed.hash)}
 }catch(e){}
+// Track only an anonymous visit-session counter (no IP, name or private gallery).
+// This is not evidence of a real unique person, signup or paid referral.
+async function trackLanding(){
+ if(!landingCode)return;
+ const client=db();if(!client){setTimeout(trackLanding,650);return}
+ const key='pv_ref_view_session_v187';let session;
+ try{session=sessionStorage.getItem(key);if(!session||!/^[0-9a-f-]{36}$/.test(session)){session=crypto.randomUUID();sessionStorage.setItem(key,session)}}
+ catch(e){session=crypto.randomUUID()}
+ try{const {error}=await client.rpc('pv_track_referral_link',{p_code:landingCode,p_session:session});if(error)console.warn('Invite link view not recorded:',error.message)}
+ catch(e){console.warn('Invite link view tracking unavailable:',e)}
+}
+if(landingCode)setTimeout(trackLanding,100);
 const css=document.createElement('style');css.id='pvInviteStyle184';
 css.textContent=[
 '#pvInvite184[hidden]{display:none!important}#pvInvite184{position:fixed;inset:0;z-index:18000;background:#09051dc9;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:grid;place-items:center;padding:14px;color:white}',
@@ -22,6 +35,7 @@ css.textContent=[
 '#pvInvite184 .invLink{padding:13px;border:1px solid #f1e6ff70;background:#080c2d8c;border-radius:14px;overflow-wrap:anywhere;font-size:13px;color:#e9d9ff}',
 '#pvInvite184 .invActions{display:flex;gap:9px;margin-top:11px}#pvInvite184 .invActions button{flex:1;background:linear-gradient(135deg,#a679f4,#754bd4);border:1px solid #e9d7ff7e;color:#fff;border-radius:13px;padding:12px 9px;font-size:13px;font-weight:750;cursor:pointer}#pvInvite184 .invActions button:last-child{background:#ffffff22}',
 '#pvInvite184 .invHelp{font-size:11px;color:#d6c8e7;line-height:1.5;margin:14px 0 0}#pvInvite184 .invStatus{font-size:12px;color:#e9d9ff;min-height:17px;margin-top:10px}',
+'#pvInvite184 .invFunnel{margin:13px 0;padding:13px;border:1px solid #e2c8ff69;border-radius:16px;background:#ffffff13}#pvInvite184 .invFunnel h3{font-size:14px;margin:0 0 9px}#pvInvite184 .invFunnelGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}#pvInvite184 .invFunnelGrid div{border-radius:12px;border:1px solid #e8dcff40;padding:9px 6px;text-align:center}#pvInvite184 .invFunnelGrid b{display:block;font-size:21px}#pvInvite184 .invFunnelGrid small{display:block;font-size:10px;color:#e9d7ff}#pvInvite184 .invFunnel p{font-size:11px;color:#e0d1f1;line-height:1.5;margin:9px 0 0}',
 '#pvInvite184 .invHistory{margin:14px 0;padding:12px;background:#ffffff10;border:1px solid #eed6ff60;border-radius:16px}#pvInvite184 .invHistory h3{margin:0 0 8px;font-size:14px}#pvInvite184 .invHistoryList{max-height:205px;overflow:auto;font-size:12px}#pvInvite184 .invHistoryRow{display:flex;justify-content:space-between;gap:7px;padding:8px 0;border-bottom:1px solid #ffffff22}#pvInvite184 .invHistoryRow:last-child{border:0}#pvInvite184 .invHistoryRow span:last-child{text-align:right;color:#e7d7fc}',
 '#pvInvite184 .invCash{padding:14px;border:1px solid #e2c7ff70;background:linear-gradient(135deg,#ad79ee30,#7e6fc220);border-radius:17px;margin:12px 0}#pvInvite184 .invCash h3{font-size:15px;margin:0 0 8px}#pvInvite184 .invCash .invAmount{font-size:28px;font-weight:800}#pvInvite184 .invCash .invInstall{font-size:12px;color:#e8dbff;margin:7px 0}#pvInvite184 .invCash .invPayoutNote{font-size:11px;color:#dfd1f2;line-height:1.5;margin:7px 0 10px}#pvInvite184 .invCash label{display:block;font-size:12px;margin:8px 0;color:#f2eaff}#pvInvite184 .invCash input{width:100%;padding:11px;border-radius:11px;background:#0a0b30;color:white;border:1px solid #e1cbff82;outline:none}#pvInvite184 .invCash button{width:100%;margin-top:9px;border:1px solid #eed8ff9a;border-radius:12px;background:linear-gradient(135deg,#a376ef,#704fbc);color:#fff;padding:11px;font-weight:750}#pvInvite184 .invCash button:disabled{opacity:.45;cursor:not-allowed}',
 '.pvInviteLaunch184{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;border:1px solid #bb92ff85;border-radius:12px;background:linear-gradient(125deg,#9e74ee44,#6a51c533);color:#f9f3ff;font-weight:750}',
@@ -34,6 +48,7 @@ dialog.innerHTML='<div class="invCard" role="dialog" aria-modal="true" aria-labe
 '<div class="invMark">🎁</div><h2>Invite & Earn Badges</h2>'+
 '<p class="invSub">Invite friends to PAVORA. After 10 qualifying referrals, earn ₹2 per qualifying referral including your first 10. Rewards require verification and manual payout approval.</p>'+
 '<div class="invStats"><div class="invMetric"><strong id="pvInvCount">0</strong><small>Verified friends joined</small></div><div class="invMetric"><strong id="pvInvNext">1</strong><small>Next badge at</small></div></div>'+
+'<div class="invFunnel"><h3>🔗 Invite link activity</h3><div class="invFunnelGrid"><div><b id="pvInvClicks">—</b><small>Link opens</small></div><div><b id="pvInvSignups">—</b><small>Verified signups</small></div><div><b id="pvInvOpened">—</b><small>App opened</small></div></div><p>Link opens are approximate sessions, not unique people. If somebody opens the link but never creates an ID, only link opens increase.</p></div>'+
 '<div class="invRewards"><div class="invReward" data-target="1"><b>✦</b><small>1 Friend</small></div><div class="invReward" data-target="5"><b>✧</b><small>5 Friends</small></div><div class="invReward" data-target="10"><b>✪</b><small>10 Friends</small></div><div class="invReward" data-target="25"><b>♛</b><small>25 Friends</small></div><div class="invReward" data-target="50"><b>★</b><small>50 Friends</small></div></div>'+
 '<div class="invCash"><h3>💸 Referral Earnings</h3><div class="invAmount" id="pvInvCash">₹0.00</div><p class="invInstall" id="pvInvInstall">0/10 verified signups + app opens</p><p class="invPayoutNote" id="pvInvCashInfo">Unlock at 10 qualifying referrals. Earnings are subject to anti-fraud review; not automatically paid.</p><label for="pvInvUpi">UPI ID for manual payout request</label><input id="pvInvUpi" type="text" autocomplete="off" maxlength="100" placeholder="yourname@upi"/><button type="button" id="pvInvPayout" disabled>Request payout (minimum ₹20)</button></div>'+
 '<div class="invHistory"><h3>📋 Referral & payout history</h3><div id="pvInvHistory" class="invHistoryList">Loading history…</div></div>'+
@@ -75,7 +90,15 @@ async function dashboard(){
  eligibleForPayout=!!data.campaign_enabled&&approved>=10&&available>=20&&inReview===0;
  $('#pvInvPayout').disabled=!eligibleForPayout;
  currentId=u.id;
- await loadHistory(client);
+ await Promise.all([loadHistory(client),loadFunnel(client)]);
+}
+async function loadFunnel(client){
+ try{
+  const {data,error}=await client.rpc('pv_referral_my_funnel');if(error)throw error;
+  $('#pvInvClicks').textContent=String(data?.link_opens??0);
+  $('#pvInvSignups').textContent=String(data?.verified_signups??0);
+  $('#pvInvOpened').textContent=String(data?.app_launches??0);
+ }catch(e){console.warn('Personal referral funnel unavailable',e)}
 }
 async function loadHistory(client){
  const root=$('#pvInvHistory');root.textContent='Loading history…';
@@ -170,5 +193,5 @@ async function refreshLogin(){
 const authCheck=setInterval(()=>{if(db()&&user()){clearInterval(authCheck);refreshLogin()}},1300);
 setTimeout(()=>clearInterval(authCheck),60000);
 if(db())db().auth.onAuthStateChange((event,session)=>{setTimeout(refreshLogin,400)});
-window.PAVORA_INVITES={open:show,refresh:dashboard,version:'186'};
+window.PAVORA_INVITES={open:show,refresh:dashboard,version:'187'};
 })();
