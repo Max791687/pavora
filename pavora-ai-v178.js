@@ -27,7 +27,20 @@ view.innerHTML=`
    <button type="button" data-prompt="Explain PAVORA features"><span>▱</span><strong>Feature Guide</strong><small>Learn how PAVORA works</small><em>›</em></button>
   </div>
   <form class="pvAiComposer" id="pvAiForm"><label for="pvAiInput" class="pvAiVisuallyHidden">Message PAVORA AI</label><span aria-hidden="true">✦</span><input id="pvAiInput" type="text" maxlength="400" autocomplete="off" placeholder="Ask PAVORA AI…" required/><button type="submit" aria-label="Send message">➤</button></form>
-  <p class="pvAiDisclosure">PAVORA AI currently provides guided answers and writing ideas. It is not a general-purpose generative AI or live support agent.</p>
+  <div class="pvAiLearnTools">
+    <button type="button" id="pvAiTeachToggle">✦ Teach PAVORA AI something</button>
+    <p>Share an app-related fact voluntarily. Nothing from your private chats is collected. Submissions need admin approval before other users can see them.</p>
+    <form id="pvAiTeachForm" hidden>
+      <label for="pvAiTeachQuestion">Question people might ask</label>
+      <input id="pvAiTeachQuestion" required maxlength="240" minlength="5" placeholder="e.g. How do I report a Reel?">
+      <label for="pvAiTeachAnswer">Suggested answer</label>
+      <textarea id="pvAiTeachAnswer" required maxlength="1200" minlength="5" rows="3" placeholder="Write a factual answer, without personal details"></textarea>
+      <button type="submit">Submit for review</button>
+      <span id="pvAiTeachStatus" role="status"></span>
+    </form>
+    <div id="pvAiAdminReview" hidden><button type="button" id="pvAiReviewRefresh">Review user suggestions</button><div id="pvAiPending"></div></div>
+  </div>
+  <p class="pvAiDisclosure">PAVORA AI currently offers guided answers plus admin-reviewed community knowledge. It does not automatically train a generative model or read private messages.</p>
  </div>`;
 const style=document.createElement('style');style.id='pvAiStyle178';
 style.textContent=`
@@ -89,6 +102,20 @@ border:1px solid #e9d7ffb3;background:linear-gradient(110deg,#dfd7ff4a,#adc5f141
 #pvAiView .pvAiComposer button{width:43px;height:43px;flex:0 0 43px;border-radius:50%;border:1px solid #ffffff99;color:white;font-size:20px;background:linear-gradient(135deg,#b889ff,#6232d9);box-shadow:inset 0 1px #fff7,0 3px 15px #9b62ff8c}
 #pvAiView .pvAiVisuallyHidden{position:absolute;clip:rect(0,0,0,0);width:1px;height:1px;overflow:hidden}
 #pvAiView .pvAiDisclosure{text-align:center;color:#beb2df;font-size:10px;line-height:1.5;margin:12px auto 0;max-width:560px}
+#pvAiView .pvAiLearnTools{margin:20px 0 4px;padding:14px;border-radius:18px;background:#d2b4ff20;border:1px solid #dbc4ff56}
+#pvAiView .pvAiLearnTools>button,#pvAiView .pvAiLearnTools form button,#pvAiView #pvAiAdminReview button{border:1px solid #ddc2ff83;background:linear-gradient(120deg,#ab7dff88,#6553bb8a);color:#fff;border-radius:12px;padding:10px 13px;font-size:12px}
+#pvAiView .pvAiLearnTools>p{margin:8px 0 0;color:#dbd0f6;font-size:11px;line-height:1.5}
+#pvAiView #pvAiTeachForm{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+#pvAiView #pvAiTeachForm[hidden],#pvAiView #pvAiAdminReview[hidden]{display:none!important}
+#pvAiView #pvAiTeachForm label{font-size:12px;font-weight:700}
+#pvAiView #pvAiTeachForm input,#pvAiView #pvAiTeachForm textarea{width:100%;padding:10px;border:1px solid #d2b5ff78;border-radius:12px;background:#0d10387c;color:#fff;outline:none;resize:vertical;min-width:0}
+#pvAiView #pvAiTeachForm input::placeholder,#pvAiView #pvAiTeachForm textarea::placeholder{color:#cbc0eb}
+#pvAiView #pvAiTeachStatus{font-size:11px;line-height:1.4;color:#e3d5ff}
+#pvAiView #pvAiAdminReview{margin-top:15px;padding-top:12px;border-top:1px solid #ffffff40}
+#pvAiView .pvAiReviewItem{padding:11px 0;border-bottom:1px solid #fff3;overflow-wrap:anywhere;font-size:12px}
+#pvAiView .pvAiReviewItem p{white-space:pre-wrap}
+#pvAiView .pvAiReviewItem button{margin-right:8px}
+
 #pvAiView .pvAiPrompts button:active,#pvAiView .pvAiCards button:active{transform:scale(.975)}
 body.pvAiMode .pvIconRail .pvRailButton[data-rail-view="ai"]{color:#c8adff!important;background:linear-gradient(145deg,#9675f046,#6438d543)!important;box-shadow:inset 0 1px #fff7,0 0 16px #9f70f73b!important;border-radius:15px}
 @media(max-width:700px){
@@ -135,6 +162,101 @@ function addMessage(text,who){
  if(who==='bot'){const label=document.createElement('small');label.textContent='PAVORA guided knowledge & suggestions';bubble.append(label)}
  list.append(bubble);list.scrollTop=list.scrollHeight;
 }
+// Knowledge is read from RLS-protected, admin-approved records only.
+// No user messages are stored or trained on by this module.
+let knowledgeCache=[],knowledgeAt=0;
+const dbForAi=()=>window.PAVORA_AI_DB||null;
+const normalize=s=>String(s||'').toLowerCase().replace(/[^a-z0-9\u0900-\u097f ]/g,' ').replace(/\s+/g,' ').trim();
+const stop=new Set(['the','and','for','how','who','what','where','when','does','can','are','is','of','to','a','an','my','me','in','on','do','i','pavora','ai','hai','ka','ki','ke','kya','se','ko']);
+const tokens=s=>new Set(normalize(s).split(' ').filter(x=>x.length>2&&!stop.has(x)));
+async function loadApproved(){
+ const db=dbForAi();if(!db)return knowledgeCache;
+ if(Date.now()-knowledgeAt<60000)return knowledgeCache;
+ try{
+  const {data,error}=await db.from('pv_ai_knowledge').select('id,question,answer').eq('status','approved').limit(150);
+  if(error)throw error;
+  knowledgeCache=data||[];knowledgeAt=Date.now();
+ }catch(err){console.warn('AI knowledge temporarily unavailable',err?.message||err)}
+ return knowledgeCache;
+}
+async function learnedAnswer(question){
+ // Official founder attribution cannot be overwritten by community submissions.
+ if(/(owner|founder|pavan|pawan|mandal|maalik|malik|kisne.*banaya|kis ka app|ceo)/i.test(question))return respond(question);
+ const items=await loadApproved(),query=normalize(question),qt=tokens(question);
+ let best=null,score=0;
+ for(const item of items){
+  const saved=normalize(item.question);
+  const st=tokens(item.question);
+  const overlap=[...qt].filter(word=>st.has(word)).length;
+  const similarity=query===saved?1:st.size&&qt.size?overlap/Math.max(qt.size,st.size):0;
+  if(similarity>score){score=similarity;best=item}
+ }
+ if(best&&score>=.72)return best.answer+'\n\n✓ Verified PAVORA community knowledge';
+ return respond(question);
+}
+const teachForm=view.querySelector('#pvAiTeachForm'),teachStatus=view.querySelector('#pvAiTeachStatus');
+view.querySelector('#pvAiTeachToggle').addEventListener('click',()=>{
+ teachForm.hidden=!teachForm.hidden;
+ if(!teachForm.hidden)view.querySelector('#pvAiTeachQuestion').focus({preventScroll:true});
+});
+teachForm.addEventListener('submit',async e=>{
+ e.preventDefault();
+ const question=view.querySelector('#pvAiTeachQuestion').value.trim();
+ const answer=view.querySelector('#pvAiTeachAnswer').value.trim();
+ if(question.length<5||answer.length<5)return;
+ const db=dbForAi();if(!db){teachStatus.textContent='Sign in to submit knowledge.';return}
+ const btn=teachForm.querySelector('button[type=submit]');btn.disabled=true;
+ teachStatus.textContent='Submitting for review…';
+ try{
+  const {data:auth}=await db.auth.getUser();
+  if(!auth?.user)throw Error('Please sign in first.');
+  const {error}=await db.from('pv_ai_knowledge').insert({question,answer});
+  if(error)throw error;
+  teachForm.reset();
+  teachStatus.textContent='Suggestion saved for admin review. It will not be public until approved.';
+ }catch(err){teachStatus.textContent='Could not submit: '+(err?.message||'Try again.')}
+ finally{btn.disabled=false}
+});
+const reviewBox=view.querySelector('#pvAiAdminReview'),pending=view.querySelector('#pvAiPending');
+async function loadReview(){
+ const db=dbForAi();if(!db)return;
+ pending.textContent='Loading suggestions…';
+ try{
+  const {data,error}=await db.from('pv_ai_knowledge').select('id,question,answer,created_at').eq('status','pending').order('created_at',{ascending:false}).limit(40);
+  if(error)throw error;
+  pending.replaceChildren();
+  if(!data?.length){pending.textContent='No pending suggestions.';return}
+  for(const item of data){
+   const card=document.createElement('div');card.className='pvAiReviewItem';
+   const title=document.createElement('strong');title.textContent=item.question;
+   const answer=document.createElement('p');answer.textContent=item.answer;
+   card.append(title,answer);
+   for(const [label,status] of [['Approve','approved'],['Reject','rejected']]){
+    const btn=document.createElement('button');btn.type='button';btn.textContent=label;
+    btn.onclick=async()=>{
+     btn.disabled=true;
+     const {error}=await db.from('pv_ai_knowledge').update({status,reviewed_at:new Date().toISOString()}).eq('id',item.id);
+     if(error){btn.disabled=false;alert('Review unavailable: '+error.message);return}
+     knowledgeAt=0;card.remove();
+    };
+    card.append(btn);
+   }
+   pending.append(card);
+  }
+ }catch(err){pending.textContent='Could not load reviews: '+(err?.message||err)}
+}
+view.querySelector('#pvAiReviewRefresh').addEventListener('click',loadReview);
+async function detectAdmin(){
+ const db=dbForAi();if(!db)return;
+ try{
+  const {data:auth}=await db.auth.getUser();
+  if(!auth?.user)return;
+  const {data}=await db.from('pv_app_admins').select('user_id').eq('user_id',auth.user.id).maybeSingle();
+  reviewBox.hidden=!data;
+ }catch(err){reviewBox.hidden=true}
+}
+setTimeout(detectAdmin,1800);
+
 // Show realistic chat feedback before each reply, without blocking input.
 // The assistant remains a local guided responder; timing is a UI effect.
 const replyQueue=[];
@@ -162,7 +284,7 @@ async function drainReplies(){
    const delay=Math.min(1750,Math.max(800,650+question.length*12));
    await new Promise(resolve=>setTimeout(resolve,delay));
    indicator.remove();
-   addMessage(respond(question),'bot');
+   addMessage(await learnedAnswer(question),'bot');
   }
  }finally{replying=false}
 }
@@ -177,5 +299,5 @@ view.addEventListener('click',event=>{
  const btn=event.target.closest('button[data-prompt]');
  if(btn&&view.contains(btn))send(btn.dataset.prompt);
 });
-window.PAVORA_AI={onNavigate(route){view.classList.toggle('hide',route!=='ai');},focus(){input.focus({preventScroll:true})},version:'178',mode:'guided'};
+window.PAVORA_AI={onNavigate(route){view.classList.toggle('hide',route!=='ai');},focus(){input.focus({preventScroll:true})},version:'180',mode:'reviewed-knowledge'};
 })();
