@@ -5,6 +5,9 @@ const KEY='sb_publishable_uaHMT5xlLu6egTFd7uaqQQ_LN6sbwhr';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 if(!window.supabase?.createClient){pvRevealApp();alert('Unable to load Supabase SDK. Check internet connection.');return}
 const db=window.supabase.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:window.localStorage}});
+// Share the existing authenticated client with the standalone AI knowledge module.
+// This is the ordinary publishable-key browser client, never a service-role key.
+window.PAVORA_AI_DB=db;
 function pvRevealApp(){if(window.__pvLaunchVisualTimer)clearTimeout(window.__pvLaunchVisualTimer);document.body.classList.remove('pvBooting','pvEarlyShell');document.body.classList.add('pvLaunchReady')}
 // Keep the sign-in form responsive if authentication or network is unavailable.
 function pvAuthTimeout(promise,ms=15000){return Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Login is taking too long. Check your internet connection, then try again.')),ms))])}
