@@ -8,7 +8,7 @@ const view=document.createElement('section');
 view.id='pvAiView';view.className='hide';view.setAttribute('aria-label','PAVORA AI Assistant');
 view.innerHTML=`
  <div class="pvAiShell">
-  <div class="pvAiHead"><div class="pvAiBrand"><span class="pvAiMonogram" aria-hidden="true">✦</span><span>PAVORA <b>AI</b></span></div><span class="pvAiMode">✧ PAVORA Assistant</span></div>
+  <div class="pvAiHead"><div class="pvAiBrand"><span class="pvAiMonogram" aria-hidden="true">✦</span><span>PAVORA <b>AI</b></span></div><div class="pvAiHeadTools"><button type="button" id="pvAiRetry" title="Ask last question again" aria-label="Ask last question again" disabled>↻</button><button type="button" id="pvAiClear" title="Clear AI conversation" aria-label="Clear AI conversation">⌫</button><span class="pvAiMode">✧ PAVORA Assistant</span></div></div>
   <div class="pvAiHero"><div class="pvAiOrb" aria-hidden="true"><span>✦</span></div><h1>PAVORA AI</h1><p>Ask anything about PAVORA</p></div>
   <div class="pvAiConversation" id="pvAiConversation" aria-live="polite" aria-relevant="additions">
    <div class="pvAiStarter"><span class="pvAiSmallStar">✦</span><p>Hi! I can help you explore PAVORA, write captions and bios, and answer questions about the app.</p><small>Free guided assistant · No external AI service connected</small></div>
@@ -44,6 +44,14 @@ background:linear-gradient(145deg,transparent 18%,#b998ff18 38%,transparent 59%)
 #pvAiView button{font-family:inherit;cursor:pointer}
 #pvAiView .pvAiHead,#pvAiView .pvAiBrand{display:flex;align-items:center}
 #pvAiView .pvAiHead{justify-content:space-between;gap:8px;font-weight:790;font-size:16px}
+#pvAiView .pvAiHeadTools{display:flex;align-items:center;gap:6px}
+#pvAiView .pvAiHeadTools>button{height:34px;min-width:34px;padding:5px 9px;border:1px solid #e8d9ff82;border-radius:12px;background:linear-gradient(140deg,#ac95ee51,#7c68cb51);color:#f5efff;box-shadow:inset 0 1px #fff5;font-size:20px}
+#pvAiView .pvAiHeadTools>button:disabled{opacity:.35;cursor:default}
+#pvAiView .pvAiMessage.bot{position:relative;padding-bottom:36px}
+#pvAiView .pvAiCopyButton{position:absolute;right:10px;bottom:8px;padding:4px 10px;border:1px solid #e8d9ff5e;border-radius:999px;background:#ffffff19;color:#eee7ff;font-size:11px;line-height:1.4}
+#pvAiView .pvAiCopyButton:active{scale:.96}
+#pvAiView .pvAiToast{position:absolute;left:50%;bottom:79px;transform:translateX(-50%);z-index:2;padding:8px 13px;border-radius:20px;border:1px solid #e2d4ff99;background:#272052eb;color:white;box-shadow:0 8px 24px #0005;font-size:12px;white-space:nowrap;pointer-events:none}
+#pvAiView .pvAiToast[hidden]{display:none!important}
 #pvAiView .pvAiBrand{gap:9px;letter-spacing:.04em}
 #pvAiView .pvAiBrand b{font-weight:500;color:#c4b3ff}
 #pvAiView .pvAiMonogram{display:grid;place-items:center;width:31px;height:31px;border-radius:12px;color:#fff;font-size:21px;background:linear-gradient(135deg,#9875ff,#5033a3);border:1px solid #e6ddff8c;box-shadow:inset 0 1px #fff8}
@@ -132,7 +140,21 @@ const respond=raw=>{
 };
 function addMessage(text,who){
  const bubble=document.createElement('div');bubble.className='pvAiMessage '+who;bubble.textContent=text;
- if(who==='bot'){const label=document.createElement('small');label.textContent='PAVORA guided knowledge & suggestions';bubble.append(label)}
+ if(who==='bot'){
+  const label=document.createElement('small');label.textContent='PAVORA guided knowledge & suggestions';bubble.append(label);
+  const copy=document.createElement('button');copy.type='button';copy.className='pvAiCopyButton';copy.textContent='⧉ Copy';copy.setAttribute('aria-label','Copy AI answer');
+  copy.addEventListener('click',async()=>{
+   try{
+    if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(text);
+    else{
+     const temp=document.createElement('textarea');temp.value=text;temp.style.position='fixed';temp.style.opacity='0';document.body.append(temp);temp.select();
+     const ok=document.execCommand('copy');temp.remove();if(!ok)throw Error('Clipboard unavailable');
+    }
+    copy.textContent='✓ Copied';setTimeout(()=>{if(copy.isConnected)copy.textContent='⧉ Copy'},1600);
+   }catch(err){copy.textContent='Copy unavailable';setTimeout(()=>{if(copy.isConnected)copy.textContent='⧉ Copy'},1600)}
+  });
+  bubble.append(copy);
+ }
  list.append(bubble);list.scrollTop=list.scrollHeight;
 }
 // Knowledge is read from RLS-protected, admin-approved records only.
@@ -170,7 +192,17 @@ async function learnedAnswer(question){
 // Show realistic chat feedback before each reply, without blocking input.
 // The assistant remains a local guided responder; timing is a UI effect.
 const replyQueue=[];
-let replying=false;
+let replying=false,conversationEpoch=0,lastQuestion='';
+const retryButton=view.querySelector('#pvAiRetry'),clearButton=view.querySelector('#pvAiClear');
+const starterHTML=list.innerHTML;
+clearButton.addEventListener('click',()=>{
+ if(!replyQueue.length&&!list.querySelector('.pvAiMessage'))return;
+ if(!confirm('Clear PAVORA AI conversation on this screen?'))return;
+ conversationEpoch++;replyQueue.length=0;list.innerHTML=starterHTML;
+ lastQuestion='';retryButton.disabled=true;
+});
+retryButton.addEventListener('click',()=>{if(lastQuestion)send(lastQuestion)});
+
 function showTyping(){
  const indicator=document.createElement('div');
  indicator.className='pvAiTyping';
@@ -187,20 +219,25 @@ async function drainReplies(){
  replying=true;
  try{
   while(replyQueue.length){
-   const question=replyQueue.shift();
+   const question=replyQueue.shift(),epoch=conversationEpoch;
    const indicator=showTyping();
    // Readable, human-paced visual feedback rather than an instant response.
    // Avoid excessive delays for long answers and keep each message in order.
    const delay=Math.min(1750,Math.max(800,650+question.length*12));
    await new Promise(resolve=>setTimeout(resolve,delay));
+   if(epoch!==conversationEpoch){indicator.remove();continue}
+   let answer;
+   try{answer=await learnedAnswer(question)}
+   catch(err){console.warn('AI reply unavailable',err);answer='Something went wrong. Please try again.'}
    indicator.remove();
-   addMessage(await learnedAnswer(question),'bot');
+   if(epoch===conversationEpoch)addMessage(answer,'bot');
   }
  }finally{replying=false}
 }
 function send(text){
  const value=String(text||'').trim().slice(0,400);if(!value)return;
  addMessage(value,'user');input.value='';
+ lastQuestion=value;retryButton.disabled=false;
  replyQueue.push(value);
  void drainReplies();
 }
@@ -209,5 +246,5 @@ view.addEventListener('click',event=>{
  const btn=event.target.closest('button[data-prompt]');
  if(btn&&view.contains(btn))send(btn.dataset.prompt);
 });
-window.PAVORA_AI={onNavigate(route){view.classList.toggle('hide',route!=='ai');if(route==='ai'){void loadApproved();}},focus(){input.focus({preventScroll:true})},version:'180',mode:'reviewed-knowledge'};
+window.PAVORA_AI={onNavigate(route){view.classList.toggle('hide',route!=='ai');if(route==='ai'){void loadApproved();}},focus(){input.focus({preventScroll:true})},version:'182',mode:'reviewed-knowledge'};
 })();
