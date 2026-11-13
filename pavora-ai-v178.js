@@ -63,6 +63,15 @@ background:linear-gradient(145deg,transparent 18%,#b998ff18 38%,transparent 59%)
 #pvAiView .pvAiMessage.user{align-self:flex-end;border-bottom-right-radius:7px;background:linear-gradient(125deg,#af7aff8f,#6036cc97)}
 #pvAiView .pvAiMessage.bot{align-self:flex-start;border-bottom-left-radius:7px;background:linear-gradient(125deg,#c5bdf350,#759de84a);backdrop-filter:blur(16px)}
 #pvAiView .pvAiMessage small{display:block;margin-top:10px;padding-top:8px;border-top:1px solid #ffffff2c;color:#ded8f8;font-size:10px}
+#pvAiView .pvAiTyping{align-self:flex-start;display:flex;flex-direction:column;align-items:flex-start;gap:7px;margin:1px 0 3px;max-width:220px}
+#pvAiView .pvAiTypingLabel{font-size:11px;color:#d7cbfa;padding-left:8px;font-weight:600}
+#pvAiView .pvAiTypingDots{display:flex;align-items:center;gap:5px;min-height:35px;padding:8px 15px;border:1px solid #ffffff69;border-radius:19px 19px 19px 6px;background:linear-gradient(125deg,#c5bdf350,#759de84a);backdrop-filter:blur(16px);box-shadow:inset 0 1px #fff5,0 8px 21px #160f3a3d}
+#pvAiView .pvAiTypingDots i{display:block;width:7px;height:7px;border-radius:50%;background:#f4efff;opacity:.45;animation:pvAiDot179 1.05s ease-in-out infinite}
+#pvAiView .pvAiTypingDots i:nth-child(2){animation-delay:.16s}
+#pvAiView .pvAiTypingDots i:nth-child(3){animation-delay:.32s}
+@keyframes pvAiDot179{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-5px);opacity:1}}
+@media(prefers-reduced-motion:reduce){#pvAiView .pvAiTypingDots i{animation:none!important;opacity:.85}}
+
 #pvAiView .pvAiPrompts{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:9px 0 18px}
 #pvAiView .pvAiPrompts button{padding:9px 13px;border:1px solid #f0dfff75;border-radius:999px;color:white;font-size:12px;background:linear-gradient(130deg,#ab8bff46,#a9caf51c);box-shadow:inset 0 1px #fff6;backdrop-filter:blur(13px)}
 #pvAiView .pvAiCards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-bottom:22px}
@@ -126,9 +135,42 @@ function addMessage(text,who){
  if(who==='bot'){const label=document.createElement('small');label.textContent='PAVORA guided knowledge & suggestions';bubble.append(label)}
  list.append(bubble);list.scrollTop=list.scrollHeight;
 }
+// Show realistic chat feedback before each reply, without blocking input.
+// The assistant remains a local guided responder; timing is a UI effect.
+const replyQueue=[];
+let replying=false;
+function showTyping(){
+ const indicator=document.createElement('div');
+ indicator.className='pvAiTyping';
+ indicator.setAttribute('role','status');
+ indicator.setAttribute('aria-label','PAVORA AI is typing');
+ const label=document.createElement('span');label.className='pvAiTypingLabel';label.textContent='PAVORA AI is typing…';
+ const dots=document.createElement('span');dots.className='pvAiTypingDots';dots.setAttribute('aria-hidden','true');
+ for(let i=0;i<3;i++)dots.append(document.createElement('i'));
+ indicator.append(label,dots);list.append(indicator);list.scrollTop=list.scrollHeight;
+ return indicator;
+}
+async function drainReplies(){
+ if(replying)return;
+ replying=true;
+ try{
+  while(replyQueue.length){
+   const question=replyQueue.shift();
+   const indicator=showTyping();
+   // Readable, human-paced visual feedback rather than an instant response.
+   // Avoid excessive delays for long answers and keep each message in order.
+   const delay=Math.min(1750,Math.max(800,650+question.length*12));
+   await new Promise(resolve=>setTimeout(resolve,delay));
+   indicator.remove();
+   addMessage(respond(question),'bot');
+  }
+ }finally{replying=false}
+}
 function send(text){
  const value=String(text||'').trim().slice(0,400);if(!value)return;
- addMessage(value,'user');addMessage(respond(value),'bot');input.value='';
+ addMessage(value,'user');input.value='';
+ replyQueue.push(value);
+ void drainReplies();
 }
 form.addEventListener('submit',event=>{event.preventDefault();send(input.value)});
 view.addEventListener('click',event=>{
