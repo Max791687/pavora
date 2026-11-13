@@ -80,7 +80,7 @@ function renderJoins(){
   cell(row,(x.review_status||'pending')+' · '+(x.risk||'Check manually'));
   const actions=cell(row,'');const wrap=document.createElement('div');wrap.className='praActions';
   if(x.review_status==='pending'){
-   wrap.append(button('Approve',()=>{if(!x.installed){status.textContent='No installed-app signal for this referral.';return}if(confirm('Have you independently verified this referral is legitimate?'))void change('pv_referral_review_join',{p_user_id:x.id,p_decision:'approved',p_note:'Manual verification'},'Referral approved')})));
+   wrap.append(button('Approve',()=>{if(!x.installed){status.textContent='No installed-app signal for this referral.';return}if(confirm('Have you independently verified this referral is legitimate?'))void change('pv_referral_review_join',{p_user_id:x.id,p_decision:'approved',p_note:'Manual verification'},'Referral approved')}));
    wrap.append(button('Reject',()=>{const reason=prompt('Reason for rejection (visible to owner/admin review only):');if(reason&&reason.trim())void change('pv_referral_review_join',{p_user_id:x.id,p_decision:'rejected',p_note:reason.trim()},'Referral rejected')},'praReject'));
   }else{wrap.append(textEl('span','Reviewed'))}
   actions.append(wrap);body.append(row)
