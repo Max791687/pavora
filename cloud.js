@@ -2477,7 +2477,7 @@ let pvRestoredForUser=null;
 function pvRouteKey(){return user?'pavora-route:'+user.id:null}
 function pvRememberView(view,creatorId){const key=pvRouteKey();if(!key)return;try{const previous=JSON.parse(sessionStorage.getItem(key)||'{}');const next={...previous,view};if(creatorId)next.creatorId=creatorId;if(view!=='creator')delete next.creatorId;if(view==='messages'){next.tab=pvInboxTab;next.peer=selectedPeer||null}else{delete next.peer}sessionStorage.setItem(key,JSON.stringify(next))}catch(e){console.warn('Could not save current page',e)}}
 function pvRememberInboxPosition(){pvRememberView('messages')}
-async function pvRestoreView(){const key=pvRouteKey();if(!key||pvRestoredForUser===user.id)return;pvRestoredForUser=user.id;let saved=null;try{saved=JSON.parse(sessionStorage.getItem(key)||'null')}catch(e){}if(!saved||!['home','reels','explore','profile','messages','creator'].includes(saved.view))return;
+async function pvRestoreView(){const key=pvRouteKey();if(!key||pvRestoredForUser===user.id)return;pvRestoredForUser=user.id;let saved=null;try{saved=JSON.parse(sessionStorage.getItem(key)||'null')}catch(e){}if(!saved||!['home','reels','explore','profile','messages','creator','ai'].includes(saved.view))return;
 if(saved.view==='creator'&&saved.creatorId){openCreator(saved.creatorId).catch(e=>console.warn('Creator profile restore:',e));return}
 if(saved.view==='messages'){pvInboxTab=['Primary','General','Requests'].includes(saved.tab)?saved.tab:'Primary';selectedPeer=typeof saved.peer==='string'&&/^[0-9a-f-]{36}$/i.test(saved.peer)?saved.peer:null;pvNavigate('messages');if(selectedPeer&&!chatPoll)chatPoll=setInterval(()=>{if(!inboxView.classList.contains('hide')&&selectedPeer)renderChat(selectedPeer,true)},2500);return}
 pvNavigate(saved.view);if(saved.view==='profile')updateSocialProfile().catch(e=>console.warn('Profile restore:',e))}
@@ -2533,7 +2533,7 @@ function pvNavigate(view){
   if(pvEdgeNavTrail.length>20)pvEdgeNavTrail.shift();
   pvEdgeNavCurrent=view;
  }
-if(view!=='reels')pvPauseAllReels();pvVirtualView.classList.add('hide');pvActiveVirtual=null;pvCloseVirtualChat();pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');document.body.classList.toggle('pvExploreMode',view==='explore');document.body.classList.toggle('pvReelsMode',view==='reels');try{window.PVKit?.onNavigate?.(view)}catch(e){console.warn('Feature navigation:',e)}if(view==='messages'){loadInbox();requestAnimationFrame(pvSyncDesktopChatHeight)}else{pvDmTypingLastSeen=0;pvClearTyping(selectedPeer)}if(view==='reels'){requestAnimationFrame(pvFitReelsViewport);loadReels()}if(view==='explore')pvLoadExplore();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
+if(view!=='reels')pvPauseAllReels();pvVirtualView.classList.add('hide');pvActiveVirtual=null;pvCloseVirtualChat();pvRememberView(view);document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));['home','reels','explore','profile','messages','creator','ai'].forEach(v=>{const el=v==='messages'?inboxView:v==='creator'?publicView:v==='ai'?document.getElementById('pvAiView'):document.getElementById(v);if(el)el.classList.toggle('hide',v!==view)});document.body.classList.toggle('pvAiMode',view==='ai');window.PAVORA_AI?.onNavigate(view);document.body.classList.toggle('pvProfileMode',view==='profile');document.body.classList.toggle('pvMessagesMode',view==='messages');document.body.classList.toggle('pvExploreMode',view==='explore');document.body.classList.toggle('pvReelsMode',view==='reels');try{window.PVKit?.onNavigate?.(view)}catch(e){console.warn('Feature navigation:',e)}if(view==='messages'){loadInbox();requestAnimationFrame(pvSyncDesktopChatHeight)}else{pvDmTypingLastSeen=0;pvClearTyping(selectedPeer)}if(view==='reels'){requestAnimationFrame(pvFitReelsViewport);loadReels()}if(view==='explore')pvLoadExplore();if(view!=='messages'&&chatPoll){clearInterval(chatPoll);chatPoll=null}}
 window.PAVORA_EDGE_BACK=()=>{
  if(!user)return false;
  const focused=document.activeElement;
@@ -3547,10 +3547,11 @@ explore:'<circle cx="10.8" cy="10.8" r="7.4"/><path d="m16.2 16.2 5 5"/>',
 messages:'<path d="m21 3-8.5 18-3.5-7.5L2 10z"/><path d="M21 3 9 13.5"/>',
 profile:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',
 create:'<rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 7v10M7 12h10"/>',
+ai:'<path d="m12 2 2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2z"/><path d="m19 18 1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z"/>',
 more:'<path d="M4 6h16M4 12h16M4 18h16"/>'
 };
 function pvIconSvg(key){return '<svg viewBox="0 0 24 24" width="27" height="27" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+pvIcons[key]+'</svg>'}
-for(const key of ['home','reels','messages','explore','profile']){
+for(const key of ['home','reels','messages','explore','ai','profile']){
  const b=node('button','pvRailButton');b.innerHTML=pvIconSvg(key);b.type='button';b.dataset.railView=key;b.title=key[0].toUpperCase()+key.slice(1);b.setAttribute('aria-label',b.title);
  b.onclick=()=>{pvNavigate(key);document.body.classList.remove('pvDrawerOpen');pvSyncRail()};
  pvRail.append(b);
@@ -3650,7 +3651,7 @@ const pvDesktopBell=pvMakeBell('pvRailButton pvDesktopActivity');pvRail.insertBe
 const pvMobileBell=pvMakeBell('pvMobileActivity');const pvTopForBell=document.querySelector('header .top');pvTopForBell.append(pvMobileBell);
 
 pvRailBadge=node('span','pvUnreadBadge pvRailUnreadBadge');pvRailBadge.hidden=true;const pvMessageRailButton=pvRail.querySelector('[data-rail-view="messages"]');if(pvMessageRailButton)pvMessageRailButton.append(pvRailBadge);pvSetUnreadBadge(pvUnreadCount);
-function pvSyncRail(){pvRail.querySelectorAll('[data-rail-view]').forEach(b=>b.classList.toggle('active',!!document.querySelector('aside.left [data-view="'+b.dataset.railView+'"].active')))}
+function pvSyncRail(){pvRail.querySelectorAll('[data-rail-view]').forEach(b=>b.classList.toggle('active',b.dataset.railView==='ai'?document.body.classList.contains('pvAiMode'):!!document.querySelector('aside.left [data-view="'+b.dataset.railView+'"].active')))}
 document.querySelectorAll('aside.left [data-view]').forEach(b=>b.addEventListener('click',()=>setTimeout(pvSyncRail,0)));
 // Classic sidebar navigation also uses these buttons: persist its active page.
 document.querySelectorAll('aside.left [data-view]').forEach(b=>b.addEventListener('click',()=>{if(user)pvRememberView(b.dataset.view)}));
