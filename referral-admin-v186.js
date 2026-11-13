@@ -1,4 +1,4 @@
-/* PAVORA Referral Pro v186 — server-verified owner-only dashboard.
+/* PAVORA Referral Pro v187 — server-verified owner-only dashboard with invite funnel.
   No automatic payment. Mark Paid only AFTER external UPI transfer and reference. */
 (()=>{
 'use strict';
@@ -23,6 +23,7 @@ modal.innerHTML='<div class="praPanel" role="dialog" aria-modal="true" aria-labe
 '<div class="praBody"><p class="praMessage" id="praMessage" role="status">Loading…</p>'+
 '<div class="praKpi"><div class="praMetric"><strong id="praVerified">—</strong><small>Approved referrals</small></div><div class="praMetric"><strong id="praToReview">—</strong><small>Awaiting review</small></div><div class="praMetric"><strong id="praPaid">—</strong><small>Marked paid</small></div><div class="praMetric"><strong id="praCommitted">—</strong><small>Paid + pending requests</small></div></div>'+
 '<section class="praSection"><h3>Campaign budget & safety</h3><div class="praControls"><label>Campaign status <select id="praEnabled"><option value="false">Paused — no new requests</option><option value="true">Active</option></select></label><label>Total payout budget (₹) <input type="number" id="praBudget" min="0" max="1000000" step="1" value="0"></label><button type="button" id="praSave">Save controls</button><button class="praReload" type="button" id="praRefresh">↻ Refresh</button></div><p class="praMuted" id="praRemaining">No budget configured.</p><p class="praMuted">Limits are checked on the server. Existing approved + pending commitments cannot be erased by decreasing the budget. Approval never sends UPI money.</p></section>'+
+'<section class="praSection"><h3>🔗 Invite link → Signup funnel</h3><p class="praMuted">See who shared an invite link and whether link opens converted into verified signups and app launches. Link opens are approximate browser sessions, NOT identified users or qualifying referrals.</p><div class="praTable" id="praFunnelTable">Loading link activity…</div></section>'+
 '<section class="praSection"><h3>Referral anti-fraud review</h3><p class="praMuted">Approve only after independently checking that the signup is genuine and the app was installed and opened. Standalone detection is only a browser signal, not proof. Recent referral bursts are flagged for review.</p><div class="praTable" id="praJoinTable">Loading referrals…</div></section>'+
 '<section class="praSection"><h3>UPI payout requests & history</h3><p class="praMuted">To mark a request paid: send the UPI transfer outside PAVORA, verify it succeeded, then record the transaction reference. Reject requests with a reason. No automatic UPI transfer exists.</p><div class="praTable" id="praPayoutTable">Loading payout history…</div></section>'+
 '</div></div>';
@@ -53,7 +54,8 @@ async function load(){
   $('#praEnabled').value=String(!!data.campaign?.enabled);
   $('#praBudget').value=(Number(data.campaign?.budget_paise||0)/100).toFixed(0);
   $('#praRemaining').textContent='Committed: '+money(data.committed_paise)+' · Remaining budget: '+money(Math.max(0,(data.campaign?.budget_paise||0)-(data.committed_paise||0)))+' · Campaign '+(data.campaign?.enabled?'ACTIVE':'PAUSED');
-  renderJoins();renderPayouts();status.textContent='Updated · '+new Date().toLocaleTimeString();
+  renderJoins();renderPayouts();
+  await loadFunnel();status.textContent='Updated · '+new Date().toLocaleTimeString();
  }catch(err){status.textContent='Could not load referral admin records: '+(err.message||err)}
  finally{busy=false}
 }
@@ -63,6 +65,18 @@ async function change(name,args,success){
  try{const result=await call(name,args);if(result!=='saved'){status.textContent='Not changed: '+result;return}
   status.textContent=success||'Saved';busy=false;await load();
  }catch(e){status.textContent='Action failed: '+(e.message||e)}finally{busy=false}
+}
+async function loadFunnel(){
+ const root=$('#praFunnelTable');root.textContent='Loading link activity…';
+ try{
+  const result=await call('pv_referral_admin_funnel');root.replaceChildren();
+  const t=document.createElement('p');t.className='praMuted';t.textContent='Total link opens: '+(result.totals?.link_opens??0)+' · Verified signups: '+(result.totals?.verified_signups??0)+' · App launches: '+(result.totals?.app_launches??0);root.append(t);
+  const list=result.senders||[];if(!list.length){root.append(textEl('p','No invite links generated yet.'));return}
+  const tbl=document.createElement('table'),head=document.createElement('thead'),headrow=document.createElement('tr');
+  ['Sent by','Link opens','IDs created','App launched','Admin approved'].forEach(x=>headrow.append(textEl('th',x)));head.append(headrow);tbl.append(head);
+  const body=document.createElement('tbody');for(const x of list){const row=document.createElement('tr');cell(row,'@'+(x.username||String(x.sender_id||'').slice(0,8)));cell(row,String(x.link_opens||0));cell(row,String(x.verified_signups||0));cell(row,String(x.app_launches||0));cell(row,String(x.approved||0));body.append(row)}
+  tbl.append(body);root.append(tbl)
+ }catch(e){root.textContent='Unable to load link activity: '+(e.message||e)}
 }
 function renderJoins(){
  const root=$('#praJoinTable');root.replaceChildren();
@@ -139,5 +153,5 @@ function attach(){
  return true
 }
 if(!attach()){const obs=new MutationObserver(()=>{if(attach())obs.disconnect()});obs.observe(document.body,{childList:true,subtree:true})}
-window.PAVORA_REFERRAL_ADMIN={open,version:'186'};
+window.PAVORA_REFERRAL_ADMIN={open,version:'187'};
 })();
