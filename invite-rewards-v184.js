@@ -1,4 +1,4 @@
-/* PAVORA Invite & Earn v185 — ₹2 per qualifying referral after 10; manual UPI review. */
+/* PAVORA Invite & Earn v186 — reviewed referrals, wallet history & manually approved payouts. */
 (()=>{
 'use strict';
 if(window.PAVORA_INVITES)return;
@@ -22,6 +22,7 @@ css.textContent=[
 '#pvInvite184 .invLink{padding:13px;border:1px solid #f1e6ff70;background:#080c2d8c;border-radius:14px;overflow-wrap:anywhere;font-size:13px;color:#e9d9ff}',
 '#pvInvite184 .invActions{display:flex;gap:9px;margin-top:11px}#pvInvite184 .invActions button{flex:1;background:linear-gradient(135deg,#a679f4,#754bd4);border:1px solid #e9d7ff7e;color:#fff;border-radius:13px;padding:12px 9px;font-size:13px;font-weight:750;cursor:pointer}#pvInvite184 .invActions button:last-child{background:#ffffff22}',
 '#pvInvite184 .invHelp{font-size:11px;color:#d6c8e7;line-height:1.5;margin:14px 0 0}#pvInvite184 .invStatus{font-size:12px;color:#e9d9ff;min-height:17px;margin-top:10px}',
+'#pvInvite184 .invHistory{margin:14px 0;padding:12px;background:#ffffff10;border:1px solid #eed6ff60;border-radius:16px}#pvInvite184 .invHistory h3{margin:0 0 8px;font-size:14px}#pvInvite184 .invHistoryList{max-height:205px;overflow:auto;font-size:12px}#pvInvite184 .invHistoryRow{display:flex;justify-content:space-between;gap:7px;padding:8px 0;border-bottom:1px solid #ffffff22}#pvInvite184 .invHistoryRow:last-child{border:0}#pvInvite184 .invHistoryRow span:last-child{text-align:right;color:#e7d7fc}',
 '#pvInvite184 .invCash{padding:14px;border:1px solid #e2c7ff70;background:linear-gradient(135deg,#ad79ee30,#7e6fc220);border-radius:17px;margin:12px 0}#pvInvite184 .invCash h3{font-size:15px;margin:0 0 8px}#pvInvite184 .invCash .invAmount{font-size:28px;font-weight:800}#pvInvite184 .invCash .invInstall{font-size:12px;color:#e8dbff;margin:7px 0}#pvInvite184 .invCash .invPayoutNote{font-size:11px;color:#dfd1f2;line-height:1.5;margin:7px 0 10px}#pvInvite184 .invCash label{display:block;font-size:12px;margin:8px 0;color:#f2eaff}#pvInvite184 .invCash input{width:100%;padding:11px;border-radius:11px;background:#0a0b30;color:white;border:1px solid #e1cbff82;outline:none}#pvInvite184 .invCash button{width:100%;margin-top:9px;border:1px solid #eed8ff9a;border-radius:12px;background:linear-gradient(135deg,#a376ef,#704fbc);color:#fff;padding:11px;font-weight:750}#pvInvite184 .invCash button:disabled{opacity:.45;cursor:not-allowed}',
 '.pvInviteLaunch184{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;border:1px solid #bb92ff85;border-radius:12px;background:linear-gradient(125deg,#9e74ee44,#6a51c533);color:#f9f3ff;font-weight:750}',
 '.pvInviteLaunch184.pvInviteTop{width:38px;height:38px;font-size:20px;flex:0 0 38px;margin-left:4px}.pvInviteLaunch184.pvInviteProfile{padding:10px 14px;margin-top:13px}',
@@ -35,6 +36,7 @@ dialog.innerHTML='<div class="invCard" role="dialog" aria-modal="true" aria-labe
 '<div class="invStats"><div class="invMetric"><strong id="pvInvCount">0</strong><small>Verified friends joined</small></div><div class="invMetric"><strong id="pvInvNext">1</strong><small>Next badge at</small></div></div>'+
 '<div class="invRewards"><div class="invReward" data-target="1"><b>✦</b><small>1 Friend</small></div><div class="invReward" data-target="5"><b>✧</b><small>5 Friends</small></div><div class="invReward" data-target="10"><b>✪</b><small>10 Friends</small></div><div class="invReward" data-target="25"><b>♛</b><small>25 Friends</small></div><div class="invReward" data-target="50"><b>★</b><small>50 Friends</small></div></div>'+
 '<div class="invCash"><h3>💸 Referral Earnings</h3><div class="invAmount" id="pvInvCash">₹0.00</div><p class="invInstall" id="pvInvInstall">0/10 verified signups + app opens</p><p class="invPayoutNote" id="pvInvCashInfo">Unlock at 10 qualifying referrals. Earnings are subject to anti-fraud review; not automatically paid.</p><label for="pvInvUpi">UPI ID for manual payout request</label><input id="pvInvUpi" type="text" autocomplete="off" maxlength="100" placeholder="yourname@upi"/><button type="button" id="pvInvPayout" disabled>Request payout (minimum ₹20)</button></div>'+
+'<div class="invHistory"><h3>📋 Referral & payout history</h3><div id="pvInvHistory" class="invHistoryList">Loading history…</div></div>'+
 '<div class="invLink" id="pvInvLink">Preparing your personal invitation link…</div>'+
 '<div class="invActions"><button type="button" id="pvInvCopy">⧉ Copy link</button><button type="button" id="pvInvShare">↗ Share invite</button></div>'+
 '<div class="invStatus" role="status" id="pvInvStatus"></div>'+
@@ -63,14 +65,28 @@ async function dashboard(){
  $('#pvInvLink').textContent=link;
  syncBadges(Number(data.count)||0);
  const installed=Number(data.installed_count)||0;
+ const approved=Number(data.approved_count)||0;
  const available=(Number(data.pending_review_paise)||0)/100;
  const inReview=(Number(data.payout_in_review_paise)||0)/100;
  $('#pvInvCash').textContent='₹'+available.toFixed(2);
- $('#pvInvInstall').textContent=installed+'/10 qualifying referrals (verified signup + installed-app launch)';
- $('#pvInvCashInfo').textContent=installed<10?'Invite '+(10-installed)+' more qualifying friends to unlock cash rewards.':inReview>0?'₹'+inReview.toFixed(2)+' payout request is under review. Available earnings are separate.':'₹2 per qualifying friend, including first 10. Displayed earnings are provisional until anti-fraud review.';
- eligibleForPayout=installed>=10&&available>=20&&inReview===0;
+ $('#pvInvPayout').textContent=data.campaign_enabled?'Request payout (minimum ₹20)':'Campaign paused by PAVORA';
+ $('#pvInvInstall').textContent=approved+'/10 admin-approved referrals · '+installed+' installed-app signals';
+ $('#pvInvCashInfo').textContent=!data.campaign_enabled?'Cash campaign is paused. Referral counts continue, but new payouts are disabled.':approved<10?'You need '+(10-approved)+' more admin-approved referrals to unlock cash rewards.':inReview>0?'₹'+inReview.toFixed(2)+' payout request is under review. Available earnings are separate.':'₹2 per approved referral including first 10. Actual payments require manual review.';
+ eligibleForPayout=!!data.campaign_enabled&&approved>=10&&available>=20&&inReview===0;
  $('#pvInvPayout').disabled=!eligibleForPayout;
  currentId=u.id;
+ await loadHistory(client);
+}
+async function loadHistory(client){
+ const root=$('#pvInvHistory');root.textContent='Loading history…';
+ try{
+  const {data,error}=await client.rpc('pv_get_invite_history');if(error)throw error;
+  root.replaceChildren();
+  const refs=data?.referrals||[],pays=data?.payouts||[];
+  if(!refs.length&&!pays.length){root.textContent='No referral or payout history yet.';return}
+  const entries=[...refs.map(x=>({date:x.date,label:'Friend signup · '+(x.installed?'App opened':'Awaiting app open'),status:x.status})),...pays.map(x=>({date:x.created_at,label:'UPI payout ₹'+(Number(x.amount_paise)/100).toFixed(2),status:x.status+(x.reference?' · Ref '+x.reference:'')+(x.review_note?' · '+x.review_note:'')}))].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,80);
+  for(const x of entries){const row=document.createElement('div');row.className='invHistoryRow';const left=document.createElement('span');left.textContent=x.label+' · '+new Date(x.date).toLocaleDateString('en-IN');const right=document.createElement('span');right.textContent=x.status;row.append(left,right);root.append(row)}
+ }catch(err){root.textContent='History unavailable: '+(err.message||'Try again')}
 }
 async function show(){
  if(!user()){alert('Sign in to PAVORA to get your invite link.');return}
@@ -91,7 +107,7 @@ $('#pvInvCopy').onclick=async()=>{
  }catch(err){$('#pvInvStatus').textContent='Could not copy. Select the link above.'}
 };
 $('#pvInvPayout').onclick=async()=>{
- if(!eligibleForPayout){$('#pvInvStatus').textContent='Complete 10 qualifying referrals and reach ₹20 to request a payout.';return}
+ if(!eligibleForPayout){$('#pvInvStatus').textContent='Campaign must be active and you need 10 admin-approved referrals plus ₹20 earnings.';return}
  const upi=$('#pvInvUpi').value.trim();
  if(!/^[a-zA-Z0-9._-]{2,80}@[a-zA-Z]{2,30}$/.test(upi)){$('#pvInvStatus').textContent='Enter a valid UPI ID, e.g. name@upi.';return}
  if(!confirm('Submit a manual payout request for review? PAVORA must verify referrals and send the payment separately.'))return;
@@ -154,5 +170,5 @@ async function refreshLogin(){
 const authCheck=setInterval(()=>{if(db()&&user()){clearInterval(authCheck);refreshLogin()}},1300);
 setTimeout(()=>clearInterval(authCheck),60000);
 if(db())db().auth.onAuthStateChange((event,session)=>{setTimeout(refreshLogin,400)});
-window.PAVORA_INVITES={open:show,refresh:dashboard,version:'185'};
+window.PAVORA_INVITES={open:show,refresh:dashboard,version:'186'};
 })();
