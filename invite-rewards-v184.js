@@ -1,4 +1,4 @@
-/* PAVORA Invite & Earn v187 — referral click-to-signup funnel, reviewed rewards and wallet. */
+/* PAVORA Invite & Earn v189 — secure professional wallet, reviewed rewards and referral funnel. */
 (()=>{
 'use strict';
 if(window.PAVORA_INVITES)return;
@@ -35,6 +35,7 @@ css.textContent=[
 '#pvInvite184 .invLink{padding:13px;border:1px solid #f1e6ff70;background:#080c2d8c;border-radius:14px;overflow-wrap:anywhere;font-size:13px;color:#e9d9ff}',
 '#pvInvite184 .invActions{display:flex;gap:9px;margin-top:11px}#pvInvite184 .invActions button{flex:1;background:linear-gradient(135deg,#a679f4,#754bd4);border:1px solid #e9d7ff7e;color:#fff;border-radius:13px;padding:12px 9px;font-size:13px;font-weight:750;cursor:pointer}#pvInvite184 .invActions button:last-child{background:#ffffff22}',
 '#pvInvite184 .invHelp{font-size:11px;color:#d6c8e7;line-height:1.5;margin:14px 0 0}#pvInvite184 .invStatus{font-size:12px;color:#e9d9ff;min-height:17px;margin-top:10px}',
+'#pvInvite184 .pvWallet189{border:1px solid #d9c4ff8a;border-radius:19px;padding:14px;margin:15px 0;background:radial-gradient(circle at 10% 0%,#a47cff35,transparent 65%),#ffffff10}#pvInvite184 .pvWalletHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 11px}#pvInvite184 .pvWalletHead strong{font-size:16px}#pvInvite184 .pvWalletHead small{font-size:10px;color:#d9c8ed}#pvInvite184 .pvWalletGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}#pvInvite184 .pvWalletItem{border:1px solid #e5d4ff48;border-radius:13px;padding:11px;background:#14132d68}#pvInvite184 .pvWalletItem b{display:block;font-size:20px;color:#fff}#pvInvite184 .pvWalletItem small{display:block;font-size:11px;color:#dbc8f4}#pvInvite184 .pvWalletItem.pvWalletAvailable{border-color:#83d3ba8a;background:#31705f29}#pvInvite184 .pvWalletSub{font-size:11px;color:#e5d6f2;line-height:1.5;margin:12px 0}#pvInvite184 .pvWalletControls{display:flex;align-items:center;gap:9px;justify-content:space-between;flex-wrap:wrap;margin:12px 0 8px}#pvInvite184 .pvWalletControls strong{font-size:13px}#pvInvite184 .pvWalletControls select{border:1px solid #ceb8ee80;border-radius:9px;padding:7px;background:#221940;color:#fff;font-size:12px}#pvInvite184 .pvWalletHistory{max-height:220px;overflow:auto;border:1px solid #e9d7ff34;border-radius:12px;background:#080a1a55}#pvInvite184 .pvWalletRow{display:flex;align-items:center;gap:9px;justify-content:space-between;padding:10px;border-bottom:1px solid #ffffff1e}#pvInvite184 .pvWalletRow:last-child{border:0}#pvInvite184 .pvWalletRow span{display:block;color:#fff;font-size:12px}#pvInvite184 .pvWalletRow small{display:block;color:#cdbce6;font-size:10px;margin-top:3px}#pvInvite184 .pvWalletRow b{font-size:13px;white-space:nowrap}#pvInvite184 .pvWalletStatus{font-size:11px;color:#edddff;min-height:14px;margin:7px 0}',
 '#pvInvite184 .invFunnel{margin:13px 0;padding:13px;border:1px solid #e2c8ff69;border-radius:16px;background:#ffffff13}#pvInvite184 .invFunnel h3{font-size:14px;margin:0 0 9px}#pvInvite184 .invFunnelGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}#pvInvite184 .invFunnelGrid div{border-radius:12px;border:1px solid #e8dcff40;padding:9px 6px;text-align:center}#pvInvite184 .invFunnelGrid b{display:block;font-size:21px}#pvInvite184 .invFunnelGrid small{display:block;font-size:10px;color:#e9d7ff}#pvInvite184 .invFunnel p{font-size:11px;color:#e0d1f1;line-height:1.5;margin:9px 0 0}',
 '#pvInvite184 .invHistory{margin:14px 0;padding:12px;background:#ffffff10;border:1px solid #eed6ff60;border-radius:16px}#pvInvite184 .invHistory h3{margin:0 0 8px;font-size:14px}#pvInvite184 .invHistoryList{max-height:205px;overflow:auto;font-size:12px}#pvInvite184 .invHistoryRow{display:flex;justify-content:space-between;gap:7px;padding:8px 0;border-bottom:1px solid #ffffff22}#pvInvite184 .invHistoryRow:last-child{border:0}#pvInvite184 .invHistoryRow span:last-child{text-align:right;color:#e7d7fc}',
 '#pvInvite184 .invCash{padding:14px;border:1px solid #e2c7ff70;background:linear-gradient(135deg,#ad79ee30,#7e6fc220);border-radius:17px;margin:12px 0}#pvInvite184 .invCash h3{font-size:15px;margin:0 0 8px}#pvInvite184 .invCash .invAmount{font-size:28px;font-weight:800}#pvInvite184 .invCash .invInstall{font-size:12px;color:#e8dbff;margin:7px 0}#pvInvite184 .invCash .invPayoutNote{font-size:11px;color:#dfd1f2;line-height:1.5;margin:7px 0 10px}#pvInvite184 .invCash label{display:block;font-size:12px;margin:8px 0;color:#f2eaff}#pvInvite184 .invCash input{width:100%;padding:11px;border-radius:11px;background:#0a0b30;color:white;border:1px solid #e1cbff82;outline:none}#pvInvite184 .invCash button{width:100%;margin-top:9px;border:1px solid #eed8ff9a;border-radius:12px;background:linear-gradient(135deg,#a376ef,#704fbc);color:#fff;padding:11px;font-weight:750}#pvInvite184 .invCash button:disabled{opacity:.45;cursor:not-allowed}',
@@ -50,6 +51,7 @@ dialog.innerHTML='<div class="invCard" role="dialog" aria-modal="true" aria-labe
 '<div class="invStats"><div class="invMetric"><strong id="pvInvCount">0</strong><small>Verified friends joined</small></div><div class="invMetric"><strong id="pvInvNext">1</strong><small>Next badge at</small></div></div>'+
 '<div class="invFunnel"><h3>🔗 Invite link activity</h3><div class="invFunnelGrid"><div><b id="pvInvClicks">—</b><small>Link opens</small></div><div><b id="pvInvSignups">—</b><small>Verified signups</small></div><div><b id="pvInvOpened">—</b><small>App opened</small></div></div><p>Link opens are approximate sessions, not unique people. If somebody opens the link but never creates an ID, only link opens increase.</p></div>'+
 '<div class="invRewards"><div class="invReward" data-target="1"><b>✦</b><small>1 Friend</small></div><div class="invReward" data-target="5"><b>✧</b><small>5 Friends</small></div><div class="invReward" data-target="10"><b>✪</b><small>10 Friends</small></div><div class="invReward" data-target="25"><b>♛</b><small>25 Friends</small></div><div class="invReward" data-target="50"><b>★</b><small>50 Friends</small></div></div>'+
+'<section class="pvWallet189" aria-label="Professional Referral Wallet"><div class="pvWalletHead"><div><strong>💜 Professional Wallet</strong><small>Verified referral rewards · INR</small></div><span style="font-size:22px">◈</span></div><div class="pvWalletGrid"><div class="pvWalletItem"><small>⏳ Under review (estimate)</small><b id="pvWalletReview">₹0.00</b></div><div class="pvWalletItem"><small>🔒 Approved, locked</small><b id="pvWalletLocked">₹0.00</b></div><div class="pvWalletItem pvWalletAvailable"><small>✓ Available earnings</small><b id="pvWalletAvailable">₹0.00</b></div><div class="pvWalletItem"><small>↗ Payout requested</small><b id="pvWalletRequested">₹0.00</b></div><div class="pvWalletItem"><small>💸 Already paid</small><b id="pvWalletPaid">₹0.00</b></div><div class="pvWalletItem"><small>★ Approved referrals</small><b id="pvWalletApproved">0 / 10</b></div></div><p class="pvWalletSub" id="pvWalletHint">Loading wallet balances…</p><div class="pvWalletControls"><strong>Transaction history</strong><select id="pvWalletFilter" aria-label="Filter wallet transactions"><option value="all">All activity</option><option value="referral">Referrals</option><option value="payout">Payouts</option></select></div><div class="pvWalletHistory" id="pvWalletHistory">Loading transactions…</div><div class="pvWalletStatus" id="pvWalletStatus" role="status"></div></section>'+
 '<div class="invCash"><h3>💸 Referral Earnings</h3><div class="invAmount" id="pvInvCash">₹0.00</div><p class="invInstall" id="pvInvInstall">0/10 verified signups + app opens</p><p class="invPayoutNote" id="pvInvCashInfo">Unlock at 10 qualifying referrals. Earnings are subject to anti-fraud review; not automatically paid.</p><label for="pvInvUpi">UPI ID for manual payout request</label><input id="pvInvUpi" type="text" autocomplete="off" maxlength="100" placeholder="yourname@upi"/><button type="button" id="pvInvPayout" disabled>Request payout (minimum ₹20)</button></div>'+
 '<div class="invHistory"><h3>📋 Referral & payout history</h3><div id="pvInvHistory" class="invHistoryList">Loading history…</div></div>'+
 '<div class="invLink" id="pvInvLink">Preparing your personal invitation link…</div>'+
@@ -59,7 +61,7 @@ dialog.innerHTML='<div class="invCard" role="dialog" aria-modal="true" aria-labe
 '</div>';
 document.body.append(dialog);
 const $=selector=>dialog.querySelector(selector);
-let link='',currentId=null,opening=false,claimedFor='',modalBefore=null,eligibleForPayout=false;
+let link='',currentId=null,opening=false,claimedFor='',modalBefore=null,eligibleForPayout=false,walletTransactions=[];
 function syncBadges(count){
  $('#pvInvCount').textContent=String(count);
  const next=[1,5,10,25,50].find(n=>n>count);
@@ -70,6 +72,40 @@ function close(){dialog.hidden=true;if(modalBefore?.isConnected)modalBefore.focu
 $('.invClose').onclick=close;
 dialog.addEventListener('click',e=>{if(e.target===dialog)close()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!dialog.hidden)close()});
+const walletMoney=p=>'₹'+(Math.max(0,Number(p)||0)/100).toFixed(2);
+function renderWalletHistory(){
+ const root=$('#pvWalletHistory');root.replaceChildren();
+ const filter=$('#pvWalletFilter').value;
+ const entries=walletTransactions.filter(item=>filter==='all'||item.event_type===filter);
+ if(!entries.length){root.textContent='No transactions in this category yet.';return}
+ for(const item of entries){
+  const row=document.createElement('div');row.className='pvWalletRow';
+  const info=document.createElement('div');const title=document.createElement('span');
+  const kind=item.event_type==='payout'?'UPI payout request':'Referral reward';
+  title.textContent=kind;const sub=document.createElement('small');
+  sub.textContent=(item.status||'pending').replaceAll('_',' ')+' · '+new Date(item.event_at).toLocaleDateString('en-IN')+(item.payment_reference?' · Ref '+item.payment_reference:'')+(item.note?' · '+item.note:'');
+  info.append(title,sub);const amount=document.createElement('b');
+  amount.textContent=item.event_type==='payout'?'−'+walletMoney(Math.abs(Number(item.amount_paise)||0)):(item.status==='approved'?'+'+walletMoney(item.amount_paise):'Pending');
+  row.append(info,amount);root.append(row);
+ }
+}
+$('#pvWalletFilter').addEventListener('change',renderWalletHistory);
+async function loadProfessionalWallet(client){
+ $('#pvWalletStatus').textContent='Updating secure wallet…';
+ try{
+  const {data,error}=await client.rpc('pv_referral_wallet_v189');if(error)throw error;
+  $('#pvWalletReview').textContent=walletMoney(data.pending_review_estimate_paise);
+  $('#pvWalletLocked').textContent=walletMoney(data.approved_locked_paise);
+  $('#pvWalletAvailable').textContent=walletMoney(data.available_paise);
+  $('#pvWalletRequested').textContent=walletMoney(data.payout_requested_paise);
+  $('#pvWalletPaid').textContent=walletMoney(data.paid_paise);
+  $('#pvWalletApproved').textContent=String(data.approved_referrals||0)+' / 10';
+  $('#pvWalletHint').textContent=!data.campaign_enabled?'Cash campaign is paused. Rewards are provisional and new payout requests are disabled.':Number(data.approved_referrals)<10?'Approved rewards unlock at 10 approved referrals. Under-review estimates are not guaranteed earnings.':'Available balance is eligible for a manual payout request from ₹20. Sending UPI money still requires separate owner review.';
+  walletTransactions=Array.isArray(data.history)?data.history:[];
+  renderWalletHistory();
+  $('#pvWalletStatus').textContent='Wallet updated · '+new Date().toLocaleTimeString('en-IN');
+ }catch(err){$('#pvWalletStatus').textContent='Unable to load wallet: '+(err.message||err)}
+}
 async function dashboard(){
  const client=db(),u=user();
  if(!client||!u)return;
@@ -90,7 +126,7 @@ async function dashboard(){
  eligibleForPayout=!!data.campaign_enabled&&approved>=10&&available>=20&&inReview===0;
  $('#pvInvPayout').disabled=!eligibleForPayout;
  currentId=u.id;
- await Promise.all([loadHistory(client),loadFunnel(client)]);
+ await Promise.all([loadHistory(client),loadFunnel(client),loadProfessionalWallet(client)]);
 }
 async function loadFunnel(client){
  try{
@@ -193,5 +229,5 @@ async function refreshLogin(){
 const authCheck=setInterval(()=>{if(db()&&user()){clearInterval(authCheck);refreshLogin()}},1300);
 setTimeout(()=>clearInterval(authCheck),60000);
 if(db())db().auth.onAuthStateChange((event,session)=>{setTimeout(refreshLogin,400)});
-window.PAVORA_INVITES={open:show,refresh:dashboard,version:'187'};
+window.PAVORA_INVITES={open:show,refresh:dashboard,version:'189'};
 })();
