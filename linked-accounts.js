@@ -2,7 +2,8 @@
 (() => {
   'use strict';
   const top = document.querySelector('.top');
-  if (!top || !window.supabase) return;
+  const db = window.PAVORA_AI_DB;
+  if (!top || !db) return;
   const button = document.createElement('button');
   button.id = 'pvManageIds';
   button.className = 'secondary';
