@@ -38,9 +38,15 @@
       <p id="pvIdsStatus" role="status" aria-live="polite"></p>
     </section>`;
   document.body.append(layer);
+  // Supabase's recovery link authenticates the owner; they must still choose a new password.
+  const recovery = document.createElement('div');
+  recovery.id = 'pvOwnerRecovery';
+  recovery.hidden = true;
+  recovery.innerHTML = `<form id="pvOwnerRecoveryForm" class="pvIdsCard" role="dialog" aria-modal="true" aria-labelledby="pvRecoveryHeading"><h2 id="pvRecoveryHeading">Set your new password</h2><p class="pvIdsHelp">Set a new password for your original email account. Then use My IDs to reset any extra ID.</p><label>New password<input name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label><label>Confirm password<input name="confirm" type="password" minlength="8" maxlength="128" autocomplete="new-password" required></label><button type="submit">Save new password</button><p id="pvOwnerRecoveryMessage" role="status"></p></form>`;
+  document.body.append(recovery);
   const style = document.createElement('style');
   style.textContent = `
-    #pvManageIds[hidden],#pvIdsOverlay[hidden],#pvIdsCreate[hidden]{display:none!important}
+    #pvManageIds[hidden],#pvIdsOverlay[hidden],#pvIdsCreate[hidden],#pvOwnerRecovery[hidden]{display:none!important}
     #pvIdsOverlay{position:fixed;inset:0;background:#171020b8;z-index:1002;display:grid;place-items:center;padding:14px}
     .pvIdsCard{width:min(480px,100%);max-height:92dvh;overflow:auto;position:relative;background:#fff;color:#231a30;border-radius:24px;padding:24px;box-shadow:0 20px 70px #0005;font-family:system-ui,sans-serif}
     .pvIdsCard h2{font-size:23px;margin:0 40px 8px 0}.pvIdsCard h3{font-size:17px;margin:20px 0 12px}.pvIdsHelp{font-size:12px;color:#615a6e;line-height:1.5}
@@ -50,6 +56,10 @@
     .pvIdsCard form button{background:#7948da;color:#fff;border:0;border-radius:12px;padding:12px;font-weight:750}
     .pvIdsCard button:disabled{opacity:.6}.pvIdsRow{padding:8px 0;border-bottom:1px solid #eee7f3}
     #pvIdsStatus{font-size:13px;font-weight:700;color:#6340a7;min-height:20px}
+    #pvOwnerRecovery{position:fixed;inset:0;background:#171020d9;z-index:1100;display:grid;place-items:center;padding:14px}
+    #pvOwnerRecoveryForm{display:grid;gap:12px}#pvOwnerRecoveryForm label{display:grid;gap:6px;font-size:13px;font-weight:700}
+    #pvOwnerRecoveryForm input{padding:12px;border:1px solid #d5cae0;border-radius:11px;color:#171020;background:#fff}
+    #pvOwnerRecoveryForm button{background:#7948da;color:#fff;border:0;border-radius:11px;padding:12px}
   `;
   document.head.append(style);
 
@@ -98,12 +108,33 @@
     } catch (error) { status.textContent = error.message; }
     finally { submit.disabled = false; }
   });
+  recovery.querySelector('form').onsubmit = async event => {
+    event.preventDefault();
+    const form = event.target;
+    const password = form.elements.password.value;
+    const message = recovery.querySelector('#pvOwnerRecoveryMessage');
+    if (password !== form.elements.confirm.value) { message.textContent = 'Passwords do not match.'; return; }
+    const submit = form.querySelector('button');
+    submit.disabled = true;
+    message.textContent = 'Updating password…';
+    try {
+      const { error } = await db.auth.updateUser({ password });
+      if (error) throw error;
+      form.reset();
+      recovery.hidden = true;
+      alert('Your original email password has been updated. You can now manage other IDs.');
+    } catch (error) { message.textContent = error.message || 'Could not update password.'; }
+    finally { submit.disabled = false; }
+  };
   function updateVisibility(session) {
     currentUser = session?.user || null;
     const email = currentUser?.email || '';
     button.hidden = !email || email.endsWith('.invalid');
     if (!currentUser) layer.hidden = true;
   }
-  db.auth.onAuthStateChange((_event, session) => { updateVisibility(session); });
+  db.auth.onAuthStateChange((event, session) => {
+    updateVisibility(session);
+    if (event === 'PASSWORD_RECOVERY') recovery.hidden = false;
+  });
   db.auth.getSession().then(({ data }) => updateVisibility(data.session)).catch(() => {});
 })();
